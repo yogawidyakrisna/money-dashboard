@@ -12,17 +12,17 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Money</title>
 <style>
-  /* iOS system colors and grouped-list layout (Human Interface Guidelines). */
+  /* iOS system colors, grouped lists, one clear number per screen. */
   :root {
     --bg: #f2f2f7; --cell: #ffffff; --label: #000000; --label2: rgba(60,60,67,.6); --label3: rgba(60,60,67,.3);
     --sep: rgba(60,60,67,.29); --fill: rgba(120,120,128,.16); --tint: #007aff; --green: #34c759; --red: #ff3b30;
-    --orange: #ff9500; --bar: rgba(249,249,249,.94); --sheet: #f2f2f7;
+    --orange: #ff9500; --bar: rgba(249,249,249,.94); --sheet: #f2f2f7; --tint-soft: rgba(0,122,255,.12);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #000000; --cell: #1c1c1e; --label: #ffffff; --label2: rgba(235,235,245,.6); --label3: rgba(235,235,245,.3);
       --sep: rgba(84,84,88,.65); --fill: rgba(120,120,128,.32); --tint: #0a84ff; --green: #30d158; --red: #ff453a;
-      --orange: #ff9f0a; --bar: rgba(22,22,24,.94); --sheet: #1c1c1e;
+      --orange: #ff9f0a; --bar: rgba(22,22,24,.94); --sheet: #1c1c1e; --tint-soft: rgba(10,132,255,.2);
     }
     .sheet .group { background: #2c2c2e; }
   }
@@ -32,52 +32,51 @@
   button, input, select { font: inherit; color: inherit; }
   .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .screen { max-width: 600px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 10px) 0 calc(env(safe-area-inset-bottom) + 96px); }
-  .title-row { display: flex; align-items: flex-end; justify-content: space-between; padding: 0 16px; }
+  .title-row { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
   .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: .37px; margin: 0; }
+  .pill { display: inline-block; font-size: 15px; font-weight: 600; padding: 5px 12px; border-radius: 16px; background: var(--tint-soft); color: var(--tint); }
   .subtitle { color: var(--label2); font-size: 15px; padding: 2px 16px 0; }
-  .cycle-nav { display: flex; gap: 6px; padding-bottom: 5px; }
-  .cycle-nav button { border: 0; background: var(--fill); color: var(--tint); width: 32px; height: 32px; border-radius: 16px; font-size: 19px; line-height: 1; }
-  .cycle-nav button:disabled { color: var(--label3); }
-  .section { margin: 22px 16px 0; }
-  .header { display: flex; justify-content: space-between; font-size: 13px; color: var(--label2); letter-spacing: -.08px; padding: 0 16px 7px; }
+  .section { margin: 20px 16px 0; }
+  .header { display: flex; justify-content: space-between; font-size: 13px; color: var(--label2); padding: 0 16px 7px; }
   .header > span:first-child { text-transform: uppercase; }
   .footnote { font-size: 13px; color: var(--label2); padding: 7px 16px 0; line-height: 1.35; }
-  .group { background: var(--cell); border-radius: 10px; overflow: hidden; }
-  .cell { position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 11px 16px; color: inherit; }
+  .group { background: var(--cell); border-radius: 12px; overflow: hidden; }
+  .cell { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px 16px; color: inherit; text-decoration: none; }
   .cell + .cell::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; border-top: .5px solid var(--sep); }
-  .cell.tap { cursor: pointer; }
-  .cell.tap:active { background: var(--fill); }
-  .cell .main { flex: 1; min-width: 0; }
-  .cell .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tap { cursor: pointer; }
+  .tap:active { background: var(--fill); }
+  .main { flex: 1; min-width: 0; }
+  .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s { font-size: 15px; color: var(--label2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wrap { white-space: normal; line-height: 1.35; }
-  .cell .s { font-size: 15px; color: var(--label2); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cell .s.wrap { white-space: normal; }
   .d { color: var(--label2); }
   .chev { color: var(--label3); font-size: 22px; line-height: 1; margin-left: -4px; }
-  .link { color: var(--tint); text-decoration: none; }
+  .link { color: var(--tint); }
   .red { color: var(--red); } .green { color: var(--green); } .orange { color: var(--orange); } .muted { color: var(--label2); }
-  .hero { padding: 16px; }
+  .hero { padding: 18px 16px 16px; }
   .hero .k { font-size: 15px; color: var(--label2); }
-  .hero .v { font-size: 34px; font-weight: 700; letter-spacing: .3px; margin: 2px 0; font-variant-numeric: tabular-nums; }
-  svg.spark { width: 100%; height: 40px; display: block; margin-top: 10px; }
-  .icon { width: 29px; height: 29px; border-radius: 7px; display: grid; place-items: center; flex: none; color: #fff; }
-  .icon svg { width: 17px; height: 17px; }
-  .progress { height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; margin-top: 8px; }
-  .progress > div { height: 100%; border-radius: 2px; background: var(--tint); }
-  .progress > .warn { background: var(--orange); } .progress > .over { background: var(--red); }
+  .hero .v { font-size: 40px; font-weight: 700; letter-spacing: .2px; margin: 2px 0 2px; font-variant-numeric: tabular-nums; }
+  .hero .v small { font-size: 22px; font-weight: 600; color: var(--label2); }
+  .progress { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; margin-top: 10px; }
+  .progress > div { height: 100%; border-radius: 3px; background: var(--tint); }
+  .progress > .warn { background: var(--orange); } .progress > .over { background: var(--red); } .progress > .done { background: var(--green); }
+  .next { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--tint); color: #fff; border-radius: 12px; cursor: pointer; }
+  .next .main div:last-child { opacity: .85; font-size: 15px; margin-top: 2px; }
+  .next.done { background: var(--cell); color: var(--label); cursor: default; }
+  .icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; color: #fff; font-weight: 700; font-size: 15px; }
+  .icon svg { width: 18px; height: 18px; }
   .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 6px; border-radius: 5px; margin-left: 6px; vertical-align: 2px; background: rgba(255,149,0,.18); color: var(--orange); }
-  .chip.gray { background: var(--fill); color: var(--label2); }
-  .struck { text-decoration: line-through; opacity: .55; }
-  .empty { color: var(--label2); text-align: center; padding: 40px 24px; font-size: 15px; }
+  .empty { color: var(--label2); text-align: center; padding: 36px 24px; font-size: 15px; }
   .segment { display: flex; background: var(--fill); border-radius: 9px; padding: 2px; margin: 14px 16px 0; }
-  .segment button { flex: 1; border: 0; background: none; padding: 6px 0; border-radius: 7px; font-size: 13px; font-weight: 600; }
+  .segment button { flex: 1; border: 0; background: none; padding: 7px 0; border-radius: 7px; font-size: 13px; font-weight: 600; }
   .segment button.on { background: var(--cell); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); }
   .status { text-align: center; color: var(--label2); font-size: 12px; margin-top: 16px; min-height: 15px; }
   .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: .5px solid var(--sep); padding-bottom: env(safe-area-inset-bottom); }
   .tabbar .in { max-width: 600px; margin: 0 auto; display: flex; height: 49px; }
-  .tabbar button { flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 500; color: #999; }
+  .tabbar button { position: relative; flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 500; color: #999; }
   .tabbar button.on { color: var(--tint); }
   .tabbar svg { width: 25px; height: 25px; }
+  .badge { position: absolute; top: 3px; left: 50%; margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 12px; font-weight: 600; line-height: 18px; }
   .sheet-bg { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.4); display: none; align-items: flex-end; justify-content: center; }
   .sheet { background: var(--sheet); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; border-radius: 12px 12px 0 0; padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
   .sheet-bar { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 16px 10px; background: var(--sheet); }
@@ -90,16 +89,19 @@
   .field select { direction: rtl; }
   .field input:focus { outline: none; color: var(--label); }
   .err { color: var(--red); font-size: 13px; padding: 7px 16px 0; min-height: 20px; }
-  .btn { display: block; width: 100%; border: 0; border-radius: 12px; background: var(--tint); color: #fff; font-weight: 600; padding: 14px; }
-  .shot { width: 100%; display: block; border-radius: 10px; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 12px; background: var(--tint); color: #fff; font-weight: 600; padding: 15px; cursor: pointer; }
+  .btn.green { background: var(--green); }
+  .btn.plain { background: var(--cell); color: var(--tint); }
+  .big-amount { text-align: center; font-size: 34px; font-weight: 700; padding: 6px 16px 0; font-variant-numeric: tabular-nums; }
+  .shot { width: 100%; display: block; border-radius: 12px; }
 </style>
 </head>
 <body>
 <div id="app"><p class="status" style="padding-top:40vh">Loading…</p></div>
 <nav class="tabbar"><div class="in">
-  <button data-tab="summary"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 2.05A10 10 0 1 0 21.95 13H11z"/><path d="M13 2.05V11h8.95A10 10 0 0 0 13 2.05z" opacity=".55"/></svg>Summary</button>
-  <button data-tab="transactions"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><rect x="9" y="5" width="12" height="2" rx="1"/><rect x="9" y="11" width="12" height="2" rx="1"/><rect x="9" y="17" width="12" height="2" rx="1"/></svg>Transactions</button>
-  <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Activity</button>
+  <button data-tab="home"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.5 11h2.7v9h5.3v-5.5h3V20h5.3v-9h2.7z"/></svg>Home</button>
+  <button data-tab="transactions"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><rect x="9" y="5" width="12" height="2" rx="1"/><rect x="9" y="11" width="12" height="2" rx="1"/><rect x="9" y="17" width="12" height="2" rx="1"/></svg>Spending</button>
+  <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Activity<span class="badge" id="badge" hidden></span></button>
 </div></nav>
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
 <script>
@@ -110,19 +112,29 @@ const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } cat
 if (params.get('k')) store.set('money:key', params.get('k'));
 const KEY = params.get('k') || store.get('money:key');
 
-const S = { tab: store.get('money:tab') || 'summary', data: store.get('money:dash'), activity: store.get('money:activity'), cycle: null,
-  filter: 'all', loading: false, error: '', at: 0 };
+const S = { tab: (store.get('money:tab') === 'summary' ? 'home' : store.get('money:tab')) || 'home', data: store.get('money:dash'),
+  activity: store.get('money:activity'), cycle: null, filter: null, showAll: false, loading: false, error: '', at: 0 };
 let poll = null;
 
+// Money: full for details, short everywhere else (no walls of zeros).
 const rp = n => (n < 0 ? '−' : '') + 'Rp' + String(Math.abs(Math.round(n || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const rs = n => {
+  const v = Math.abs(Math.round(n || 0)), sign = n < 0 ? '−' : '', dec = x => (Math.round(x * 10) / 10).toString().replace('.', ',');
+  if (v >= 1e9) return sign + 'Rp' + dec(v / 1e9) + ' M';
+  if (v >= 1e6) return sign + 'Rp' + dec(v / 1e6) + ' jt';
+  if (v >= 1e3) return sign + 'Rp' + Math.round(v / 1e3) + ' rb';
+  return sign + 'Rp' + v;
+};
+const shorten = text => String(text || '').replace(/Rp\s?(\d{1,3}(?:\.\d{3})+)(?:,\d+)?/g, (_, n) => rs(Number(n.replace(/\./g, ''))));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ago = ms => { if (!ms) return 'No balance yet'; const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'Updated today' : d === 1 ? 'Updated yesterday' : 'Updated ' + d + ' days ago'; };
+const ago = ms => { if (!ms) return 'No balance yet'; const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : d + ' days ago'; };
 const when = ms => new Date(ms).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const paydayLabel = d => new Date(d.cycle.nextStart + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' });
 const ICON = {
   spark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>',
   ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-  dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   warn: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="10.4" y="3.5" width="3.2" height="11.5" rx="1.6"/><circle cx="12" cy="19.2" r="1.9"/></svg>',
+  dup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
   none: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg>',
 };
 
@@ -148,7 +160,7 @@ async function load() {
     clearTimeout(poll);
     if (d.reports.pending.length && document.visibilityState === 'visible') poll = setTimeout(load, 15000);
   } catch (e) {
-    S.error = e.message === 'Failed to fetch' || e.message === 'Load failed' ? 'Offline. Showing your last numbers.' : e.message;
+    S.error = e.message === 'Failed to fetch' || e.message === 'Load failed' ? 'Offline · showing your last numbers' : e.message;
   } finally { S.loading = false; status(); }
 }
 
@@ -157,133 +169,143 @@ function status() {
   if (el) el.textContent = S.error || (S.loading ? 'Updating…' : S.at ? 'Updated ' + new Date(S.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
 }
 
-// ---------- Summary ----------
+// ---------- Home ----------
 
-function spark(trend) {
-  if (!trend || trend.length < 2) return '';
-  const v = trend.map(t => t.total), lo = Math.min(...v), span = Math.max(...v) - lo || 1;
-  const pts = trend.map((t, i) => (i / (trend.length - 1) * 100).toFixed(2) + ',' + (36 - (t.total - lo) / span * 32).toFixed(2)).join(' ');
-  return `<svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--tint)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
+function nextStep(d) {
+  const n = d.improve ? d.improve.items.length : 0;
+  if (d.budgets.state === 'proposed' && d.cycle.isCurrent) return { act: 'plan', title: 'Approve your budget', sub: 'About 1 minute · your CFO already filled it in' };
+  if (d.toCheck) return { act: 'review', title: `Check ${d.toCheck} transaction${d.toCheck === 1 ? '' : 's'}`, sub: 'About 1 minute · tap "Looks right" or fix it' };
+  if (n) return { act: 'gotoImprove', title: `Send ${n} note${n === 1 ? '' : 's'} to Claude`, sub: 'About 1 minute · copy, then paste in Claude Code' };
+  const stale = d.netWorth.accounts.filter(a => !a.hasSnapshot && a.name !== 'Cash');
+  if (stale.length) return { act: '', title: `Screenshot your ${stale[0].name} balance`, sub: 'So your total is complete' };
+  return null;
 }
 
-function summary(d) {
-  const nw = d.netWorth, known = nw.accounts.filter(a => a.hasSnapshot), r = d.reports, b = d.budgets;
+function home(d) {
+  const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
+  const used = sp.limit ? Math.round((sp.limit - sp.left) / sp.limit * 100) : 0;
+  const rows = b.rows.filter(x => x.limit > 0 || x.spent > 0);
+  const shown = S.showAll ? rows : rows.slice(0, 5);
   const writing = r.pending.length;
   const newest = r.weekly && !r.weekly.pending && !r.weekly.error && r.weekly.created_at > ((r.monthly && r.monthly.created_at) || 0) ? 'weekly' : 'monthly';
   const canOpen = r[newest] && !r[newest].pending && !r[newest].error;
-  const budgetRows = b.rows.map(x => {
-    const cls = x.pct === null ? '' : x.pct > 100 ? 'over' : x.pct >= 80 ? 'warn' : '';
-    return `<div class="cell tap" data-act="cat"><div class="main">
-      <div class="field"><span class="t">${esc(x.category)}</span><span class="num d">${rp(x.spent)}${x.limit ? ' of ' + rp(x.limit) : ''}</span></div>
-      ${x.limit ? `<div class="progress"><div class="${cls}" style="width:${Math.min(100, Math.max(2, x.pct))}%"></div></div>` : ''}
-    </div></div>`;
-  }).join('');
   return `
-  <div class="title-row"><h1 class="large-title">Money</h1>
-    <div class="cycle-nav"><button data-act="prev" aria-label="Previous cycle">‹</button><button data-act="next" aria-label="Next cycle" ${d.cycle.isCurrent ? 'disabled' : ''}>›</button></div></div>
-  <div class="subtitle">${esc(d.cycle.label)} · ${d.cycle.isCurrent ? d.cycle.daysLeft + ' days to payday' : 'past cycle'}</div>
+  <div class="title-row"><h1 class="large-title">Money</h1>${d.cycle.isCurrent ? `<span class="pill">${d.cycle.daysLeft} days to payday</span>` : `<span class="pill">${esc(d.cycle.label)}</span>`}</div>
 
   <div class="section"><div class="group"><div class="hero">
-    <div class="k">Net worth</div>
-    <div class="v">${known.length ? rp(nw.total) : '—'}</div>
-    <div class="k">${known.length ? (nw.runwayMonths !== null ? 'Covers about ' + String(nw.runwayMonths).replace('.', ',') + ' months of spending' : known.length + ' of ' + nw.accounts.length + ' accounts known') : 'Screenshot a balance screen to start'}</div>
-    ${spark(nw.trend)}
+    ${sp.perDay !== null ? `
+      <div class="k">You can spend</div>
+      <div class="v">${rs(sp.perDay)} <small>a day</small></div>
+      <div class="k">${sp.left >= 0 ? rs(sp.left) + ' left until payday (' + paydayLabel(d) + ')' : '<span class="red">' + rs(-sp.left) + ' over budget</span>'}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>
+      <div class="progress"><div class="${used > 100 ? 'over' : used >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, used))}%"></div></div>`
+    : `<div class="k">Spent this cycle</div><div class="v">${rs(d.spent)}</div><div class="k">${d.cycle.isCurrent ? 'Approve a budget to see your daily limit' : esc(d.cycle.label)}</div>`}
   </div></div></div>
+
+  <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
+    : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>
 
   ${r.advice || writing ? `<div class="section"><div class="group"><div class="cell ${canOpen ? 'tap' : ''}" data-act="${canOpen ? 'report' : ''}" data-id="${newest}">
     <div class="icon" style="background:var(--tint)">${ICON.spark}</div>
-    <div class="main"><div class="s" style="margin:0 0 2px">Your CFO</div><div class="wrap">${r.advice ? esc(r.advice) : 'Looking at your numbers…'}</div>
-      ${writing ? '<div class="s">Writing a new report…</div>' : ''}</div>
+    <div class="main"><div class="wrap">${r.advice ? esc(shorten(r.advice)) : 'Your CFO is looking at your numbers…'}</div>${writing ? '<div class="s">Writing a new report…</div>' : ''}</div>
     ${canOpen ? '<span class="chev">›</span>' : ''}</div></div></div>` : ''}
 
-  <div class="section"><div class="header"><span>This cycle</span></div><div class="group">
-    <div class="cell"><div class="main">Spent</div><span class="num d">${rp(d.spent)}</span></div>
-    <div class="cell"><div class="main">Income</div><span class="num d">${rp(d.income)}</span></div>
-    <div class="cell"><div class="main">${d.saved < 0 ? 'Overspent' : 'Saved'}</div><span class="num ${d.saved < 0 ? 'red' : 'green'}">${rp(Math.abs(d.saved))}</span></div>
-    ${d.untracked < 0 ? `<div class="cell"><div class="main">Untracked spending</div><span class="num orange">${rp(-d.untracked)}</span></div>` : ''}
-  </div>${d.cycle.isCurrent && d.spent ? `<div class="footnote">At this pace you'll spend about ${rp(d.projected)} by payday.</div>` : ''}</div>
-
-  <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? 'Approved' : ''}</span></div><div class="group">
-    ${b.state === 'proposed' ? `<div class="cell tap" data-act="plan"><div class="main"><div class="link">Review proposed budget</div><div class="s">Your CFO suggested limits for this cycle</div></div><span class="chev">›</span></div>` : ''}
-    ${b.state === 'none' ? (r.pending.includes('monthly') ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>'
-      : d.cycle.isCurrent ? '<div class="cell tap" data-act="ask" data-id="monthly"><div class="main link">Ask the CFO for a budget</div></div>' : '<div class="cell"><div class="main muted">No budget for this cycle</div></div>') : ''}
-    ${b.state !== 'proposed' ? budgetRows : ''}
-    ${b.emergency && b.state !== 'proposed' ? `<div class="cell"><div class="main"><div class="field"><span>Emergency fund</span><span class="num d">${rp(b.emergency.amount)}</span></div><div class="s">Set aside this cycle · saved so far ${rp(Math.max(0, d.saved))}</div></div></div>` : ''}
-    ${b.state === 'approved' && d.cycle.isCurrent ? '<div class="cell tap" data-act="plan"><div class="main link">Edit budget</div></div>' : ''}
+  <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? '✓ Approved' : b.state === 'proposed' ? 'Not approved yet' : ''}</span></div><div class="group">
+    ${rows.length ? shown.map(x => {
+      const fixedCat = (d.fixed || []).some(f => f.category === x.category);
+      const paid = fixedCat && x.limit && x.spent >= x.limit && x.spent <= x.limit * 1.02;
+      const over = x.limit && x.spent > x.limit && !paid, pct = x.limit ? Math.round(x.spent / x.limit * 100) : null;
+      const label = paid ? '✓ Paid' : x.limit ? (over ? rs(x.spent - x.limit) + ' over' : rs(x.limit - x.spent) + ' left') : rs(x.spent) + ' spent';
+      return `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}"><div class="main">
+        <div class="field"><span class="t">${esc(x.category)}</span><span class="num ${paid ? 'green' : over ? 'red' : 'd'}">${label}</span></div>
+        ${x.limit ? `<div class="progress"><div class="${paid ? 'done' : over ? 'over' : pct >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, pct))}%"></div></div>` : ''}
+      </div></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
+    ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
+    ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.includes('monthly') ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask" data-id="monthly"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
+    ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
 
-  <div class="section"><div class="header"><span>Accounts</span></div><div class="group">
-    ${nw.accounts.map(a => `<div class="cell"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rp(a.balance) : '—'}</span></div>`).join('')}
-  </div><div class="footnote">Screenshot an account's balance screen any time to correct it.</div></div>
+  ${d.fixed && d.fixed.length ? `<div class="section"><div class="header"><span>Fixed every month</span><span>${rs(d.fixed.reduce((s, f) => s + f.amount, 0))}</span></div><div class="group">
+    ${d.fixed.map(f => `<div class="cell"><div class="main"><div class="t">${esc(f.label.replace(/\s*\(.*\)$/, ''))}</div><div class="s">${esc(f.category)}</div></div>
+      <span class="num ${f.paid >= f.amount ? 'green' : 'd'}">${f.paid >= f.amount ? '✓ ' : ''}${rs(f.amount)}</span></div>`).join('')}
+  </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
+
+  <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
+    ${nw.accounts.map(a => `<div class="cell"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
+  </div>${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
 
   <div class="section"><div class="header"><span>Reports</span></div><div class="group">
-    ${reportRow(r.monthly, 'Pay-cycle report', 'monthly', d)}
-    ${reportRow(r.weekly, 'Weekly check-in', 'weekly', d)}
+    ${reportRow(r.monthly, 'Pay-cycle plan', 'monthly', d)}${reportRow(r.weekly, 'Weekly check-in', 'weekly', d)}
   </div></div>
 
   <div class="section"><div class="group">
-    <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export transactions (CSV)</a>
+    <div class="cell tap" data-act="prev"><div class="main link">See last cycle</div></div>
+    ${!d.cycle.isCurrent ? '<div class="cell tap" data-act="current"><div class="main link">Back to this cycle</div></div>' : ''}
+    <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export to Excel (CSV)</a>
     <div class="cell tap" data-act="copy"><div class="main link">Copy Shortcut URL</div></div>
-  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(3)} · ${d.screenshots} screenshots</div></div>`;
+  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>`;
 }
 
 function reportRow(r, label, kind, d) {
-  if (!r) return d.cycle.isCurrent ? `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s">${kind === 'weekly' ? 'Arrives Sunday evening · tap to ask now' : 'Tap to ask now'}</div></div><span class="chev">›</span></div>` : '';
+  if (!r) return d.cycle.isCurrent ? `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s">${kind === 'weekly' ? 'Comes Sunday evening · tap to get it now' : 'Tap to get it now'}</div></div><span class="chev">›</span></div>` : '';
   if (r.pending) return `<div class="cell"><div class="main"><div>${label}</div><div class="s">Writing…</div></div></div>`;
-  if (r.error) return `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s red">Failed · tap to try again</div></div></div>`;
-  return `<div class="cell tap" data-act="report" data-id="${kind}"><div class="main"><div class="t">${label}</div><div class="s">${esc(r.title)}</div></div><span class="d" style="font-size:15px">${new Date(r.created_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span><span class="chev">›</span></div>`;
+  if (r.error) return `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s red">Didn't work · tap to try again</div></div></div>`;
+  return `<div class="cell tap" data-act="report" data-id="${kind}"><div class="main"><div class="t">${label}</div><div class="s">${esc(shorten(r.title))}</div></div><span class="chev">›</span></div>`;
 }
 
-// ---------- Transactions ----------
+// ---------- Spending ----------
 
 function txRow(t, sub, act) {
-  const sign = t.direction === 'in' ? 'green' : t.direction === 'transfer' ? 'muted' : '';
-  const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rp(t.amount);
-  const chip = t.status === 'ok' ? '' : `<span class="chip ${t.status === 'check' ? '' : 'gray'}">${t.status === 'duplicate?' ? 'duplicate' : esc(t.status)}</span>`;
+  const color = t.direction === 'in' ? 'green' : t.direction === 'transfer' ? 'muted' : '';
+  const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rs(t.amount);
+  const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">check</span>' : '';
   return `<div class="cell ${act ? 'tap' : ''}" data-act="${act || ''}" data-id="${t.id}"><div class="main">
     <div class="t">${esc(t.merchant || t.category)}${chip}</div><div class="s">${esc(sub)}</div></div>
-    <span class="num ${sign} ${t.status === 'ignore' || t.status === 'duplicate?' ? 'struck' : ''}">${amount}</span></div>`;
+    <span class="num ${color}">${amount}</span></div>`;
 }
+const txSub = t => t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account;
 
 function transactions(d) {
-  const review = t => t.status === 'check' || t.status === 'duplicate?';
-  const days = d.days.map(g => ({ ...g, txs: S.filter === 'review' ? g.txs.filter(review) : g.txs })).filter(g => g.txs.length);
-  const count = d.days.reduce((n, g) => n + g.txs.filter(review).length, 0);
-  return `<div class="title-row"><h1 class="large-title">Transactions</h1></div>
-    <div class="subtitle">${esc(d.cycle.label)}</div>
-    ${count ? `<div class="segment"><button data-act="filter" data-id="all" class="${S.filter === 'all' ? 'on' : ''}">All</button><button data-act="filter" data-id="review" class="${S.filter === 'review' ? 'on' : ''}">Needs Review (${count})</button></div>` : ''}
-    ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span><span class="num">${g.spent ? rp(-g.spent) : ''}</span></div>
-      <div class="group">${g.txs.map(t => txRow(t, (t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account) + ' · ' + t.time, 'edit')).join('')}</div></div>`).join('')
-      : `<div class="empty">${S.filter === 'review' ? 'Nothing needs review.' : 'Double-tap the back of your iPhone on a receipt to log your first transaction.'}</div>`}
-    <div class="footnote" style="padding-top:12px">Tap a transaction to fix it. "Duplicate" and "ignore" don't count toward your balances.</div>`;
+  const keep = t => !S.filter || (S.filter === 'review' ? t.status === 'check' && !t.reviewed : t.category === S.filter);
+  const days = d.days.map(g => ({ ...g, txs: g.txs.filter(keep) })).filter(g => g.txs.length);
+  const total = days.reduce((s, g) => s + g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0), 0);
+  return `<div class="title-row"><h1 class="large-title">${S.filter && S.filter !== 'review' ? esc(S.filter) : 'Spending'}</h1>${S.filter ? '<span class="pill tap" data-act="clearFilter">Show all ✕</span>' : ''}</div>
+    <div class="subtitle">${rs(total)} spent · ${esc(d.cycle.label)}</div>
+    ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span><span class="num">${g.txs.some(t => t.spending) ? rs(g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0)) : ''}</span></div>
+      <div class="group">${g.txs.map(t => txRow(t, txSub(t) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}</div></div>`).join('')
+      : `<div class="empty">${S.filter === 'review' ? 'Nothing to check.' : 'Nothing here yet. Double-tap the back of your iPhone on a receipt.'}</div>`}
+    <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>`;
 }
 
 // ---------- Activity ----------
 
 function activityInfo(a) {
-  if (a.status === 'error') return { icon: ICON.warn, color: 'var(--red)', sub: 'Error' };
-  if (a.status === 'duplicate') return { icon: ICON.dup, color: '#8e8e93', sub: 'Same screenshot as before' };
+  if (a.status === 'error') return { icon: ICON.warn, color: 'var(--red)', sub: "Couldn't read" };
+  if (a.status === 'duplicate') return { icon: ICON.dup, color: '#8e8e93', sub: 'Sent before · ignored' };
   if (a.status === 'dry_run') return { icon: ICON.none, color: '#8e8e93', sub: 'Test' };
-  const open = (a.unassigned || []).filter(u => !u.assigned).length;
+  const saved = a.saved.filter(t => t.status !== 'duplicate?' && t.status !== 'replaced').length;
   const bits = [];
-  if (a.saved.length) bits.push(a.saved.length + ' saved');
-  if (a.balances.length) bits.push(a.balances.length + (a.balances.length === 1 ? ' balance' : ' balances'));
-  if (a.skipped.length) bits.push(a.skipped.length + ' not counted');
-  if (open) bits.push(open + ' needs an account');
-  if (!bits.length) return { icon: ICON.none, color: '#8e8e93', sub: a.kind === 'not_financial' ? 'Not a bill or balance' : 'Nothing saved' };
-  return { icon: open || a.skipped.length ? ICON.warn : ICON.ok, color: open || a.skipped.length ? 'var(--orange)' : 'var(--green)', sub: bits.join(' · ') };
+  if (saved) bits.push(saved + ' saved');
+  if (a.balances.length) bits.push(a.balances.length === 1 ? '1 balance' : a.balances.length + ' balances');
+  if (!bits.length) return { icon: ICON.none, color: '#8e8e93', sub: a.kind === 'not_financial' ? 'Not a bill or balance' : 'Nothing new' };
+  return { icon: ICON.ok, color: 'var(--green)', sub: bits.join(' · ') };
 }
 
-function activity() {
+function activity(d) {
+  const items = d.improve ? d.improve.items : [];
   const list = S.activity;
-  if (!list) return '<div class="title-row"><h1 class="large-title">Activity</h1></div><p class="status">Loading…</p>';
   return `<div class="title-row"><h1 class="large-title">Activity</h1></div>
-    <div class="subtitle">Every screenshot you sent, and what happened to it</div>
-    ${list.length ? `<div class="section"><div class="group">${list.map(a => { const i = activityInfo(a); return `<div class="cell tap" data-act="shot" data-id="${a.id}">
-      <div class="icon" style="background:${i.color}">${i.icon}</div>
-      <div class="main"><div class="t">${esc((a.notification || '').split('\n')[0] || a.kind)}</div><div class="s">${when(a.at)} · ${esc(i.sub)}</div></div><span class="chev">›</span></div>`; }).join('')}</div></div>
-      <div class="footnote">Screenshots are kept privately for 30 days so you can check what was read.</div>`
-      : '<div class="empty">No screenshots yet. Double-tap the back of your iPhone on a receipt or balance screen.</div>'}`;
+    <div class="subtitle">What happened to each screenshot</div>
+    <div class="section"><div class="header"><span>For Claude</span><span>${items.length || ''}</span></div><div class="group">
+      ${items.length ? `<div class="cell"><div class="main wrap muted" style="font-size:15px">Things I wasn't fully sure about. Copy them and paste in Claude Code, and Claude fixes the rules. No AI cost.</div></div>
+        ${items.slice(0, 5).map(it => `<div class="cell"><div class="main"><div class="t">${esc(shorten(it.title))}</div><div class="s">${esc(it.date)} · ${esc(shorten(it.why))}</div></div></div>`).join('')}
+        ${items.length > 5 ? `<div class="cell"><div class="main muted">+ ${items.length - 5} more in the copy</div></div>` : ''}`
+      : `<div class="cell"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main">Nothing to improve right now</div></div>`}
+    </div>${items.length ? '<button class="btn" data-act="copyImprove" style="margin-top:10px">Copy for Claude</button>' : ''}</div>
+    <div class="section"><div class="header"><span>Screenshots</span></div>
+      ${!list ? '<p class="status">Loading…</p>' : list.length ? `<div class="group">${list.map(a => { const i = activityInfo(a); return `<div class="cell tap" data-act="shot" data-id="${a.id}">
+        <div class="icon" style="background:${i.color}">${i.icon}</div>
+        <div class="main"><div class="t">${esc(shorten((a.notification || '').split('\n')[0] || a.kind))}</div><div class="s">${when(a.at)} · ${esc(i.sub)}</div></div><span class="chev">›</span></div>`; }).join('')}</div>
+      <div class="footnote">Screenshots are kept privately for 30 days.</div>` : '<div class="empty">No screenshots yet.</div>'}</div>`;
 }
 
 // ---------- Sheets ----------
@@ -300,52 +322,67 @@ function findTx(id) { for (const g of S.data.days) for (const t of g.txs) if (t.
 function editSheet(id) {
   const t = findTx(id), d = S.data;
   if (!t) return;
-  const opt = (list, cur) => list.map(v => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(v || '—')}</option>`).join('');
-  sheet('Transaction', `
-    <div class="section" style="margin-top:6px"><div class="group">
-      <div class="cell"><div class="main"><div class="t">${esc(t.merchant || t.category)}</div><div class="s">${esc(t.day)} · ${esc(t.time)}</div></div></div>
-      <label class="cell field"><span>Amount</span><input id="eAmount" type="number" inputmode="numeric" min="0" value="${t.amount}"></label>
-      <label class="cell field"><span>Type</span><select id="eDir">${opt(['out', 'in', 'transfer'], t.direction)}</select></label>
+  const opt = (list, cur, labels) => list.map((v, i) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(labels ? labels[i] : v || '—')}</option>`).join('');
+  sheet(t.merchant || t.category, `
+    <div class="big-amount ${t.direction === 'in' ? 'green' : ''}">${(t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rp(t.amount)}</div>
+    <div class="footnote" style="text-align:center;padding-top:2px">${esc(t.day)}${t.time ? ' · ' + esc(t.time) : ''} · ${esc(txSub(t))}</div>
+    <div class="section"><button class="btn green" data-act="confirm" data-id="${t.id}">Looks right ✓</button></div>
+    <div class="section"><div class="header"><span>Or fix it</span></div><div class="group">
       <label class="cell field"><span>Category</span><select id="eCat">${opt(d.categories, t.category)}</select></label>
-      <label class="cell field"><span>Account</span><select id="eAcc">${opt(d.accountsList.concat(['Unknown']), t.account)}</select></label>
-      <label class="cell field"><span>To Account</span><select id="eTo">${opt([''].concat(d.accountsList), t.to)}</select></label>
-      <label class="cell field"><span>Status</span><select id="eStatus">${opt(['ok', 'check', 'duplicate?', 'ignore'], t.status)}</select></label>
-    </div>
-    <div class="footnote">${t.note ? esc(t.note) + ' ' : ''}"ok" and "check" count toward balances. "duplicate?" and "ignore" don't.</div>
-    <div class="err" id="eErr"></div></div>`, { label: 'Save', act: 'save', id });
+      <label class="cell field"><span>Amount</span><input id="eAmount" inputmode="numeric" value="${rp(t.amount).replace('Rp', '').replace('−', '')}" data-money></label>
+      <label class="cell field"><span>Type</span><select id="eDir">${opt(['out', 'in', 'transfer'], t.direction, ['Money out', 'Money in', 'Between my accounts'])}</select></label>
+      <label class="cell field"><span>From account</span><select id="eAcc">${opt(d.accountsList.concat(['Unknown']), t.account)}</select></label>
+      <label class="cell field"><span>To account</span><select id="eTo">${opt([''].concat(d.accountsList), t.to)}</select></label>
+      <label class="cell field"><span>Count it?</span><select id="eStatus">${opt([t.status === 'check' ? 'check' : 'ok', 'ignore'], t.status === 'ignore' ? 'ignore' : t.status === 'check' ? 'check' : 'ok', ['Yes', "No, don't count it"])}</select></label>
+    </div><div class="err" id="eErr"></div>
+    <button class="btn plain" data-act="save" data-id="${t.id}" style="margin-top:6px">Save changes</button></div>`);
+}
+
+const moneyValue = el => Number(String(el.value).replace(/[^\d]/g, '')) || 0;
+function formatMoneyInput(el) {
+  const v = moneyValue(el);
+  el.value = v ? String(v).replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+  const hint = el.dataset.hint && document.getElementById(el.dataset.hint);
+  if (hint) hint.textContent = v ? rs(v) : '';
 }
 
 async function saveTx(id) {
   const v = k => document.getElementById(k).value, err = m => { document.getElementById('eErr').textContent = m; };
-  const amount = Number(v('eAmount'));
-  if (!Number.isFinite(amount) || amount < 0) return err('Enter an amount of 0 or more.');
+  const amount = moneyValue(document.getElementById('eAmount'));
+  if (!amount) return err('Enter an amount.');
   if (v('eDir') === 'transfer' && !v('eTo')) return err('Choose the account the money went to.');
   try {
-    await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') } });
+    await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') === 'check' ? 'ok' : v('eStatus') } });
     closeSheet(); load();
   } catch (e) { err(e.message); }
 }
 
+async function confirmTx(id) {
+  try { await api('POST', { action: 'confirm_tx', id }); closeSheet(); load(); }
+  catch (e) { const el = document.getElementById('eErr'); if (el) el.textContent = e.message; }
+}
+
 function planSheet() {
   const d = S.data, b = d.budgets, m = d.reports.monthly;
-  const items = d.categories.filter(c => !['Income', 'Transfer'].includes(c)).map(cat => {
+  const items = d.categories.filter(c => !['Income', 'Transfer', 'Investment'].includes(c)).map(cat => {
     const r = b.rows.find(x => x.category === cat) || {};
     return { cat, amount: r.limit || 0, spent: r.spent || 0, reason: r.reason || '' };
-  });
+  }).sort((x, y) => y.amount - x.amount || y.spent - x.spent);
   items.push({ cat: 'Emergency fund', amount: b.emergency ? b.emergency.amount : 0, spent: 0, reason: b.emergency ? b.emergency.reason : '' });
-  sheet(b.state === 'proposed' ? 'Proposed Budget' : 'Budget', `
-    <div class="footnote" style="padding:2px 32px 0">${esc(d.cycle.label)}${m && m.emergency_fund && m.emergency_fund.target_amount ? ' · Emergency fund target ' + rp(m.emergency_fund.target_amount) : ''}</div>
-    <div class="section" style="margin-top:12px"><div class="group">${items.map(i => `<label class="cell field" style="align-items:flex-start">
-      <div class="main"><div>${esc(i.cat)}</div><div class="s wrap">${[i.spent ? 'Spent ' + rp(i.spent) : '', esc(i.reason)].filter(Boolean).join(' · ')}</div></div>
-      <input type="number" inputmode="numeric" min="0" step="1000" data-cat="${esc(i.cat)}" value="${i.amount || ''}" placeholder="0" style="max-width:120px;padding-top:1px"></label>`).join('')}</div>
+  sheet('Budget', `
+    <div class="big-amount" id="planTotal">${rs(items.filter(i => i.cat !== 'Emergency fund').reduce((s, i) => s + i.amount, 0))}</div>
+    <div class="footnote" style="text-align:center;padding-top:2px">to spend this cycle${m && m.emergency_fund && m.emergency_fund.target_amount ? ' · emergency fund goal ' + rs(m.emergency_fund.target_amount) : ''}</div>
+    <div class="section"><div class="group">${items.map((i, n) => `<label class="cell field" style="align-items:flex-start">
+      <div class="main"><div>${esc(i.cat)}</div><div class="s wrap">${[i.spent ? 'Spent ' + rs(i.spent) : '', esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
+      <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${n}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
+      <div class="s" id="h${n}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div></div></label>`).join('')}</div>
     <div class="err" id="pErr"></div>
-    <button class="btn" data-act="approve" style="margin-top:6px">Approve Budget</button></div>`, { label: 'Approve', act: 'approve' });
+    <button class="btn" data-act="approve" style="margin-top:6px">Approve budget</button></div>`, { label: 'Approve', act: 'approve' });
 }
 
 async function approve() {
-  const items = [...document.querySelectorAll('input[data-cat]')].map(i => ({ category: i.dataset.cat, amount: Math.round(Number(i.value) || 0) }));
+  const items = [...document.querySelectorAll('input[data-cat]')].map(i => ({ category: i.dataset.cat, amount: moneyValue(i) }));
   const err = m => { document.getElementById('pErr').textContent = m; };
-  if (items.some(i => i.amount < 0)) return err('Amounts must be 0 or more.');
   if (!items.some(i => i.amount > 0)) return err('Enter at least one amount.');
   try { await api('POST', { action: 'approve_budgets', cycle_start: S.data.cycle.start, items }); closeSheet(); load(); }
   catch (e) { err(e.message); }
@@ -354,14 +391,12 @@ async function approve() {
 function reportSheet(kind) {
   const r = S.data.reports[kind];
   if (!r || r.pending || r.error) return;
-  const list = (title, arr) => arr && arr.length ? `<div class="section"><div class="header"><span>${title}</span></div><div class="group">${arr.map(x => `<div class="cell"><div class="main wrap">${esc(x)}</div></div>`).join('')}</div></div>` : '';
-  const ef = r.emergency_fund;
-  sheet(kind === 'monthly' ? 'Pay-Cycle Report' : 'Weekly Check-In', `
-    <div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main"><div class="wrap" style="font-weight:600">${esc(r.title)}</div>
-      <div class="wrap" style="margin-top:6px">${esc(r.summary)}</div></div></div></div></div>
-    ${list('What happened', r.highlights)}${list('What to do', r.actions)}
-    ${ef && ef.target_amount ? `<div class="section"><div class="header"><span>Emergency fund</span></div><div class="group"><div class="cell"><div class="main"><div class="field"><span>Target</span><span class="num d">${rp(ef.target_amount)}</span></div><div class="s wrap">${esc(ef.reason)}</div></div></div></div></div>` : ''}
-    <div class="section"><div class="group"><div class="cell tap" data-act="ask" data-id="${kind}"><div class="main link">Ask the CFO Again</div></div></div>
+  const list = (title, arr) => arr && arr.length ? `<div class="section"><div class="header"><span>${title}</span></div><div class="group">${arr.map(x => `<div class="cell"><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>` : '';
+  sheet(kind === 'monthly' ? 'Pay-Cycle Plan' : 'Weekly Check-In', `
+    <div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main"><div class="wrap" style="font-weight:600">${esc(shorten(r.title))}</div>
+      <div class="wrap" style="margin-top:6px">${esc(shorten(r.summary))}</div></div></div></div></div>
+    ${list('Do this', r.actions)}${list('What happened', r.highlights)}
+    <div class="section"><div class="group"><div class="cell tap" data-act="ask" data-id="${kind}"><div class="main link">Ask the CFO again</div></div></div>
     <div class="footnote">Written ${when(r.created_at)}.</div></div>`);
 }
 
@@ -369,19 +404,19 @@ function shotSheet(id) {
   const a = (S.activity || []).find(x => x.id === id);
   if (!a) return;
   const accounts = S.data ? S.data.accountsList : [];
+  const saved = a.saved.filter(t => t.status !== 'duplicate?' && t.status !== 'replaced');
+  const repeats = a.saved.length - saved.length;
+  const left = (a.skipped || []).filter(x => !x.resolved);
   sheet('Screenshot', `
-    <div class="section" style="margin-top:6px"><div class="header"><span>Notification</span><span>${when(a.at)}</span></div>
-      <div class="group"><div class="cell"><div class="main wrap" style="white-space:pre-line">${esc(a.notification || a.error || '—')}</div></div></div></div>
-    ${a.saved.length ? `<div class="section"><div class="header"><span>Saved</span></div><div class="group">${a.saved.map(t => txRow(t, (t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account) + ' · ' + t.date + (t.time ? ' ' + t.time : ''))).join('')}</div></div>` : ''}
-    ${a.balances.length ? `<div class="section"><div class="header"><span>Balances</span></div><div class="group">${a.balances.map(x => `<div class="cell"><div class="main">${esc(x.account)}</div><span class="num">${rp(x.balance)}</span></div>`).join('')}</div></div>` : ''}
-    ${(a.unassigned || []).length ? `<div class="section"><div class="header"><span>Needs an account</span></div><div class="group">${a.unassigned.map((u, i) => u.assigned
-      ? `<div class="cell"><div class="main num">${rp(u.balance_idr)}</div><span class="d">${u.assigned === 'ignore' ? 'Ignored' : 'Saved to ' + esc(u.assigned)}</span></div>`
-      : `<label class="cell field"><span class="num">${rp(u.balance_idr)}</span><select data-assign="${i}" data-shot="${a.id}"><option value="">Choose account</option>${accounts.map(n => `<option>${esc(n)}</option>`).join('')}<option value="ignore">Ignore</option></select></label>`).join('')}</div>
-      <div class="footnote">A balance Claude couldn't match to an account. Choose one to save it.</div></div>` : ''}
-    ${a.skipped.length ? `<div class="section"><div class="header"><span>Not counted</span></div><div class="group">${a.skipped.map(x => `<div class="cell"><div class="main"><div class="wrap">${esc(x.text)}</div><div class="s wrap">${esc(x.reason)}</div></div></div>`).join('')}</div></div>` : ''}
-    ${a.note ? `<div class="section"><div class="header"><span>Claude's note</span></div><div class="group"><div class="cell"><div class="main wrap">${esc(a.note)}</div></div></div></div>` : ''}
-    ${a.hasImage ? `<div class="section"><div class="group"><div class="cell tap" data-act="image" data-id="${a.id}"><div class="main link">Show Screenshot</div></div></div><div id="img-${a.id}" style="margin-top:10px"></div></div>` : ''}
-    <div class="footnote" style="padding:12px 32px 0">${a.cost ? 'Reading cost $' + a.cost.toFixed(4) + '. ' : ''}${a.status === 'duplicate' ? 'This exact image was sent before, so it was not read again and cost nothing.' : ''}</div>`);
+    ${saved.length ? `<div class="section" style="margin-top:6px"><div class="header"><span>Saved</span></div><div class="group">${saved.map(t => txRow(t, txSub(t) + ' · ' + t.date)).join('')}</div>
+      ${repeats ? `<div class="footnote">${repeats} already saved from another screenshot, so not counted twice.</div>` : ''}</div>`
+      : `<div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main wrap">${esc(shorten(a.notification || a.error || 'Nothing saved'))}</div></div></div></div>`}
+    ${a.balances.length ? `<div class="section"><div class="header"><span>Balances</span></div><div class="group">${a.balances.map(x => `<div class="cell"><div class="main">${esc(x.account)}</div><span class="num">${rs(x.balance)}</span></div>`).join('')}</div></div>` : ''}
+    ${(a.unassigned || []).filter(u => !u.assigned).length ? `<div class="section"><div class="header"><span>Which account is this?</span></div><div class="group">${a.unassigned.map((u, i) => u.assigned ? ''
+      : `<label class="cell field"><span class="num">${rs(u.balance_idr)}</span><select data-assign="${i}" data-shot="${a.id}"><option value="">Choose</option>${accounts.map(n => `<option>${esc(n)}</option>`).join('')}<option value="ignore">Ignore</option></select></label>`).join('')}</div></div>` : ''}
+    ${left.length ? `<div class="section"><div class="header"><span>Not counted</span></div><div class="group">${left.map(x => `<div class="cell"><div class="main"><div class="wrap">${esc(shorten(x.text))}</div><div class="s wrap">${esc(x.reason)}</div></div></div>`).join('')}</div></div>` : ''}
+    ${a.hasImage ? `<div class="section"><div class="group"><div class="cell tap" data-act="image" data-id="${a.id}"><div class="main link">Show screenshot</div></div></div><div id="img-${a.id}" style="margin-top:10px"></div></div>` : ''}
+    <div class="footnote" style="padding:12px 32px 0">${when(a.at)}${a.cost ? ' · cost $' + a.cost.toFixed(4) : ''}</div>`);
 }
 
 async function showImage(id) {
@@ -400,16 +435,24 @@ async function assign(sel) {
   } catch (e) { alert(e.message); sel.value = ''; }
 }
 
+function copy(text, el, done) {
+  navigator.clipboard.writeText(text).then(() => { el.textContent = done; }, () => { el.textContent = 'Press and hold to copy'; });
+}
+
 // ---------- Render and events ----------
 
 function render() {
   document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
   const d = S.data;
   if (!d) return;
-  const body = S.tab === 'transactions' ? transactions(d) : S.tab === 'activity' ? activity() : summary(d);
+  const badge = document.getElementById('badge'), n = d.improve ? d.improve.items.length : 0;
+  badge.hidden = !n; badge.textContent = n;
+  const body = S.tab === 'transactions' ? transactions(d) : S.tab === 'activity' ? activity(d) : home(d);
   document.getElementById('app').innerHTML = `<div class="screen">${body}<p class="status" id="status"></p></div>`;
   status();
 }
+
+function goTab(tab) { S.tab = tab; store.set('money:tab', tab); window.scrollTo(0, 0); render(); if (tab === 'activity') load(); }
 
 async function ask(kind) {
   try { await api('POST', { action: 'generate', kind }); closeSheet(); load(); }
@@ -418,13 +461,14 @@ async function ask(kind) {
 
 document.addEventListener('click', e => {
   const tab = e.target.closest('[data-tab]');
-  if (tab) { S.tab = tab.dataset.tab; store.set('money:tab', S.tab); window.scrollTo(0, 0); render(); if (S.tab === 'activity') load(); return; }
+  if (tab) { S.filter = null; return goTab(tab.dataset.tab); }
   if (e.target.id === 'sheetBg') return closeSheet();
   const el = e.target.closest('[data-act]');
   if (!el || !el.dataset.act) return;
   const id = el.dataset.id;
   switch (el.dataset.act) {
     case 'edit': editSheet(id); break;
+    case 'confirm': confirmTx(id); break;
     case 'save': saveTx(id); break;
     case 'close': closeSheet(); break;
     case 'plan': planSheet(); break;
@@ -433,13 +477,22 @@ document.addEventListener('click', e => {
     case 'ask': ask(id); break;
     case 'shot': shotSheet(id); break;
     case 'image': showImage(id); break;
-    case 'filter': S.filter = id; render(); break;
-    case 'cat': S.tab = 'transactions'; S.filter = 'all'; store.set('money:tab', S.tab); window.scrollTo(0, 0); render(); break;
+    case 'more': S.showAll = !S.showAll; render(); break;
+    case 'cat': S.filter = id; goTab('transactions'); break;
+    case 'review': S.filter = 'review'; goTab('transactions'); break;
+    case 'gotoImprove': goTab('activity'); break;
+    case 'clearFilter': S.filter = null; render(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
-    case 'next': { const cur = S.data.cycle.nextStart; S.cycle = S.data.cycle.isCurrent ? null : cur; load(); break; }
-    case 'copy': navigator.clipboard.writeText(INGEST).then(() => { el.querySelector('.main').textContent = 'Copied'; }, () => { el.querySelector('.main').textContent = INGEST; }); break;
+    case 'current': S.cycle = null; load(); break;
+    case 'copy': copy(INGEST, el.querySelector('.main'), 'Copied'); break;
+    case 'copyImprove': copy(S.data.improve.report, el, 'Copied · now paste it in Claude Code'); break;
   }
 });
+document.addEventListener('input', e => { if (e.target.dataset.money !== undefined) {
+  formatMoneyInput(e.target);
+  const total = document.getElementById('planTotal');
+  if (total) total.textContent = rs([...document.querySelectorAll('input[data-cat]')].filter(i => i.dataset.cat !== 'Emergency fund').reduce((s, i) => s + moneyValue(i), 0));
+} });
 document.addEventListener('change', e => { if (e.target.dataset.assign !== undefined) assign(e.target); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
 window.addEventListener('pageshow', e => { if (e.persisted) load(); });
