@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Money">
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161614" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Money</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --soft: #efede7; --text: #1f1e1c; --muted: #6b6a65;
+    --line: rgba(0,0,0,0.08); --accent: #2f6fd1; --accent-soft: #e6eefb; --accent-text: #1d4f9e;
+    --danger: #b3261e; --danger-soft: #fbe9e7; --warn-bg: #fbf0d9; --warn-text: #7a4b00;
+    --ok: #2e7d32; --ok-soft: #e7f3e8; --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161614; --card: #21201e; --soft: #2d2c29; --text: #f1efe8; --muted: #a3a19a;
+      --line: rgba(255,255,255,0.09); --accent: #7aa7f0; --accent-soft: #1d2a40; --accent-text: #b9d0f7;
+      --danger: #f08b84; --danger-soft: #3a1d1b; --warn-bg: #3a2c10; --warn-text: #f4c46c;
+      --ok: #81c784; --ok-soft: #1c2e1d; --on-accent: #0b1b33;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 40px); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 12px; }
+  h1 { font-size: 24px; font-weight: 650; margin: 0; letter-spacing: -0.3px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 22px 0 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  h2 small { font-weight: 400; color: var(--muted); font-size: 13px; }
+  .nav { display: flex; align-items: center; gap: 2px; color: var(--muted); font-size: 13px; text-align: center; }
+  .nav button { background: none; border: 0; color: var(--accent); font-size: 22px; padding: 2px 10px; cursor: pointer; }
+  .nav button:disabled { color: var(--line); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .big { font-size: 30px; font-weight: 650; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 13px; padding: 10px 12px; min-width: 0; }
+  .tile .v { font-weight: 600; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .advice { background: var(--accent-soft); color: var(--accent-text); border: 0; }
+  .advice .muted { color: var(--accent-text); opacity: 0.8; }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-color: transparent; }
+  .warn .muted { color: var(--warn-text); }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--warn-bg); color: var(--warn-text); margin-left: 6px; vertical-align: 1px; }
+  .pill.ignore { background: var(--soft); color: var(--muted); }
+  .bar { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; border-radius: 4px; background: var(--accent); }
+  .bar > div.hot { background: #e0912b; }
+  .bar > div.over { background: var(--danger); }
+  .brow { padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .brow:last-child { border-bottom: 0; }
+  .brow .top { display: flex; justify-content: space-between; gap: 10px; }
+  .sub { padding: 6px 0 2px 10px; border-left: 2px solid var(--soft); margin-top: 8px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .row:last-child { border-bottom: 0; }
+  .row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .day { display: flex; justify-content: space-between; margin: 14px 2px 6px; font-size: 13px; color: var(--muted); }
+  .out { color: var(--danger); } .in { color: var(--ok); } .tr { color: var(--muted); }
+  .chart { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
+  .chart div { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; }
+  .chart div.zero { background: var(--soft); } .chart div.future { background: transparent; border-bottom: 2px solid var(--soft); }
+  .axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  button.primary, button.secondary { font: inherit; font-weight: 600; border-radius: 12px; padding: 11px 14px; border: 0; cursor: pointer; width: 100%; }
+  button.primary { background: var(--accent); color: var(--on-accent); }
+  button.secondary { background: var(--soft); color: var(--text); }
+  button.link { background: none; border: 0; color: var(--accent); font: inherit; padding: 0; cursor: pointer; }
+  input, select { font: inherit; color: var(--text); background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; width: 100%; }
+  .plan { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 8px; align-items: center; margin: 6px 0; }
+  ul.list { margin: 6px 0 0; padding-left: 18px; } ul.list li { margin: 3px 0; }
+  .status { text-align: center; color: var(--muted); font-size: 12px; margin: 6px 0 0; min-height: 16px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet { background: var(--card); width: 100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 18px 16px calc(env(safe-area-inset-bottom) + 18px); }
+  .sheet label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  .sheet .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .err { color: var(--danger); font-size: 13px; margin-top: 8px; min-height: 18px; }
+  footer { margin-top: 26px; color: var(--muted); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  footer a { color: var(--accent); text-decoration: none; }
+  svg.spark { width: 100%; height: 44px; display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main id="app"><p class="status">Loading…</p></main>
+<div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
+<script>
+const API = 'https://vxyofgwxkeruvaxqqzhq.supabase.co/functions/v1/api';
+const params = new URLSearchParams(location.search);
+const KEY = params.get('k') || (() => { try { return localStorage.getItem('money:key'); } catch (_) { return null; } })();
+try { if (params.get('k')) localStorage.setItem('money:key', params.get('k')); } catch (_) {}
+
+let state = { data: null, cycle: null, open: {}, editingPlan: false, loading: false, error: '', fetchedAt: 0 };
+let pollTimer = null;
+
+const rp = n => (n < 0 ? '-' : '') + 'Rp' + String(Math.abs(Math.round(n || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+// Short form for small tiles: Rp3,4 jt / Rp850 rb.
+const rpShort = n => {
+  const v = Math.abs(Math.round(n || 0)), sign = n < 0 ? '-' : '';
+  if (v >= 1e9) return sign + 'Rp' + (v / 1e9).toFixed(1).replace('.', ',') + ' M';
+  if (v >= 1e6) return sign + 'Rp' + (v / 1e6).toFixed(1).replace('.', ',').replace(',0', '') + ' jt';
+  if (v >= 1e4) return sign + 'Rp' + Math.round(v / 1e3) + ' rb';
+  return rp(n);
+};
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cacheKey = c => 'money:dash:' + (c || 'current');
+const ago = ms => {
+  if (!ms) return 'No balance yet';
+  const days = Math.floor((Date.now() - ms) / 86400000);
+  return days <= 0 ? 'Confirmed today' : days === 1 ? 'Confirmed yesterday' : 'Confirmed ' + days + ' days ago';
+};
+
+function readCache(c) { try { return JSON.parse(localStorage.getItem(cacheKey(c)) || 'null'); } catch (_) { return null; } }
+function writeCache(c, d) { try { localStorage.setItem(cacheKey(c), JSON.stringify(d)); } catch (_) {} }
+
+async function api(method, body, query) {
+  const res = await fetch(API + (query || ''), {
+    method, headers: { 'x-key': KEY, ...(body ? { 'content-type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined, cache: 'no-store',
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || ('HTTP ' + res.status));
+  return data;
+}
+
+async function load() {
+  if (!KEY) { document.getElementById('app').innerHTML = '<p class="status">Open the dashboard with your private link (it ends in ?k=…).</p>'; return; }
+  state.loading = true; state.error = ''; renderStatus();
+  try {
+    const d = await api('GET', null, state.cycle ? '?cycle=' + state.cycle : '');
+    state.data = d; state.fetchedAt = Date.now();
+    writeCache(state.cycle, d);
+    render();
+    schedulePoll();
+  } catch (e) {
+    state.error = e.message === 'Failed to fetch' ? 'Offline. Showing your last numbers.' : e.message;
+  } finally {
+    state.loading = false; renderStatus();
+  }
+}
+
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  const pending = state.data && state.data.reports.pending && state.data.reports.pending.length;
+  if (pending && document.visibilityState === 'visible') pollTimer = setTimeout(load, 15000);
+}
+
+function renderStatus() {
+  const el = document.getElementById('status');
+  if (!el) return;
+  if (state.error) el.textContent = state.error;
+  else if (state.loading) el.textContent = 'Updating…';
+  else if (state.fetchedAt) el.textContent = 'Updated ' + new Date(state.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function budgetSection(d) {
+  const b = d.budgets;
+  if (state.editingPlan || b.state === 'proposed') return planEditor(d);
+  if (b.state === 'none') {
+    const pending = d.reports.pending.includes('monthly');
+    return `<div class="card"><div class="empty">${pending ? 'Your CFO is writing a budget for this cycle…' : 'No budget for this cycle yet.'}</div>
+      ${pending || !d.cycle.isCurrent ? '' : '<button class="secondary" data-act="ask-monthly">Ask the CFO for a budget</button>'}</div>`;
+  }
+  const rows = b.rows.map(r => {
+    const pct = r.pct;
+    const cls = pct === null ? '' : pct > 100 ? 'over' : pct >= 80 ? 'hot' : '';
+    const open = state.open['cat:' + r.category];
+    const txs = open ? d.days.flatMap(g => g.txs.filter(t => t.category === r.category && t.direction === 'out').map(t => ({ ...t, day: g.label }))) : [];
+    return `<div class="brow" data-act="toggle" data-id="cat:${esc(r.category)}">
+      <div class="top"><span>${esc(r.category)}</span>
+        <span class="num">${rp(r.spent)}<span class="muted"> / ${r.limit ? rp(r.limit) : 'no limit'}</span></span></div>
+      ${r.limit ? `<div class="bar"><div class="${cls}" style="width:${Math.min(100, Math.max(2, pct))}%"></div></div>
+        <div class="muted" style="margin-top:4px">${pct > 100 ? 'Over by ' + rp(r.spent - r.limit) : rp(r.limit - r.spent) + ' left'}</div>` : ''}
+      ${open ? `<div class="sub">${txs.length ? txs.map(t => `<div class="row" data-act="edit" data-id="${t.id}">
+          <div style="min-width:0"><div class="name">${esc(t.merchant || t.category)}</div><div class="muted">${esc(t.day)} · ${esc(t.account)}</div></div>
+          <div class="num out">−${rp(t.amount)}</div></div>`).join('') : '<div class="empty">No spending yet.</div>'}</div>` : ''}
+    </div>`;
+  }).join('');
+  const ef = b.emergency;
+  return `<div class="card">${rows || '<div class="empty">No spending yet.</div>'}</div>
+    ${ef ? `<div class="tile" style="margin-top:8px"><div class="muted">Emergency fund: set aside this cycle</div>
+      <div class="v">${rp(ef.amount)} <span class="muted">· saved so far ${rp(Math.max(0, d.saved))}</span></div></div>` : ''}
+    ${d.cycle.isCurrent ? '<p style="text-align:right;margin:8px 2px 0"><button class="link" data-act="edit-plan">Edit budget</button></p>' : ''}`;
+}
+
+function planEditor(d) {
+  const b = d.budgets;
+  const monthly = d.reports.monthly;
+  const items = d.categories.filter(c => !['Income', 'Transfer'].includes(c)).map(cat => {
+    const r = b.rows.find(x => x.category === cat);
+    return { category: cat, amount: r ? r.limit : 0, spent: r ? r.spent : 0, reason: r ? r.reason : '' };
+  });
+  items.push({ category: 'Emergency fund', amount: b.emergency ? b.emergency.amount : 0, spent: 0, reason: b.emergency ? b.emergency.reason : '' });
+  const total = items.filter(i => i.category !== 'Emergency fund').reduce((s, i) => s + i.amount, 0);
+  return `<div class="card">
+    <div style="font-weight:600">${b.state === 'proposed' ? 'Your CFO proposed this budget' : 'Edit budget'}</div>
+    <div class="muted" style="margin:2px 0 8px">${esc(d.cycle.label)} · spending limits total ${rp(total)}${monthly && monthly.emergency_fund ? ' · emergency fund target ' + rp(monthly.emergency_fund.target_amount) : ''}</div>
+    ${items.map(i => `<div class="plan">
+      <div style="min-width:0"><div>${esc(i.category)}</div><div class="muted">${[i.spent ? 'Spent ' + rp(i.spent) : '', esc(i.reason)].filter(Boolean).join(' · ')}</div></div>
+      <input type="number" inputmode="numeric" min="0" step="1000" data-cat="${esc(i.category)}" value="${i.amount || ''}" placeholder="0">
+    </div>`).join('')}
+    <div class="err" id="planErr"></div>
+    <div class="grid"><button class="secondary" data-act="cancel-plan">${b.state === 'proposed' ? 'Later' : 'Cancel'}</button>
+      <button class="primary" data-act="approve">Approve budget</button></div>
+  </div>`;
+}
+
+function reportCard(r, label, kind) {
+  if (!r) return '';
+  if (r.pending) return `<div class="card" style="margin-top:8px"><div class="muted">${label}</div><div>Your CFO is writing this…</div></div>`;
+  if (r.error) return `<div class="card" style="margin-top:8px"><div class="muted">${label}</div><div class="err">${esc(r.error)}</div>
+    <button class="secondary" data-act="ask-${kind}">Try again</button></div>`;
+  const open = state.open['rep:' + kind];
+  return `<div class="card" style="margin-top:8px" data-act="toggle" data-id="rep:${kind}">
+    <div class="muted">${label} · ${new Date(r.created_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}</div>
+    <div style="font-weight:600;margin:2px 0 4px">${esc(r.title)}</div>
+    <div>${esc(r.summary)}</div>
+    ${open ? `${r.highlights && r.highlights.length ? `<div class="muted" style="margin-top:10px">What happened</div><ul class="list">${r.highlights.map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
+      ${r.actions && r.actions.length ? `<div class="muted" style="margin-top:10px">What to do</div><ul class="list">${r.actions.map(h => `<li>${esc(h)}</li>`).join('')}</ul>` : ''}
+      ${r.emergency_fund && r.emergency_fund.target_amount ? `<div class="muted" style="margin-top:10px">Emergency fund</div><div>${rp(r.emergency_fund.target_amount)} target (${r.emergency_fund.months_of_expenses} months). ${esc(r.emergency_fund.reason)}</div>` : ''}
+      <p style="margin:12px 0 0"><button class="link" data-act="ask-${kind}">Ask the CFO again</button></p>`
+      : '<div class="muted" style="margin-top:6px">Tap for details</div>'}
+  </div>`;
+}
+
+function spark(trend) {
+  if (!trend || trend.length < 2) return '';
+  const vals = trend.map(t => t.total), min = Math.min(...vals), max = Math.max(...vals), span = max - min || 1;
+  const pts = trend.map((t, i) => `${(i / (trend.length - 1) * 100).toFixed(2)},${(40 - (t.total - min) / span * 36).toFixed(2)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 100 44" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+function render() {
+  const d = state.data;
+  if (!d) return;
+  const nw = d.netWorth;
+  const confirmed = nw.accounts.filter(a => a.hasSnapshot);
+  const today = new Date(d.now + 7 * 3600000).toISOString().slice(0, 10); // WIB date
+  const maxDay = Math.max(1, ...d.daily.map(x => x.amount));
+  const pendingAny = d.reports.pending.length;
+  const html = `
+  <header>
+    <h1>Money</h1>
+    <div class="nav">
+      <button data-act="prev" aria-label="Previous cycle">‹</button>
+      <div><div style="color:var(--text);font-weight:600">${esc(d.cycle.label)}</div>
+        <div>${d.cycle.isCurrent ? d.cycle.daysLeft + ' days to payday' : 'Past cycle'}</div></div>
+      <button data-act="next" aria-label="Next cycle" ${d.cycle.isCurrent ? 'disabled' : ''}>›</button>
+    </div>
+  </header>
+
+  ${d.reports.advice || pendingAny ? `<div class="card advice">
+    <div class="muted">Your CFO</div>
+    <div>${d.reports.advice ? esc(d.reports.advice) : 'Looking at your numbers…'}</div>
+    ${pendingAny ? '<div class="muted" style="margin-top:4px">Writing a new report…</div>' : ''}
+  </div>` : ''}
+
+  <div class="card" style="margin-top:8px">
+    <div class="muted">Net worth</div>
+    <div class="big">${confirmed.length ? rp(nw.total) : '—'}</div>
+    <div class="muted">${confirmed.length ? (nw.runwayMonths !== null ? 'Covers about ' + nw.runwayMonths + ' months of spending' : confirmed.length + ' of ' + nw.accounts.length + ' accounts confirmed') : 'Screenshot a balance screen to start'}</div>
+    ${spark(nw.trend)}
+  </div>
+  <div class="grid">
+    ${nw.accounts.map(a => `<div class="tile"><div class="muted">${esc(a.name)}</div>
+      <div class="v">${a.hasSnapshot ? rp(a.balance) : '—'}</div><div class="muted">${esc(ago(a.asOf))}</div></div>`).join('')}
+  </div>
+
+  <div class="grid3">
+    <div class="tile"><div class="muted">Spent</div><div class="v" title="${rp(d.spent)}">${rpShort(d.spent)}</div></div>
+    <div class="tile"><div class="muted">Income</div><div class="v" title="${rp(d.income)}">${rpShort(d.income)}</div></div>
+    <div class="tile ${d.saved < 0 ? 'warn' : ''}"><div class="muted">${d.saved < 0 ? 'Overspent' : 'Saved'}</div><div class="v" title="${rp(Math.abs(d.saved))}">${rpShort(Math.abs(d.saved))}</div></div>
+  </div>
+  ${d.untracked < 0 ? `<div class="tile warn" style="margin-top:8px"><div class="muted">Untracked spending this cycle</div><div class="v">${rp(-d.untracked)}</div></div>` : ''}
+  ${d.toCheck ? `<div class="tile warn" style="margin-top:8px"><div class="muted">To check</div><div>${d.toCheck} ${d.toCheck === 1 ? 'entry needs' : 'entries need'} a look: tap a row marked "check" below.</div></div>` : ''}
+
+  <h2>Budget <small>${d.budgets.state === 'approved' ? 'Approved' : d.budgets.state === 'proposed' ? 'Waiting for you' : ''}</small></h2>
+  ${budgetSection(d)}
+
+  <h2>Daily spending <small>${d.cycle.isCurrent ? 'Projected ' + rp(d.projected) + ' this cycle' : ''}</small></h2>
+  <div class="card">
+    <div class="chart">${d.daily.map(x => `<div class="${x.date > today ? 'future' : x.amount ? '' : 'zero'}" style="height:${x.amount ? Math.max(4, Math.round(x.amount / maxDay * 100)) : 2}%" title="${x.date}: ${rp(x.amount)}"></div>`).join('')}</div>
+    <div class="axis"><span>${esc(d.cycle.label.split(' – ')[0])}</span><span>Highest ${rp(maxDay === 1 ? 0 : maxDay)}</span><span>${esc(d.cycle.label.split(' – ')[1])}</span></div>
+  </div>
+
+  <h2>Transactions <small>${d.days.reduce((s, g) => s + g.txs.length, 0)} this cycle</small></h2>
+  ${d.days.length ? d.days.map(g => `<div class="day"><span>${esc(g.label)}</span><span class="num">${g.spent ? '−' + rp(g.spent) : ''}</span></div>
+    <div class="card" style="padding-top:2px;padding-bottom:2px">${g.txs.map(t => {
+      const sign = t.direction === 'in' ? 'in' : t.direction === 'transfer' ? 'tr' : 'out';
+      const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rp(t.amount);
+      const sub = t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account;
+      const pill = t.status === 'ok' ? '' : `<span class="pill ${t.status === 'ignore' ? 'ignore' : ''}">${esc(t.status)}</span>`;
+      return `<div class="row" data-act="edit" data-id="${t.id}"><div style="min-width:0">
+        <div class="name">${esc(t.merchant || t.category)}${pill}</div><div class="muted">${esc(sub)} · ${esc(t.time)}</div></div>
+        <div class="num ${sign}" style="${t.status === 'ignore' || t.status === 'duplicate?' ? 'text-decoration:line-through;opacity:.6' : ''}">${amount}</div></div>`;
+    }).join('')}</div>`).join('') : '<div class="card"><div class="empty">Double-tap the back of your iPhone on a receipt to log the first one.</div></div>'}
+
+  <h2>Reports</h2>
+  ${reportCard(d.reports.monthly, 'Pay-cycle report', 'monthly') || ''}
+  ${reportCard(d.reports.weekly, 'Weekly check-in', 'weekly') || (d.cycle.isCurrent ? '<div class="card" style="margin-top:8px"><div class="empty">The first weekly check-in arrives Sunday evening.</div><button class="secondary" data-act="ask-weekly">Ask for a check-in now</button></div>' : '')}
+
+  <footer>
+    <span>AI cost this cycle: $${d.aiCost.toFixed(3)} · ${d.screenshots} screenshots</span>
+    <a href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export CSV</a>
+  </footer>
+  <p class="status" id="status"></p>`;
+  document.getElementById('app').innerHTML = html;
+  renderStatus();
+}
+
+function findTx(id) {
+  for (const g of state.data.days) for (const t of g.txs) if (t.id === id) return { ...t, day: g.label };
+  return null;
+}
+
+function openEditor(id) {
+  const t = findTx(id);
+  if (!t) return;
+  const d = state.data;
+  const opts = (list, cur) => list.map(v => `<option ${v === cur ? 'selected' : ''}>${esc(v)}</option>`).join('');
+  document.getElementById('sheet').innerHTML = `
+    <div style="font-weight:600;font-size:17px">${esc(t.merchant || t.category)}</div>
+    <div class="muted">${esc(t.day)} · ${esc(t.time)}${t.note ? ' · ' + esc(t.note) : ''}</div>
+    <label>Amount</label><input id="eAmount" type="number" inputmode="numeric" min="0" value="${t.amount}">
+    <div class="grid"><div><label>Type</label><select id="eDir">${opts(['out', 'in', 'transfer'], t.direction)}</select></div>
+      <div><label>Category</label><select id="eCat">${opts(d.categories, t.category)}</select></div></div>
+    <div class="grid"><div><label>Account</label><select id="eAcc">${opts(d.accountsList.concat(['Unknown']), t.account)}</select></div>
+      <div><label>To account (transfers)</label><select id="eTo">${opts([''].concat(d.accountsList), t.to)}</select></div></div>
+    <label>Status</label><select id="eStatus">${opts(['ok', 'check', 'duplicate?', 'ignore'], t.status)}</select>
+    <div class="muted" style="margin-top:4px">"ok" and "check" count toward balances; "ignore" and "duplicate?" don't.</div>
+    <div class="err" id="eErr"></div>
+    <div class="actions"><button class="secondary" data-act="close">Cancel</button><button class="primary" data-act="save" data-id="${t.id}">Save</button></div>`;
+  document.getElementById('sheetBg').style.display = 'flex';
+}
+
+async function saveEditor(id) {
+  const v = sel => document.getElementById(sel).value;
+  const amount = Number(v('eAmount'));
+  if (!Number.isFinite(amount) || amount < 0) { document.getElementById('eErr').textContent = 'Enter an amount of 0 or more.'; return; }
+  if (v('eDir') === 'transfer' && !v('eTo')) { document.getElementById('eErr').textContent = 'Pick the account the money went to.'; return; }
+  try {
+    await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') } });
+    closeSheet(); load();
+  } catch (e) { document.getElementById('eErr').textContent = e.message; }
+}
+
+function closeSheet() { document.getElementById('sheetBg').style.display = 'none'; }
+
+async function approvePlan() {
+  const items = [...document.querySelectorAll('input[data-cat]')].map(i => ({ category: i.dataset.cat, amount: Math.round(Number(i.value) || 0) }));
+  if (items.some(i => i.amount < 0)) { document.getElementById('planErr').textContent = 'Amounts must be 0 or more.'; return; }
+  if (!items.some(i => i.amount > 0)) { document.getElementById('planErr').textContent = 'Enter at least one amount.'; return; }
+  try {
+    await api('POST', { action: 'approve_budgets', cycle_start: state.data.cycle.start, items });
+    state.editingPlan = false; load();
+  } catch (e) { document.getElementById('planErr').textContent = e.message; }
+}
+
+async function ask(kind) {
+  try { await api('POST', { action: 'generate', kind }); load(); }
+  catch (e) { state.error = e.message; renderStatus(); }
+}
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) { if (e.target.id === 'sheetBg') closeSheet(); return; }
+  const act = el.dataset.act, id = el.dataset.id;
+  if (act === 'edit') { e.stopPropagation(); openEditor(id); }
+  else if (act === 'toggle') { state.open[id] = !state.open[id]; render(); }
+  else if (act === 'save') saveEditor(id);
+  else if (act === 'close') closeSheet();
+  else if (act === 'edit-plan') { state.editingPlan = true; render(); }
+  else if (act === 'cancel-plan') { state.editingPlan = false; if (state.data.budgets.state === 'proposed') { state.data.budgets.state = 'approved-later'; } render(); }
+  else if (act === 'approve') approvePlan();
+  else if (act === 'ask-monthly') ask('monthly');
+  else if (act === 'ask-weekly') ask('weekly');
+  else if (act === 'prev') { state.cycle = state.data.cycle.prevStart; state.data = readCache(state.cycle) || state.data; render(); load(); }
+  else if (act === 'next') { const n = state.data.cycle.nextStart; state.cycle = state.data.cycle.isCurrent ? null : n; state.data = readCache(state.cycle) || state.data; render(); load(); }
+});
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
+window.addEventListener('pageshow', e => { if (e.persisted) load(); });
+
+state.data = readCache(null);
+if (state.data) render();
+load();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
