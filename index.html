@@ -309,6 +309,11 @@ function render() {
     <span>AI cost this cycle: $${d.aiCost.toFixed(3)} · ${d.screenshots} screenshots</span>
     <a href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export CSV</a>
   </footer>
+  <div class="card" style="margin-top:12px">
+    <div class="muted">Shortcut URL (for the "Get contents of URL" action)</div>
+    <div class="num" style="font-size:12px;overflow-wrap:anywhere;white-space:normal;margin:4px 0 8px">${esc(API.replace(/\/api$/, '/ingest'))}</div>
+    <button class="secondary" data-act="copy-ingest">Copy Shortcut URL</button>
+  </div>
   <p class="status" id="status"></p>`;
   document.getElementById('app').innerHTML = html;
   renderStatus();
@@ -378,6 +383,11 @@ document.addEventListener('click', e => {
   else if (act === 'edit-plan') { state.editingPlan = true; render(); }
   else if (act === 'cancel-plan') { state.editingPlan = false; if (state.data.budgets.state === 'proposed') { state.data.budgets.state = 'approved-later'; } render(); }
   else if (act === 'approve') approvePlan();
+  else if (act === 'copy-ingest') {
+    const url = API.replace(/\/api$/, '/ingest');
+    (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(
+      () => { el.textContent = 'Copied'; }, () => { el.textContent = 'Copy failed: press and hold the URL above'; });
+  }
   else if (act === 'ask-monthly') ask('monthly');
   else if (act === 'ask-weekly') ask('weekly');
   else if (act === 'prev') { state.cycle = state.data.cycle.prevStart; state.data = readCache(state.cycle) || state.data; render(); load(); }
