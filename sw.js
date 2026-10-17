@@ -1,5 +1,6 @@
 // App shell cache: the page opens instantly from cache, then refreshes itself in the background.
-const CACHE = 'money-v2';
+// Only the page and its icon are cached; data requests always go to the network.
+const CACHE = 'money-v3';
 const SHELL = ['./', 'index.html', 'icon-180.png'];
 
 self.addEventListener('install', (e) => {
@@ -14,11 +15,13 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return; // API calls go straight to the network
+  const isShell = e.request.mode === 'navigate' || url.pathname.endsWith('/icon-180.png');
+  if (e.request.method !== 'GET' || url.origin !== location.origin || !isShell) return;
+  const key = new Request(url.origin + url.pathname);
   e.respondWith(caches.open(CACHE).then(async (cache) => {
-    const cached = await cache.match(e.request, { ignoreSearch: true });
+    const cached = await cache.match(key);
     const fresh = fetch(e.request)
-      .then((res) => { if (res.ok) cache.put(new Request(url.origin + url.pathname), res.clone()); return res; })
+      .then((res) => { if (res.ok) cache.put(key, res.clone()); return res; })
       .catch(() => cached);
     return cached || fresh;
   }));
