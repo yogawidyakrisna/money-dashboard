@@ -370,14 +370,16 @@ function paySection(d) {
   const pay = d.pay || [];
   if (!pay.length) return '';
   const got = pay.reduce((s, p) => s + p.amount, 0);
-  return `<div class="section" id="pay"><div class="header"><span>Pay this cycle</span><span>${got ? rs(got) + ' in' : ''}</span></div><div class="group">
+  const want = d.expectedIncome;
+  return `<div class="section" id="pay"><div class="header"><span>Pay this cycle</span><span>${want ? rs(got) + ' of ' + rs(want) + ' in' : got ? rs(got) + ' in' : ''}</span></div><div class="group">
     ${pay.map(p => {
       const icon = p.state === 'received' ? `<div class="check on" style="cursor:default">${ICON.ok}</div>` : `<div class="check" style="cursor:default;${p.state === 'missing' ? 'border-color:var(--orange)' : ''}"></div>`;
       const right = p.state === 'received' ? `<span class="num green">+${rs(p.amount)}</span>`
         : p.state === 'missing' ? '<span class="orange" style="font-size:15px">Not logged yet</span>'
-        : `<span class="num d">${p.usual ? 'about ' + rs(p.usual) : 'Coming'}</span>`;
+        : `<span class="num d">${p.usual ? rs(p.usual) : 'Coming'}</span>`;
+      const sub = [p.label, p.moved ? 'moved from the weekend' : '', p.state === 'missing' && p.usual ? rs(p.usual) + ' expected' : ''].filter(Boolean).join(' · ');
       return `<div class="cell">${icon}<div class="main"><div class="t">Pay · ${p.day}${p.day === 1 ? 'st' : p.day === 2 ? 'nd' : p.day === 3 ? 'rd' : 'th'}</div>
-        <div class="s">${esc(p.label)}${p.moved ? ' · moved from the weekend' : ''}</div></div>${right}</div>`;
+        <div class="s">${esc(sub)}</div></div>${right}</div>`;
     }).join('')}
   </div><div class="footnote">Pay comes on the Friday before when the 25th or 15th is a weekend.${pay.some(p => p.state === 'missing') ? ' Screenshot a pay that is not logged yet.' : ''}</div></div>`;
 }
