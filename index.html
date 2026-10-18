@@ -538,6 +538,7 @@ function moodCard(d) {
       ${leftShare > 0 ? `<circle r="44" cx="50" cy="50" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:#fff" stroke-dasharray="${Math.max(1, 276.5 * leftShare)} 300" transform="rotate(-90 50 50)"/>` : ''}
     </svg><div class="ring-c"><span>Left to spend today</span><b>${rs(leftToday)}</b><span>${t.spent > t.limit ? rs(t.spent - t.limit) + ' over today' : 'of ' + rs(t.limit) + (isWeekendKey(todayKey(d)) ? ' · weekend' : ' today')}</span></div></div>
     ${sp.perWeekend && sp.perWeekend !== sp.perDay ? `<div class="mood-line" style="margin-top:2px;opacity:.9">${rs(sp.perDay)} on weekdays · ${rs(sp.perWeekend)} on weekends</div>` : ''}
+    ${d.parked ? `<div class="mood-line" style="margin-top:2px;opacity:.8">${rs(d.parked)} from the 15th is parked for the next cycle</div>` : ''}
     <div class="mood-line">${line}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>
     <div class="mood-why"><span>${esc(whyLine(d))}</span><b>Why ›</b></div>
   </div></div>`;
@@ -560,7 +561,7 @@ function savingSection(d) {
   const b = d.budgets, e = b.emergency, inv = b.investing || { amount: 0, invested: 0, split: [] };
   if (!e && !inv.amount) return '';
   return `<div class="section" id="saving"><div class="header"><span>Saving this cycle</span><span>${rs((e ? e.amount : 0) + inv.amount)}</span></div><div class="group">
-    ${e ? `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund</div><div class="s">Move it to your savings pocket</div></div><span class="num">${rs(e.amount)}</span></div>` : ''}
+    ${e ? (() => { const row = (b.saving || []).find(r => r.category === 'Emergency fund') || { spent: 0 }; return `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund</div><div class="s">${row.spent >= e.amount ? '✓ Moved ' + rs(row.spent) + ' to Dana Darurat' : 'Move it to Dana Darurat · ' + rs(row.spent) + ' done'}</div></div><span class="num ${row.spent >= e.amount ? 'green' : ''}">${rs(e.amount)}</span></div>`; })() : ''}
     ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investing</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('left', 'to go').replace('over', 'more than planned')}</span></div>
       ${budgetBar(inv.invested, inv.amount)}<div class="s num">Invested ${rs(inv.invested)} of ${rs(inv.amount)}</div>
       ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· paused</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('')
@@ -575,10 +576,10 @@ function whereItSits(d) {
   if (!total || !d.cycle.isCurrent) return '';
   const daily = Math.max(0, sp.left);
   const emergency = sv.find(r => r.category === 'Emergency fund'), investing = sv.find(r => r.category === 'Investing');
-  const toFund = emergency ? emergency.limit : 0, toInvest = investing ? Math.max(0, investing.limit - investing.spent) : 0;
-  const fund = d.netWorth.fund, inFund = fund !== null && fund !== undefined;
-  const savings = Math.max(0, total - daily - toFund - toInvest - (inFund ? fund : 0));
-  const rows = [['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s plan, if not moved yet'],
+  const toFund = emergency ? Math.max(0, emergency.limit - emergency.spent) : 0, toInvest = investing ? Math.max(0, investing.limit - investing.spent) : 0;
+  const fund = d.netWorth.fund, inFund = fund !== null && fund !== undefined, parked = d.parked || 0;
+  const savings = Math.max(0, total - parked - daily - toFund - toInvest - (inFund ? fund : 0));
+  const rows = [['Parked for the ' + paydayLabel(d) + ' cycle', parked, 'Your 15th pay · not for this cycle'], ['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s plan, if not moved yet'],
     ['To invest', toInvest, 'This cycle\'s plan, not invested yet'], ['Emergency fund', inFund ? fund : 0, 'In your Dana Darurat account'],
     [inFund ? 'Other savings' : 'Your savings', savings, inFund ? 'Spread over your accounts' : 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
   return `<div class="section"><div class="header"><span>Where your ${rs(total)} sits</span></div><div class="group">
@@ -738,8 +739,8 @@ function chartCard(d, r, txs) {
 /** Emergency fund and Investing as budget rows: planned amount, and for Investing how much was actually invested. */
 function savingRows(d) {
   return (d.budgets.saving || []).map(r => `<div class="cell tap" data-act="${r.category === 'Investing' ? 'gotoSaving' : 'plan'}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
-    <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${r.category === 'Investing' ? budgetLeft(r.spent, r.limit).replace('left', 'to go').replace('over', 'more than planned') : rs(r.limit)}</span></div>
-    ${budgetBar(r.spent, r.limit)}<div class="s num">${r.category === 'Investing' ? 'Invested ' + rs(r.spent) + ' of ' + rs(r.limit) : 'Set aside this cycle · saving, not spending'}</div></div><span class="chev">›</span></div>`).join('');
+    <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${r.spent >= r.limit ? '<span class="green">✓ Done</span>' : budgetLeft(r.spent, r.limit).replace('left', 'to go')}</span></div>
+    ${budgetBar(Math.min(r.spent, r.limit), r.limit)}<div class="s num">${(r.category === 'Investing' ? 'Invested ' : 'Moved ') + rs(r.spent) + ' of ' + rs(r.limit)}</div></div><span class="chev">›</span></div>`).join('');
 }
 
 /** The cycle's plan, short: the total and the three categories closest to their budget; the rest on request. */

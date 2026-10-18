@@ -1,6 +1,6 @@
 // App shell cache: the page opens instantly from cache, then refreshes itself in the background.
 // Only the page, its icon and the account logos are cached; data requests always go to the network.
-const CACHE = 'money-v25';
+const CACHE = 'money-v26';
 const SHELL = ['./', 'index.html', 'icon-180.png', 'logos/mandiri.svg', 'logos/jago.svg', 'logos/gopay.svg', 'logos/ovo.svg', 'logos/dana.svg'];
 
 self.addEventListener('install', (e) => {
