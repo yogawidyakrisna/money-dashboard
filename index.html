@@ -99,10 +99,12 @@
   @media (prefers-color-scheme: dark) { :root { --g-family: #bf5af2; --g-needs: #64d2ff; --g-wants: #ffd60a; --g-other: #98989d; } }
   .hero-row { display: flex; align-items: center; gap: 14px; }
   .hero-row > .main { min-width: 0; }
+  .hero-row .v { font-size: 32px; white-space: nowrap; }
+  .hero-row .v small { font-size: 17px; }
   .ring { position: relative; flex: none; }
   .ring svg { display: block; width: 100%; height: 100%; }
   .ring-c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.15; }
-  .ring-c b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .ring-c b { font-size: 13px; font-variant-numeric: tabular-nums; }
   .ring-c span { font-size: 11px; color: var(--label2); }
   .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 14px; font-size: 13px; }
   .legend div { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -116,6 +118,10 @@
   .emo { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--fill); }
   .share { height: 4px; border-radius: 2px; background: var(--fill); margin-top: 6px; overflow: hidden; }
   .share > div { height: 100%; border-radius: 2px; }
+  .check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--label3); flex: none; display: grid; place-items: center; color: #fff; background: none; padding: 0; cursor: pointer; }
+  .check.on { background: var(--green); border-color: var(--green); }
+  .check svg { width: 14px; height: 14px; }
+  .chip.blue { background: var(--tint-soft); color: var(--tint); }
   .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
   .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
 </style>
@@ -153,6 +159,7 @@ const shorten = text => String(text || '').replace(/Rp\s?(\d{1,3}(?:\.\d{3})+)(?
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ago = ms => { if (!ms) return 'No balance yet'; const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : d + ' days ago'; };
 const when = ms => new Date(ms).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const shortDay = ymd => new Date(ymd + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' });
 const paydayLabel = d => new Date(d.cycle.nextStart + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' });
 const ICON = {
   spark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>',
@@ -247,6 +254,9 @@ function nextStep(d) {
   const n = d.improve ? d.improve.items.length : 0;
   if (d.budgets.state === 'proposed' && d.cycle.isCurrent) return { act: 'plan', title: 'Approve your budget', sub: 'About 1 minute · your CFO already filled it in' };
   if (d.toCheck) return { act: 'review', title: `Check ${d.toCheck} transaction${d.toCheck === 1 ? '' : 's'}`, sub: 'About 1 minute · tap "Looks right" or fix it' };
+  const missing = (d.pay || []).find(p => p.state === 'missing');
+  if (missing && d.cycle.isCurrent) return { act: 'gotoPay', title: `Log your ${shortDay(missing.date)} pay`, sub: 'Screenshot it in your bank app · so the CFO sees all your income' };
+  if (d.claims && d.claims.todo.length) return { act: 'gotoClaims', title: `Claim back ${rs(d.claims.total)}`, sub: `${d.claims.todo.length} medical bill${d.claims.todo.length === 1 ? '' : 's'} · tick each one when claimed` };
   if (n) return { act: 'gotoImprove', title: `Send ${n} note${n === 1 ? '' : 's'} to Claude`, sub: 'About 1 minute · copy, then paste in Claude Code' };
   const stale = d.netWorth.accounts.filter(a => !a.hasSnapshot && a.name !== 'Cash');
   if (stale.length) return { act: '', title: `Screenshot your ${stale[0].name} balance`, sub: 'So your total is complete' };
@@ -293,7 +303,7 @@ function home(d) {
       <div class="v">${rs(sp.perDay)} <small>a day</small></div>
       <div class="k">${sp.left >= 0 ? 'until payday, ' + paydayLabel(d) : '<span class="red">' + rs(-sp.left) + ' over budget</span>'}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>`
     : `<div class="k">Spent this cycle</div><div class="v">${rs(d.spent)}</div><div class="k">${d.cycle.isCurrent ? 'Approve a budget to see your daily limit' : esc(d.cycle.label)}</div>`}
-    </div>${spentRing(d, 112)}</div>
+    </div>${spentRing(d, 100)}</div>
     ${spentLegend(d)}
   </div></div></div>
 
@@ -319,6 +329,9 @@ function home(d) {
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
 
+  ${claimsSection(d)}
+  ${paySection(d)}
+
   ${d.fixed && d.fixed.length ? `<div class="section"><div class="header"><span>Fixed every month</span><span>${rs(d.fixed.reduce((s, f) => s + f.amount, 0))}</span></div><div class="group">
     ${d.fixed.map(f => { const done = f.done !== undefined ? f.done : f.paid >= f.amount; return `<div class="cell">${emo(d, f.category)}<div class="main"><div class="t">${esc(f.label.replace(/\s*\(.*\)$/, ''))}</div><div class="s">${esc(f.category)}</div></div>
       <span class="num ${done ? 'green' : 'd'}">${done ? '✓ ' : ''}${rs(f.amount)}</span></div>`; }).join('')}
@@ -340,6 +353,35 @@ function home(d) {
   </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>`;
 }
 
+/** Medical bills to claim back from work: tick each one once it is claimed. */
+function claimsSection(d) {
+  const c = d.claims;
+  if (!c || (!c.todo.length && !c.done.length)) return '';
+  const row = (x, on) => `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="claim" data-id="${x.id}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Claimed' : 'Mark as claimed'}">${on ? ICON.ok : ''}</button>
+    <div class="main tap" data-act="edit" data-id="${x.id}"><div class="t ${on ? 'muted' : ''}">${esc(x.merchant || 'Medical')}</div><div class="s">${esc(x.label)} · ${esc(x.account)}</div></div>
+    <span class="num ${on ? 'muted' : ''}">${rs(x.amount)}</span></div>`;
+  return `<div class="section" id="claims"><div class="header"><span>To reimburse</span><span>${c.todo.length ? rs(c.total) : '✓ All claimed'}</span></div><div class="group">
+    ${c.todo.map(x => row(x, false)).join('')}${c.done.slice(0, 3).map(x => row(x, true)).join('')}
+  </div><div class="footnote">Medical bills you pay yourself. Tick ○ once you've claimed it back.</div></div>`;
+}
+
+/** Pay this cycle: 25th and 15th, moved to Friday on weekends. */
+function paySection(d) {
+  const pay = d.pay || [];
+  if (!pay.length) return '';
+  const got = pay.reduce((s, p) => s + p.amount, 0);
+  return `<div class="section" id="pay"><div class="header"><span>Pay this cycle</span><span>${got ? rs(got) + ' in' : ''}</span></div><div class="group">
+    ${pay.map(p => {
+      const icon = p.state === 'received' ? `<div class="check on" style="cursor:default">${ICON.ok}</div>` : `<div class="check" style="cursor:default;${p.state === 'missing' ? 'border-color:var(--orange)' : ''}"></div>`;
+      const right = p.state === 'received' ? `<span class="num green">+${rs(p.amount)}</span>`
+        : p.state === 'missing' ? '<span class="orange" style="font-size:15px">Not logged yet</span>'
+        : `<span class="num d">${p.usual ? 'about ' + rs(p.usual) : 'Coming'}</span>`;
+      return `<div class="cell">${icon}<div class="main"><div class="t">Pay · ${p.day}${p.day === 1 ? 'st' : p.day === 2 ? 'nd' : p.day === 3 ? 'rd' : 'th'}</div>
+        <div class="s">${esc(p.label)}${p.moved ? ' · moved from the weekend' : ''}</div></div>${right}</div>`;
+    }).join('')}
+  </div><div class="footnote">Pay comes on the Friday before when the 25th or 15th is a weekend.${pay.some(p => p.state === 'missing') ? ' Screenshot a pay that is not logged yet.' : ''}</div></div>`;
+}
+
 function reportRow(r, label, kind, d) {
   if (!r) return d.cycle.isCurrent ? `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s">${kind === 'weekly' ? 'Comes Sunday evening · tap to get it now' : 'Tap to get it now'}</div></div><span class="chev">›</span></div>` : '';
   if (r.pending) return `<div class="cell"><div class="main"><div>${label}</div><div class="s">Writing…</div></div></div>`;
@@ -352,7 +394,8 @@ function reportRow(r, label, kind, d) {
 function txRow(t, sub, act) {
   const color = t.direction === 'in' ? 'green' : t.direction === 'transfer' ? 'muted' : '';
   const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rs(t.amount);
-  const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">check</span>' : '';
+  const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">check</span>'
+    : t.category === 'Medical' && t.spending && !t.claim ? '<span class="chip blue">to claim</span>' : '';
   return `<div class="cell ${act ? 'tap' : ''}" data-act="${act || ''}" data-id="${t.id}"><div class="main">
     <div class="t">${esc(t.merchant || t.category)}${chip}</div><div class="s">${esc(sub)}</div></div>
     <span class="num ${color}">${amount}</span></div>`;
@@ -418,6 +461,7 @@ function catSheet(name) {
     <div class="section" style="margin-top:12px"><div class="group"><div class="hero"><div class="hero-row"><div class="main">
       <div class="k">Spent this cycle</div><div class="v">${rs(spent)}</div>
       <div class="k">${status}</div>
+      ${name === 'Medical' && d.claims && d.claims.total ? `<div class="k" style="margin-top:4px"><span class="link">${rs(d.claims.total)} still to claim back</span></div>` : ''}
       ${last ? `<div class="k" style="margin-top:4px">Last cycle ${rs(last)}${last && Math.abs(diff) >= 1000 ? ` · <span class="${diff > 0 ? 'red' : 'green'}">${diff > 0 ? '↑' : '↓'} ${rs(Math.abs(diff))}</span>` : ''}</div>` : ''}
     </div>${ring([{ v: spent, color: paid ? 'var(--green)' : limit && spent > limit ? 'var(--red)' : color }], Math.max(1, limit || spent), 96, center)}</div></div></div></div>
     ${spentTx.length ? `<div class="section"><div class="header"><span>Day by day</span></div>
@@ -472,7 +516,11 @@ function sheet(title, body, right) {
 }
 function closeSheet() { document.getElementById('sheetBg').style.display = 'none'; }
 
-function findTx(id) { for (const g of S.data.days) for (const t of g.txs) if (t.id === id) return { ...t, day: g.label }; return null; }
+function findTx(id) {
+  for (const g of S.data.days) for (const t of g.txs) if (t.id === id) return { ...t, day: g.label };
+  const c = S.data.claims && S.data.claims.todo.concat(S.data.claims.done).find(x => x.id === id); // a bill from an earlier cycle
+  return c ? { ...c, day: c.label, time: '', direction: 'out', category: 'Medical', spending: true, to: '', status: 'ok' } : null;
+}
 
 function editSheet(id) {
   const t = findTx(id), d = S.data;
@@ -488,6 +536,7 @@ function editSheet(id) {
       <label class="cell field"><span>Type</span><select id="eDir">${opt(['out', 'in', 'transfer'], t.direction, ['Money out', 'Money in', 'Between my accounts'])}</select></label>
       <label class="cell field"><span>From account</span><select id="eAcc">${opt(d.accountsList.concat(['Unknown']), t.account)}</select></label>
       <label class="cell field"><span>To account</span><select id="eTo">${opt([''].concat(d.accountsList), t.to)}</select></label>
+      ${t.category === 'Medical' ? `<label class="cell field"><span>Reimburse?</span><select id="eClaim">${opt(['', 'done', 'no'], t.claim || '', ['Yes, still to claim', 'Claimed ✓', 'Not claimable'])}</select></label>` : ''}
       <label class="cell field"><span>Count it?</span><select id="eStatus">${opt([t.status === 'check' ? 'check' : 'ok', 'ignore'], t.status === 'ignore' ? 'ignore' : t.status === 'check' ? 'check' : 'ok', ['Yes', "No, don't count it"])}</select></label>
     </div><div class="err" id="eErr"></div>
     <button class="btn plain" data-act="save" data-id="${t.id}" style="margin-top:6px">Save changes</button></div>`);
@@ -507,9 +556,16 @@ async function saveTx(id) {
   if (!amount) return err('Enter an amount.');
   if (v('eDir') === 'transfer' && !v('eTo')) return err('Choose the account the money went to.');
   try {
-    await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') === 'check' ? 'ok' : v('eStatus') } });
+    const claim = document.getElementById('eClaim');
+    await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') === 'check' ? 'ok' : v('eStatus'), ...(claim ? { claim: claim.value || null } : {}) } });
     closeSheet(); load();
   } catch (e) { err(e.message); }
+}
+
+async function setClaim(id, claim, el) {
+  el.classList.toggle('on', !!claim); el.innerHTML = claim ? ICON.ok : '';
+  try { await api('POST', { action: 'set_claim', id, claim }); load(); }
+  catch (e) { S.error = e.message; status(); load(); }
 }
 
 async function confirmTx(id) {
@@ -636,6 +692,8 @@ document.addEventListener('click', e => {
     case 'cat': catSheet(id); break;
     case 'review': S.filter = 'review'; goTab('transactions'); break;
     case 'gotoImprove': goTab('activity'); break;
+    case 'gotoPay': case 'gotoClaims': { const box = document.getElementById(el.dataset.act === 'gotoPay' ? 'pay' : 'claims'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
+    case 'claim': setClaim(id, el.dataset.on === '1' ? null : 'done', el); break;
     case 'clearFilter': S.filter = null; render(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
     case 'current': S.cycle = null; load(); break;
