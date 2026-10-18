@@ -307,7 +307,7 @@ function spentLegend(d) {
 
 /** Where "You can spend X a day" comes from: room left per category, minus what is already over. */
 function room(d) {
-  const days = Math.max(1, d.cycle.daysLeft), rows = d.budgets.rows.map(r => ({ ...r, ...catInfo(d, r.category) }));
+  const days = Math.max(1, d.cycle.daysLeft), rows = d.budgets.rows.filter(r => !r.reserve).map(r => ({ ...r, ...catInfo(d, r.category) }));
   const done = rows.filter(r => r.limit && fixedDone(d, r.category) && r.spent <= r.limit * 1.02);
   const open = rows.filter(r => !done.includes(r) && r.limit > r.spent).map(r => ({ ...r, left: r.limit - r.spent, perDay: Math.floor((r.limit - r.spent) / days / 1000) * 1000 }))
     .sort((a, b) => b.left - a.left);
@@ -341,7 +341,7 @@ function whySheet() {
     ${r.done.length ? `<div class="section"><div class="header"><span>Done for this cycle</span></div><div class="group">
       ${r.done.map(x => `<div class="cell">${emo(d, x.category)}<div class="main"><div class="t">${esc(x.category)}</div><div class="s">Fixed payment, nothing more to spend</div></div><span class="green">✓ Paid</span></div>`).join('')}
     </div></div>` : ''}
-    <div class="footnote" style="padding:12px 32px 0">${whySum(r, sp)}. You can move room between categories: spending more in one leaves less for the others.</div>`);
+    <div class="footnote" style="padding:12px 32px 0">${whySum(r, sp)}. You can move room between categories: spending more in one leaves less for the others. Your urgent reserve (Other) is not part of this.</div>`);
 }
 
 /** The sum behind the number, exact: room − over (± what is left in paid fixed bills) = left. */
@@ -358,7 +358,7 @@ function fixedDone(d, cat) {
 
 function home(d) {
   const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
-  const rows = b.rows.filter(x => x.limit > 0 || x.spent > 0);
+  const rows = b.rows.filter(x => !x.reserve && (x.limit > 0 || x.spent > 0)), reserve = sp.reserve || { budget: 0, used: 0 };
   const shown = S.showAll ? rows : rows.slice(0, 5);
   const moreOpen = S.more;
   return `
@@ -382,6 +382,8 @@ function home(d) {
         ${x.limit ? `<div class="progress"><div class="${paid ? 'done' : over ? 'over' : pct >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, paid ? 100 : pct))}%"></div></div>` : ''}
       </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
     ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
+    ${reserve.budget || reserve.used ? `<div class="cell tap" data-act="cat" data-id="Other">${emo(d, 'Other')}<div class="main"><div class="t">Urgent reserve</div>
+      <div class="s wrap">Only for emergencies, not daily money${reserve.used ? ' · used ' + rs(reserve.used) + ' this cycle' : ' · not used'}</div></div><span class="chev">›</span></div>` : ''}
     ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
@@ -409,11 +411,11 @@ function home(d) {
 /** What today looks like: spent so far (fixed bills left out) against today's share of what is left. */
 function todayInfo(d) {
   const key = todayKey(d), day = (d.daily || []).find(x => x.date === key);
-  const spent = day ? day.amount - (day.fixed || 0) : 0;
+  const spent = day ? day.amount - (day.fixed || 0) - (day.other || 0) : 0; // fixed bills and the urgent reserve stay out
   const sp = d.spend, days = Math.max(1, d.cycle.daysLeft);
   const limit = d.cycle.isCurrent && sp.perDay !== null ? Math.max(0, Math.floor((sp.left + spent) / days / 1000) * 1000) : null;
   const group = (d.days || []).find(g => g.date === key);
-  return { spent, limit, txs: group ? group.txs.filter(t => t.spending && !t.fixed) : [] };
+  return { spent, limit, txs: group ? group.txs.filter(t => t.spending && !t.fixed && t.category !== 'Other') : [] };
 }
 
 function mood(d) {
@@ -461,11 +463,11 @@ function claimsSection(d) {
   const c = d.claims;
   if (!c || (!c.todo.length && !c.done.length)) return '';
   const row = (x, on) => `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="claim" data-id="${x.id}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Claimed' : 'Mark as claimed'}">${on ? ICON.ok : ''}</button>
-    <div class="main tap" data-act="edit" data-id="${x.id}"><div class="t ${on ? 'muted' : ''}">${esc(x.merchant || 'Medical')}</div><div class="s">${esc(x.label)} · ${esc(x.account)}</div></div>
+    <div class="main tap" data-act="edit" data-id="${x.id}"><div class="t ${on ? 'muted' : ''}">${esc(x.merchant || 'Health')}</div><div class="s">${esc(x.label)} · ${esc(x.account)}</div></div>
     <span class="num ${on ? 'muted' : ''}">${rs(x.amount)}</span></div>`;
   return `<div class="section" id="claims"><div class="header"><span>To reimburse</span><span>${c.todo.length ? rs(c.total) : '✓ All claimed'}</span></div><div class="group">
     ${c.todo.map(x => row(x, false)).join('')}${c.done.slice(0, 3).map(x => row(x, true)).join('')}
-  </div><div class="footnote">Medical bills you pay yourself. Tick ○ once you've claimed it back.</div></div>`;
+  </div><div class="footnote">Clinic and hospital bills you paid yourself. Tick ○ once you've claimed it back.</div></div>`;
 }
 
 /** Pay this cycle: 25th and 15th, moved to Friday on weekends. */
@@ -527,7 +529,7 @@ function txRow(t, sub, act) {
   const color = t.direction === 'in' ? 'green' : t.direction === 'transfer' ? 'muted' : '';
   const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rs(t.amount);
   const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">check</span>'
-    : t.category === 'Medical' && t.spending && !t.claim ? '<span class="chip blue">to claim</span>' : '';
+    : t.spending && t.claim === 'todo' ? '<span class="chip blue">to claim</span>' : '';
   return `<div class="cell ${act ? 'tap' : ''}" data-act="${act || ''}" data-id="${t.id}"><div class="main">
     <div class="t">${esc(t.merchant || t.category)}${chip}</div><div class="s">${esc(sub)}</div></div>
     <span class="num ${color}">${amount}</span></div>`;
@@ -554,13 +556,13 @@ function transactions(d) {
 /** Everyday spending per day (fixed payments left out, so the bars stay readable). */
 function dayCard(d) {
   if (!d.daily || !d.daily.length) return '';
-  const values = d.daily.map(x => ({ date: x.date, v: x.amount - (x.fixed || 0) }));
+  const values = d.daily.map(x => ({ date: x.date, v: x.amount - (x.fixed || 0) - (x.other || 0) }));
   const fixed = d.daily.reduce((s, x) => s + (x.fixed || 0), 0);
   const avgDays = values.filter(v => !d.cycle.isCurrent || v.date <= todayKey(d)).length || 1;
   const avg = values.reduce((s, v) => s + v.v, 0) / avgDays;
   return `<div class="section"><div class="header"><span>Day by day</span><span>about ${rs(avg)} a day</span></div>
     <div class="group chart">${dayBars(d, values, 'var(--tint)', d.spend.perDay || 0)}</div>
-    <div class="footnote">${d.spend.perDay ? 'Dashed line: what you can spend a day now. ' : ''}${fixed ? 'Fixed payments (' + rs(fixed) + ') are left out.' : ''}</div></div>`;
+    <div class="footnote">${d.spend.perDay ? 'Dashed line: what you can spend a day now. ' : ''}${fixed ? 'Fixed payments (' + rs(fixed) + ') and urgent costs are left out.' : ''}</div></div>`;
 }
 
 /** Where the money went: one bar split by group, then every category. Tap one for its details. */
@@ -587,16 +589,17 @@ function catSheet(name) {
   const topPlaces = Object.values(places).sort((a, b) => b.v - a.v).slice(0, 5);
   const color = groupColor(c.group), spent = row.spent, limit = row.limit, paid = limit && fixedDone(d, name) && spent <= limit * 1.02;
   const last = (d.lastCycle || {})[name] || 0, diff = spent - last;
-  const status = paid ? '<span class="green">✓ Paid this cycle</span>'
+  const status = name === 'Other' ? 'Urgent reserve: only for emergencies, not daily money'
+    : paid ? '<span class="green">✓ Paid this cycle</span>'
     : limit ? (spent > limit ? `<span class="red">${rs(spent - limit)} over</span> your ${rs(limit)} budget` : `${rs(limit - spent)} left of ${rs(limit)}`)
     : 'No budget for this';
-  const center = limit ? `<b>${Math.round(spent / limit * 100)}%</b><span>used</span>` : `<b>${spentTx.length}</b><span>${spentTx.length === 1 ? 'payment' : 'payments'}</span>`;
+  const center = limit && name !== 'Other' ? `<b>${Math.round(spent / limit * 100)}%</b><span>used</span>` : `<b>${spentTx.length}</b><span>${spentTx.length === 1 ? 'payment' : 'payments'}</span>`;
   sheet(name, `
     <div class="cat-head">${emo(d, name)}<div class="footnote" style="padding:6px 0 0">${esc(c.group || '')}</div></div>
     <div class="section" style="margin-top:12px"><div class="group"><div class="hero"><div class="hero-row"><div class="main">
       <div class="k">Spent this cycle</div><div class="v">${rs(spent)}</div>
       <div class="k">${status}</div>
-      ${name === 'Medical' && d.claims && d.claims.total ? `<div class="k" style="margin-top:4px"><span class="link">${rs(d.claims.total)} still to claim back</span></div>` : ''}
+      ${name === 'Health' && d.claims && d.claims.total ? `<div class="k" style="margin-top:4px"><span class="link">${rs(d.claims.total)} still to claim back</span></div>` : ''}
       ${last ? `<div class="k" style="margin-top:4px">Last cycle ${rs(last)}${last && Math.abs(diff) >= 1000 ? ` · <span class="${diff > 0 ? 'red' : 'green'}">${diff > 0 ? '↑' : '↓'} ${rs(Math.abs(diff))}</span>` : ''}</div>` : ''}
     </div>${ring([{ v: spent, color: paid ? 'var(--green)' : limit && spent > limit ? 'var(--red)' : color }], Math.max(1, limit || spent), 96, center)}</div></div></div></div>
     ${spentTx.length ? `<div class="section"><div class="header"><span>Day by day</span></div>
@@ -656,7 +659,7 @@ function findTx(id) {
   const hidden = (S.data.ignored || []).find(x => x.id === id);
   if (hidden) return { ...hidden, day: hidden.label };
   const c = S.data.claims && S.data.claims.todo.concat(S.data.claims.done).find(x => x.id === id); // a bill from an earlier cycle
-  return c ? { ...c, day: c.label, time: '', direction: 'out', category: 'Medical', spending: true, to: '', status: 'ok' } : null;
+  return c ? { ...c, day: c.label, time: '', direction: 'out', category: 'Health', spending: true, to: '', status: 'ok' } : null;
 }
 
 function editSheet(id) {
@@ -673,7 +676,7 @@ function editSheet(id) {
       <label class="cell field"><span>Type</span><select id="eDir">${opt(['out', 'in', 'transfer'], t.direction, ['Money out', 'Money in', 'Between my accounts'])}</select></label>
       <label class="cell field"><span>From account</span><select id="eAcc">${opt(d.accountsList.concat(['Unknown']), t.account)}</select></label>
       <label class="cell field"><span>To account</span><select id="eTo">${opt([''].concat(d.accountsList), t.to)}</select></label>
-      ${t.category === 'Medical' ? `<label class="cell field"><span>Reimburse?</span><select id="eClaim">${opt(['', 'done', 'no'], t.claim || '', ['Yes, still to claim', 'Claimed ✓', 'Not claimable'])}</select></label>` : ''}
+      ${t.category === 'Health' || t.claim ? `<label class="cell field"><span>Reimburse?</span><select id="eClaim">${opt(['', 'todo', 'done'], t.claim || '', ['Not claimable', 'Yes, still to claim', 'Claimed ✓'])}</select></label>` : ''}
       <label class="cell field"><span>Count it?</span><select id="eStatus">${opt([t.status === 'check' ? 'check' : 'ok', 'ignore'], t.status === 'ignore' ? 'ignore' : t.status === 'check' ? 'check' : 'ok', ['Yes', "No, don't count it"])}</select></label>
     </div><div class="err" id="eErr"></div>
     <button class="btn plain" data-act="save" data-id="${t.id}" style="margin-top:6px">Save changes</button></div>`);
@@ -727,9 +730,9 @@ function setCheck(el, on) {
 
 async function setClaim(id, claim, el) {
   if (el.disabled) return;
-  setCheck(el, !!claim); el.disabled = true;
+  setCheck(el, claim === 'done'); el.disabled = true;
   try { await api('POST', { action: 'set_claim', id, claim }); }
-  catch (e) { setCheck(el, !claim); S.error = e.message; status(); }
+  catch (e) { setCheck(el, claim !== 'done'); S.error = e.message; status(); }
   finally { el.disabled = false; load(); }
 }
 
@@ -749,10 +752,10 @@ function planSheet() {
   }).sort((x, y) => y.amount - x.amount || y.spent - x.spent);
   items.push({ cat: 'Emergency fund', amount: b.emergency ? b.emergency.amount : 0, spent: 0, reason: b.emergency ? b.emergency.reason : '' });
   sheet('Budget', `
-    <div class="big-amount" id="planTotal">${rs(items.filter(i => i.cat !== 'Emergency fund').reduce((s, i) => s + i.amount, 0))}</div>
+    <div class="big-amount" id="planTotal">${rs(items.filter(i => i.cat !== 'Emergency fund' && i.cat !== 'Other').reduce((s, i) => s + i.amount, 0))}</div>
     <div class="footnote" style="text-align:center;padding-top:2px">to spend this cycle${m && m.emergency_fund && m.emergency_fund.target_amount ? ' · emergency fund goal ' + rs(m.emergency_fund.target_amount) : ''}</div>
     <div class="section"><div class="group">${items.map((i, n) => `<label class="cell field" style="align-items:flex-start">
-      <div class="main"><div>${esc(i.cat)}</div><div class="s wrap">${[i.spent ? 'Spent ' + rs(i.spent) : '', esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
+      <div class="main"><div>${esc(i.cat === 'Other' ? 'Other · urgent reserve' : i.cat)}</div><div class="s wrap">${[i.spent ? 'Spent ' + rs(i.spent) : '', i.cat === 'Other' ? 'Not part of your daily money' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
       <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${n}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
       <div class="s" id="h${n}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
       ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`).join('')}</div>
@@ -940,7 +943,7 @@ document.addEventListener('click', e => {
     case 'review': S.filter = 'review'; goTab('transactions'); break;
     case 'gotoImprove': goTab('activity'); break;
     case 'gotoPay': case 'gotoClaims': openMoreAt(el.dataset.act === 'gotoPay' ? 'pay' : 'claims'); break;
-    case 'claim': setClaim(id, el.dataset.on === '1' ? null : 'done', el); break;
+    case 'claim': setClaim(id, el.dataset.on === '1' ? 'todo' : 'done', el); break;
     case 'clearFilter': S.filter = null; render(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
     case 'current': S.cycle = null; load(); break;
@@ -951,7 +954,7 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => { if (e.target.dataset.money !== undefined) {
   formatMoneyInput(e.target);
   const total = document.getElementById('planTotal');
-  if (total) total.textContent = rs([...document.querySelectorAll('input[data-cat]')].filter(i => i.dataset.cat !== 'Emergency fund').reduce((s, i) => s + moneyValue(i), 0));
+  if (total) total.textContent = rs([...document.querySelectorAll('input[data-cat]')].filter(i => i.dataset.cat !== 'Emergency fund' && i.dataset.cat !== 'Other').reduce((s, i) => s + moneyValue(i), 0));
 } });
 document.addEventListener('change', e => { if (e.target.dataset.assign !== undefined) assign(e.target); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
