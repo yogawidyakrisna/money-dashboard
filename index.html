@@ -651,6 +651,8 @@ function toolsSection(d) {
 }
 /** Where the income goes: fixed (Family, Bills, Emergency fund), investing, adjustable (the everyday categories), and what is not planned yet. */
 const FIXED_CATS = ['Family', 'Bills'];
+/** Where the investing money goes, from the owner's own split. */
+const investWhere = d => ((d.budgets.investing || {}).split || []).filter(x => x.pct > 0).map(x => x.place).join(', ') || 'Investasi';
 const GROUP_ID = { Fixed: 'Tetap', Investing: 'Investasi', Adjustable: 'Fleksibel', 'Not planned': 'Belum direncanakan' };
 const GROUP_COLOR = { Fixed: 'var(--label3)', Investing: 'var(--g-family)', Adjustable: 'var(--green)', 'Not planned': 'var(--fill)' };
 /** Every budget line in its group: Fixed (Family, Bills, Emergency fund) · Investing · Adjustable (the rest). */
@@ -663,7 +665,7 @@ function incomeGroups(d) {
       ...rows.filter(r => FIXED_CATS.includes(r.category)).map(r => line(r, fixedIn(r.category) ? 'Tetap: ' + fixedIn(r.category) : r.category === 'Bills' ? 'PLN, WiFi, telepon, langganan' : '')),
       ...saving.filter(r => r.category === 'Emergency fund').map(r => line(r, 'Rencanamu')),
     ] },
-    { name: 'Investing', why: 'Bibit, Stockbit atau Treasury', items: saving.filter(r => r.category === 'Investing').map(r => line(r, 'Sisa setelah kebutuhan dan tabungan')) },
+    { name: 'Investing', why: investWhere(d), items: saving.filter(r => r.category === 'Investing').map(r => line(r, 'Sisa setelah kebutuhan dan tabungan')) },
     { name: 'Adjustable', why: 'kamu yang atur', items: rows.filter(r => !FIXED_CATS.includes(r.category)).sort((a, b) => b.limit - a.limit).map(r => line(r, '')) },
   ].map(g => ({ ...g, total: g.items.reduce((a, r) => a + r.limit, 0) }));
   return groups;
@@ -787,7 +789,7 @@ function savingSection(d) {
     ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investasi</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('sisa', 'kurang').replace('lewat', 'lebih dari rencana')}</span></div>
       ${budgetBar(inv.invested, inv.amount)}<div class="s num">Sudah ${rs(inv.invested)} dari ${rs(inv.amount)}</div>
       ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· ditahan</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('')
-        : '<div class="s" style="margin-top:6px">Pembagian Bibit, Stockbit dan Treasury belum diatur. Beri tahu Claude pembagianmu.</div>'}
+        : '<div class="s" style="margin-top:6px">Tempat investasi belum diatur. Beri tahu Claude pilihanmu.</div>'}
       ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep)">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' on ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
   </div></div>`;
 }
@@ -871,9 +873,11 @@ function amplopPage(d) {
     ${sealed.length || em ? `<div class="section"><div class="header"><span>Disegel · sama tiap bulan</span><span>${rs(sealed.reduce((a, r) => a + r.limit, 0) + (em ? em.amount : 0))}</span></div><div class="envs">${sealed.map(r => envelope(d, r, true)).join('')}</div></div>` : ''}
     <div class="section"><div class="header"><span>Amplop harian · kamu yang atur</span><span>${rs(daily.reduce((a, r) => a + r.limit, 0))}</span></div><div class="envs">${daily.map(r => envelope(d, r, false)).join('')}</div></div>`;
   const saving = (em || inv.amount) ? `<div class="section" id="saving"><div class="header"><span>Investasi dan dana darurat</span><span>${rs((em ? em.amount : 0) + inv.amount)}</span></div><div class="group">
-    ${inv.amount ? `<div class="srow" style="display:block"><div class="field"><span class="t" style="font-weight:600">Investasi wajib</span>${stp(inv.invested >= inv.amount ? ['aman', 'TUNTAS'] : ['or', 'WAJIB'])}</div>
-      <div class="s num wrap">${inv.invested >= inv.amount ? rs(inv.invested) + ' sudah masuk. Siklus ini tuntas.' : rs(inv.invested) + ' dari ' + rs(inv.amount) + ' sudah masuk · kurang ' + rs(inv.amount - inv.invested) + ' sebelum gajian'}</div>${budgetBar(Math.min(inv.invested, inv.amount), inv.amount)}
-      ${(inv.split || []).map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· ditahan</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('') || '<div class="s wrap" style="margin-top:6px">Pembagian Bibit, Stockbit dan Treasury belum diatur. Beri tahu Claude pembagianmu.</div>'}
+    ${inv.amount ? `<div class="srow" style="display:block"><div class="field"><span class="t" style="font-weight:600">Investasi wajib</span>${stp(inv.invested >= inv.amount ? ['aman', 'TUNTAS'] : inv.hold ? ['abu', 'DITAHAN'] : ['or', 'WAJIB'])}</div>
+      <div class="s num wrap">${inv.invested >= inv.amount ? rs(inv.invested) + ' sudah masuk. Siklus ini tuntas.' : inv.hold ? `${rs(inv.amount - inv.invested)} tetap disisihkan, belum dibeli dulu (pilihanmu)` : rs(inv.invested) + ' dari ' + rs(inv.amount) + ' sudah masuk · kurang ' + rs(inv.amount - inv.invested) + ' sebelum gajian'}</div>${budgetBar(Math.min(inv.invested, inv.amount), inv.amount)}
+      ${(inv.split || []).map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· ditahan</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('') || '<div class="s wrap" style="margin-top:6px">Tempat investasi belum diatur. Beri tahu Claude pilihanmu.</div>'}
+      ${inv.hold && inv.invested < inv.amount ? `<div class="s wrap" style="margin-top:8px">Uangnya tetap dihitung terpakai, jadi jatah harian tidak membengkak. Uang yang dipindah ke RDN dihitung sudah masuk, walau belum jadi saham.</div>` : ''}
+      <div class="field s tap" data-tab="money" style="margin-top:8px"><span>Nilai aset dan untung/rugi</span>${stp(['or', 'SOON!'])}</div>
       ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px">${inv.rule.fired ? '🚨 ' : ''}${esc(ruleText(inv.rule))}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' per ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
     ${em ? `<div class="srow"><div class="main"><div class="t" style="font-weight:600">Dana darurat</div><div class="s">${emRow.spent >= em.amount ? rs(emRow.spent) + ' sudah ke Dana Darurat' : 'Pindahkan ' + rs(em.amount - emRow.spent) + ' lagi ke Dana Darurat'}</div></div>${stp(emRow.spent >= em.amount ? ['aman', 'TERISI'] : ['mepet', 'KURANG'])}</div>` : ''}
     ${fromFund.map(r => `<div class="srow tap" data-act="cat" data-id="${esc(r.category)}"><div class="main"><div class="t">${esc(catName(r.category))}</div><div class="s">diambil dari dana darurat · di luar amplop</div></div><span class="num">${rs(r.spent)}</span></div>`).join('')}
@@ -915,9 +919,9 @@ function rapatSection(d) {
 function dompetPage(d) {
   const nw = d.netWorth, m = moneyBuckets(d), pay = d.pay || [], c = d.claims || { todo: [], done: [], total: 0 };
   const cur = d.cycle.isCurrent;
-  const head = `<div class="title-row"><h1 class="large-title">Dompet</h1></div><div style="height:14px"></div>` + pageHead('Semua rekening', rs(nw.total), cur ? `di luar dana darurat dan titipan: <b>${rs(m.usable)}</b>${m.toInvest ? ` · <b>${rs(m.toInvest)}</b> wajib diinvestasikan` : ''} · jatah belanja <b>${rs(m.daily)}</b>` : '');
+  const head = `<div class="title-row"><h1 class="large-title">Dompet</h1></div><div style="height:14px"></div>` + pageHead('Semua rekening', rs(nw.total), cur ? `di luar dana darurat dan titipan: <b>${rs(m.usable)}</b>${m.toInvest ? ` · <b>${rs(m.toInvest)}</b> ${d.budgets.investing && d.budgets.investing.hold ? 'disisihkan untuk investasi' : 'wajib diinvestasikan'}` : ''} · jatah belanja <b>${rs(m.daily)}</b>` : '');
   // Investing comes first every cycle: it is a duty, not what is left over.
-  const split = cur ? [['Wajib investasi siklus ini', m.toInvest, 'var(--g-family)', ['or', 'WAJIB']], ['Jatah harian sampai gajian', m.daily, 'var(--green)'], ['Isi dana darurat', m.toFund, '#64d2ff'], ['Nganggur', m.spare, 'var(--fill)']].filter(x => x[1] > 0) : [];
+  const split = cur ? [[d.budgets.investing && d.budgets.investing.hold ? 'Disisihkan untuk investasi, belum dibeli' : 'Wajib investasi siklus ini', m.toInvest, 'var(--g-family)', d.budgets.investing && d.budgets.investing.hold ? ['abu', 'DITAHAN'] : ['or', 'WAJIB']], ['Jatah harian sampai gajian', m.daily, 'var(--green)'], ['Isi dana darurat', m.toFund, '#64d2ff'], ['Nganggur', m.spare, 'var(--fill)']].filter(x => x[1] > 0) : [];
   const need = m.toInvest + m.daily + m.toFund, gap = need - m.usable;
   const bagi = split.length ? `<div class="section" id="money"><div class="header"><span>${rs(m.usable)} ini mau ke mana</span><span>investasi duluan</span></div><div class="group" style="padding:14px 16px">
     <div class="stack">${split.map(x => `<div style="width:${x[1] / Math.max(1, need, m.usable) * 100}%;background:${x[2]}"></div>`).join('')}</div>
@@ -942,9 +946,14 @@ function dompetPage(d) {
     <div class="main tap" data-act="edit" data-id="${x.id}"><div class="t ${on ? 'muted' : ''}">${esc(x.merchant || 'Medis')}</div><div class="s">${esc(x.date ? tgl(x.date) : x.label)} · ${esc(x.account)}</div></div><span class="num ${on ? 'muted' : ''}" style="margin-right:4px">${rs(x.amount)}</span>${stp(on ? ['aman', 'LUNAS'] : ['or', 'TAGIH'])}</div>`;
   const piutang = c.todo.length || c.done.length ? `<div class="section" id="claims"><div class="header"><span>Piutang kantor</span><span>${c.todo.length ? rs(c.total) + ' belum ditagih' : 'semua sudah ditagih'}</span></div><div class="group">
     ${c.todo.map(x => crow(x, false)).join('')}${c.done.slice(0, 3).map(x => crow(x, true)).join('')}</div><div class="footnote">Tagihan klinik dan rumah sakit yang kamu bayar sendiri. Centang ○ setelah diklaim.</div></div>` : '';
-  const tools = toolsSection(d);
-  if (isWide()) return `${head}<div class="dash"><div class="dash-cell span-7">${accounts}</div><div class="dash-cell span-5">${bagi}${gajian}${piutang}</div><div class="dash-cell span-12">${tools}</div></div>`;
-  return `${head}${bagi}${accounts}${gajian}${piutang}${tools}`;
+  const tools = toolsSection(d), rdn = nw.accounts.find(a => a.kind === 'investment');
+  // Coming later: the real value of the investments (market value, profit and loss). Until then only the RDN cash is known.
+  const aset = `<div class="section" id="aset"><div class="header"><span>Nilai aset investasi</span>${stp(['or', 'SOON!'])}</div><div class="group">
+    ${rdn ? `<div class="srow"><div class="main"><div class="t">Kas di RDN</div><div class="s">${rdn.hasSnapshot ? esc(ago(rdn.asOf)) + ' · dari screenshot saldo' : 'belum ada saldo'}</div></div><span class="num">${rdn.hasSnapshot ? rs(rdn.balance) : '—'}</span></div>` : ''}
+    ${['Nilai pasar saham', 'Untung/rugi (PnL)', 'Total aset sebenarnya'].map(x => `<div class="srow"><div class="main"><div class="t muted">${x}</div></div><span class="muted">segera</span></div>`).join('')}
+  </div><div class="footnote">Nanti: nilai saham hari ini, untung/rugi, dan total aset yang sebenarnya.</div></div>`;
+  if (isWide()) return `${head}<div class="dash"><div class="dash-cell span-7">${accounts}</div><div class="dash-cell span-5">${bagi}${aset}${gajian}${piutang}</div><div class="dash-cell span-12">${tools}</div></div>`;
+  return `${head}${bagi}${accounts}${aset}${gajian}${piutang}${tools}`;
 }
 
 // ---------- Tambal amplop: cover an envelope that went over with money from envelopes that still have room ----------
@@ -1455,7 +1464,7 @@ function planSheet() {
   const ordered = ['Fixed', 'Investing', 'Adjustable'].map(g => ({ g, rows: items.filter(i => groupOf(i.cat) === g) }));
   let n = 0;
   const row = i => { const k = n++; return `<label class="cell field" style="align-items:flex-start">
-      <div class="main"><div>${groupOf(i.cat) === 'Fixed' ? '🔒 ' : ''}${esc(catName(i.cat))}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Diinvestasikan ' : 'Terpakai ') + rs(i.spent) : '', i.cat === 'Investing' ? 'Bibit, Stockbit atau Treasury · bukan uang harian' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
+      <div class="main"><div>${groupOf(i.cat) === 'Fixed' ? '🔒 ' : ''}${esc(catName(i.cat))}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Diinvestasikan ' : 'Terpakai ') + rs(i.spent) : '', i.cat === 'Investing' ? investWhere(d) + ' · bukan uang harian' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
       <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${k}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
       <div class="s" id="h${k}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
       ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`; };
