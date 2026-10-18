@@ -467,24 +467,37 @@ function home(d) {
 
 /** Where the income goes: fixed (Family, Bills, Emergency fund), investing, adjustable (the everyday categories), and what is not planned yet. */
 const FIXED_CATS = ['Family', 'Bills'];
+const GROUP_COLOR = { Fixed: 'var(--label3)', Investing: 'var(--g-family)', Adjustable: 'var(--green)', 'Not planned': 'var(--fill)' };
+/** Every budget line in its group: Fixed (Family, Bills, Emergency fund) · Investing · Adjustable (the rest). */
+function incomeGroups(d) {
+  const rows = d.budgets.rows.filter(r => !r.reserve), saving = d.budgets.saving || [], fx = d.fixed || [];
+  const fixedIn = cat => fx.filter(f => f.category === cat).map(f => f.label.replace(/\s*\(.*\)$/, '') + ' ' + rs(f.amount)).join(', ');
+  const line = (r, why) => ({ category: r.category, limit: r.limit, spent: r.spent, why });
+  const groups = [
+    { name: 'Fixed', why: 'Same every month', items: [
+      ...rows.filter(r => FIXED_CATS.includes(r.category)).map(r => line(r, fixedIn(r.category) ? 'Fixed: ' + fixedIn(r.category) : r.category === 'Bills' ? 'PLN, WiFi, phone, subscriptions' : '')),
+      ...saving.filter(r => r.category === 'Emergency fund').map(r => line(r, 'Your plan')),
+    ] },
+    { name: 'Investing', why: 'Bibit, Stockbit or Treasury', items: saving.filter(r => r.category === 'Investing').map(r => line(r, 'What is left after needs and savings')) },
+    { name: 'Adjustable', why: 'You decide these', items: rows.filter(r => !FIXED_CATS.includes(r.category)).sort((a, b) => b.limit - a.limit).map(r => line(r, '')) },
+  ].map(g => ({ ...g, total: g.items.reduce((a, r) => a + r.limit, 0) }));
+  return groups;
+}
+
 function incomeCard(d) {
-  const cap = d.budgets.cap, rows = d.budgets.rows.filter(r => !r.reserve), saving = d.budgets.saving || [];
+  const cap = d.budgets.cap;
   if (!cap || d.budgets.state === 'none') return '';
-  const sum = (list, f) => list.filter(f).reduce((a, r) => a + r.limit, 0);
-  const fixed = sum(rows, r => FIXED_CATS.includes(r.category)) + sum(saving, r => r.category === 'Emergency fund');
-  const investing = sum(saving, r => r.category === 'Investing');
-  const adjustable = sum(rows, r => !FIXED_CATS.includes(r.category));
-  const free = Math.max(0, cap - fixed - investing - adjustable);
-  const over = fixed + investing + adjustable - cap;
-  const parts = [['Fixed', fixed, 'var(--label3)'], ['Investing', investing, 'var(--g-family)'], ['Adjustable', adjustable, 'var(--green)'], ['Not planned', free, 'var(--fill)']].filter(p => p[1] > 0);
-  const adjRows = rows.filter(r => !FIXED_CATS.includes(r.category)).sort((a, b) => b.limit - a.limit);
-  return `<div class="section"><div class="group"><div class="cell tap" data-act="plan" style="display:block">
-    <div class="field"><span style="font-weight:600">Your ${rs(cap)} a cycle</span><span class="d" style="font-size:15px">${over > 0 ? '<span class="red">' + rs(over) + ' over</span>' : 'Edit ›'}</span></div>
-    <div class="stack" style="margin-top:10px">${parts.map(p => `<div style="width:${p[1] / cap * 100}%;background:${p[2]}"></div>`).join('')}</div>
-    <div class="legend" style="margin-top:10px">${parts.map(p => `<div><span class="dot" style="background:${p[2]}"></span>${p[0]}<span class="num">${rs(p[1])}</span></div>`).join('')}</div>
-    <div class="s wrap" style="margin-top:10px"><b style="font-weight:600;color:var(--label)">You can adjust ${rs(adjustable)}</b> · ${adjRows.map(r => esc(r.category) + ' ' + rs(r.limit)).join(' · ')}</div>
-    <div class="s wrap" style="margin-top:4px">Fixed: ${rows.filter(r => FIXED_CATS.includes(r.category)).map(r => esc(r.category) + ' ' + rs(r.limit)).concat(saving.filter(r => r.category === 'Emergency fund').map(r => 'Emergency fund ' + rs(r.limit))).join(' · ')}</div>
-  </div></div></div>`;
+  const groups = incomeGroups(d), planned = groups.reduce((a, g) => a + g.total, 0), free = cap - planned;
+  const parts = groups.map(g => [g.name, g.total]).concat([['Not planned', Math.max(0, free)]]).filter(p => p[1] > 0);
+  return `<div class="section"><div class="header"><span>Your ${rs(cap)} a cycle</span><span>${free < 0 ? '<span class="red">' + rs(-free) + ' over</span>' : rs(free) + ' not planned'}</span></div><div class="group">
+    <div class="cell" style="display:block"><div class="stack">${parts.map(p => `<div style="width:${p[1] / cap * 100}%;background:${GROUP_COLOR[p[0]]}"></div>`).join('')}</div>
+      <div class="legend" style="margin-top:10px">${parts.map(p => `<div><span class="dot" style="background:${GROUP_COLOR[p[0]]}"></span>${p[0]}<span class="num">${rs(p[1])}</span></div>`).join('')}</div></div>
+    ${groups.filter(g => g.items.length).map(g => `<div class="cell" style="display:block;padding-bottom:6px">
+      <div class="field"><span style="font-weight:600"><span class="dot" style="background:${GROUP_COLOR[g.name]};display:inline-block;margin-right:6px"></span>${g.name === 'Fixed' ? '🔒 ' : ''}${g.name} <span class="d" style="font-weight:400">· ${g.why}</span></span><span class="num" style="font-weight:600">${rs(g.total)}</span></div>
+      ${g.items.map(r => `<div style="margin-top:6px"><div class="field s" style="color:var(--label)"><span class="t">${esc(catInfo(d, r.category).icon || '')} ${esc(r.category)}</span><span class="num" style="flex:none">${rs(r.limit)}</span></div>${r.why ? `<div class="s wrap" style="font-size:12px;color:var(--label3)">${esc(r.why)}</div>` : ''}</div>`).join('')}
+    </div>`).join('')}
+    <div class="cell tap" data-act="plan"><div class="main link">Edit budget</div></div>
+  </div><div class="footnote">Fixed lines stay the same every month. Medical and Other are paid from your emergency fund and are not in this plan.</div></div>`;
 }
 
 /** What today looks like: spent so far (fixed bills left out) against today's share of what is left. */
@@ -955,14 +968,19 @@ function planSheet() {
   items.push({ cat: 'Emergency fund', amount: b.emergency ? b.emergency.amount : 0, spent: 0, reason: b.emergency ? b.emergency.reason : '' });
   const inv = b.investing || { amount: 0, invested: 0, reason: '' };
   items.push({ cat: 'Investing', amount: inv.amount, spent: inv.invested, reason: inv.reason });
+  const groupOf = cat => FIXED_CATS.includes(cat) || cat === 'Emergency fund' ? 'Fixed' : cat === 'Investing' ? 'Investing' : 'Adjustable';
+  const ordered = ['Fixed', 'Investing', 'Adjustable'].map(g => ({ g, rows: items.filter(i => groupOf(i.cat) === g) }));
+  let n = 0;
+  const row = i => { const k = n++; return `<label class="cell field" style="align-items:flex-start">
+      <div class="main"><div>${groupOf(i.cat) === 'Fixed' ? '🔒 ' : ''}${esc(i.cat)}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Invested ' : 'Spent ') + rs(i.spent) : '', i.cat === 'Investing' ? 'Bibit, Stockbit or Treasury · not daily money' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
+      <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${k}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
+      <div class="s" id="h${k}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
+      ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`; };
   sheet('Budget', `
     <div class="big-amount" id="planTotal">${rs(items.reduce((s, i) => s + i.amount, 0))}</div>
     <div class="footnote" style="text-align:center;padding-top:2px" id="planCap">${capLine(items.reduce((s, i) => s + i.amount, 0))}</div>
-    <div class="section"><div class="group">${items.map((i, n) => `<label class="cell field" style="align-items:flex-start">
-      <div class="main"><div>${esc(i.cat === 'Other' ? 'Other · urgent reserve' : i.cat)}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Invested ' : 'Spent ') + rs(i.spent) : '', i.cat === 'Other' ? 'Not part of your daily money' : i.cat === 'Investing' ? 'Bibit, Stockbit or Treasury · not daily money' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
-      <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${n}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
-      <div class="s" id="h${n}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
-      ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`).join('')}</div>
+    ${ordered.filter(o => o.rows.length).map(o => `<div class="section"><div class="header"><span>${o.g === 'Fixed' ? '🔒 Fixed · same every month' : o.g === 'Investing' ? 'Investing · not daily money' : 'Adjustable · you decide'}</span><span class="num" data-grp="${o.g}">${rs(o.rows.reduce((a, i) => a + i.amount, 0))}</span></div><div class="group">${o.rows.map(row).join('')}</div></div>`).join('')}
+    <div class="section">
     ${Object.keys(sug).length ? '<div class="footnote">Blue amounts are what your CFO now suggests. Tap one to use it.</div>' : ''}
     <div class="err" id="pErr"></div>
     <button class="btn" data-act="approve" style="margin-top:6px">Approve budget</button></div>`, { label: 'Approve', act: 'approve' });
@@ -1179,6 +1197,7 @@ document.addEventListener('input', e => { if (e.target.dataset.money !== undefin
     const sum = [...document.querySelectorAll('input[data-cat]')].reduce((s, i) => s + moneyValue(i), 0);
     total.textContent = rs(sum); total.classList.toggle('red', !!(S.data.budgets.cap && sum > S.data.budgets.cap));
     document.getElementById('planCap').innerHTML = capLine(sum);
+    document.querySelectorAll('[data-grp]').forEach(el => { const g = el.dataset.grp; el.textContent = rs([...document.querySelectorAll('input[data-cat]')].filter(i => (['Family', 'Bills', 'Emergency fund'].includes(i.dataset.cat) ? 'Fixed' : i.dataset.cat === 'Investing' ? 'Investing' : 'Adjustable') === g).reduce((s, i) => s + moneyValue(i), 0)); });
   }
 } });
 document.addEventListener('change', e => { if (e.target.dataset.assign !== undefined) assign(e.target); });
