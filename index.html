@@ -150,34 +150,42 @@
   .acct svg { width: 22px; height: 22px; } .acct.sm svg { width: 13px; height: 13px; }
   .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
   .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
-  /* Desktop (Mac, iPad landscape), after Apple's HIG for macOS: a sidebar, a 12-column grid with wide gutters, roomier cards, softer dark surfaces. */
+  /* Desktop (Mac, iPad landscape), after Apple's HIG for macOS: sidebar, a 12-column grid with wide gutters, equal-height rows, larger type, lots of air. */
   .cols, .cols > .col { display: contents; }
   @media (min-width: 900px) {
     :root { --bg: #141416; --cell: #1e1e22; --sheet: #1e1e22; --bar: #141416; }
     body { font-size: 16px; }
-    .screen { max-width: 1440px; margin: 0; padding: 40px 48px 64px 268px; }
-    .title-row { padding: 0 0 8px; margin-bottom: 8px; } .title-row .seg { margin: 0; width: 360px; }
-    .large-title { font-size: 28px; line-height: 34px; }
-    .dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; }
-    .dash-cell { min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+    .screen { max-width: 1600px; margin: 0; padding: 48px 56px 80px 284px; }
+    .title-row { padding: 0 0 12px; margin-bottom: 16px; } .title-row .seg { margin: 0; width: 380px; }
+    .large-title { font-size: 32px; line-height: 38px; }
+    .band { display: grid; grid-template-columns: 1fr 420px; gap: 48px; align-items: center; border-radius: 28px; padding: 40px 48px; margin-bottom: 48px; }
+    .band-left { display: flex; align-items: center; gap: 40px; cursor: pointer; }
+    .band .hk { font-size: 17px; color: var(--on); } .band .hv { font-size: 64px; font-weight: 700; letter-spacing: -.5px; line-height: 1.05; color: #fff; margin: 4px 0; }
+    .band .ring-c span { color: var(--on); font-size: 13px; }
+    .band .next { padding: 22px 28px; font-size: 18px; border-radius: 22px; } .band .next .main div:last-child { font-size: 15px; }
+    .dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 48px; align-items: stretch; }
+    .dash-cell { min-width: 0; display: flex; flex-direction: column; gap: 48px; }
+    .dash-cell > .section { display: flex; flex-direction: column; flex: 1; margin: 0; }
+    .dash-cell > .section > .group { flex: 1; }
     .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
-    .dash .section, .dash .section .section { margin: 0; }
-    .dash .section .section { margin-top: 16px; }
-    .group { border-radius: 16px; } .cell { padding: 14px 20px; min-height: 52px; }
-    .hero, .mood { padding: 24px; } .mood { border-radius: 20px; }
-    .header { padding: 0 4px 10px; font-size: 13px; } .footnote { padding: 10px 4px 0; }
+    .dash .section .section { margin: 16px 0 0; }
+    .group { border-radius: 20px; } .cell { padding: 18px 28px; min-height: 60px; gap: 16px; }
+    .cell .t { font-size: 17px; } .cell .s { font-size: 15px; }
+    .hero { padding: 28px 32px; }
+    .header { padding: 0 6px 14px; font-size: 14px; letter-spacing: .3px; } .header > span:first-child { font-weight: 600; }
+    .footnote { padding: 12px 6px 0; font-size: 14px; }
     .more { display: none; }
-    .tabbar { top: 0; bottom: 0; right: auto; width: 220px; border-top: 0; border-right: .5px solid var(--sep); padding: 28px 16px 0; background: var(--bar); backdrop-filter: none; }
-    .tabbar .in { flex-direction: column; height: auto; gap: 4px; align-items: stretch; }
-    .tabbar .in::before { content: 'Money'; font-size: 22px; font-weight: 700; color: var(--label); padding: 4px 12px 20px; }
-    .tabbar button { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; height: 44px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--label2); }
+    .emo { width: 38px; height: 38px; border-radius: 11px; font-size: 20px; } .acct { width: 46px; height: 46px; }
+    .tabbar { top: 0; bottom: 0; right: auto; width: 236px; border-top: 0; border-right: .5px solid var(--sep); padding: 36px 20px 0; background: var(--bar); backdrop-filter: none; }
+    .tabbar .in { flex-direction: column; height: auto; gap: 6px; align-items: stretch; }
+    .tabbar .in::before { content: 'Money'; font-size: 24px; font-weight: 700; color: var(--label); padding: 4px 14px 24px; }
+    .tabbar button { flex: none; flex-direction: row; justify-content: flex-start; gap: 14px; height: 48px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-weight: 500; color: var(--label2); }
     .tabbar button.on { background: rgba(255,255,255,.08); color: var(--label); }
     .tabbar svg { width: 22px; height: 22px; }
     .badge { position: static; margin-left: auto; }
-    .sheet-bg { align-items: center; } .sheet { border-radius: 18px; max-height: 88vh; max-width: 640px; }
-    .mood .ring { width: 220px !important; height: 220px !important; }
+    .sheet-bg { align-items: center; } .sheet { border-radius: 20px; max-height: 88vh; max-width: 680px; }
   }
-  @media (min-width: 1500px) { .screen { max-width: 1680px; } }
+  @media (min-width: 1700px) { .screen { max-width: 1900px; } }
 </style>
 </head>
 <body>
@@ -446,15 +454,32 @@ function home(d) {
     claims: claimsSection(d), pay: paySection(d), fixed: fixedSection(d), money: moneySection(d), tools: toolsSection(d),
   };
   if (isWide()) {
-    // Desktop dashboard: a 12-column grid with fixed places, so the eye always finds things in the same spot.
+    // Desktop: its own design. A wide hero band, then rows of equal-height cards with lots of air.
     const cell = (cls, ...keys) => `<div class="dash-cell ${cls}">${keys.map(k => parts[k]).join('')}</div>`;
-    return `<div class="dash">${cell('span-4', 'hero')}${cell('span-4', 'today', 'next')}${cell('span-4', 'income')}
-      ${cell('span-4', 'budget')}${cell('span-4', 'saving', 'claims')}${cell('span-4', 'pay', 'fixed')}
-      ${cell('span-6', 'cfo')}${cell('span-6', 'money', 'tools')}</div>`;
+    return `${desktopHero(d, step)}<div class="dash">
+      ${cell('span-4', 'income')}${cell('span-4', 'budget')}${cell('span-4', 'saving', 'claims')}
+      ${cell('span-4', 'today')}${cell('span-4', 'pay', 'fixed')}${cell('span-4', 'money')}
+      ${cell('span-8', 'cfo')}${cell('span-4', 'tools')}</div>`;
   }
   return `${parts.hero}${parts.today}${parts.next}${parts.income}
   <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
   ${moreOpen ? parts.cfo + parts.budget + parts.saving + parts.claims + parts.pay + parts.fixed + parts.money + parts.tools : ''}`;
+}
+
+/** Desktop hero band: the ring, the one number in large type, and the next step, side by side. */
+function desktopHero(d, step) {
+  const sp = d.spend, m = mood(d), t = todayInfo(d);
+  const share = sp.limit > 0 ? Math.max(0, Math.min(1, sp.left / sp.limit)) : 0;
+  const ringSvg = `<div class="ring" style="width:200px;height:200px;flex:none"><svg viewBox="0 0 100 100">
+      <circle r="44" cx="50" cy="50" fill="none" stroke-width="7" style="stroke:rgba(255,255,255,.18)"/>
+      ${share > 0 ? `<circle r="44" cx="50" cy="50" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:#fff" stroke-dasharray="${Math.max(1, 276.5 * share)} 300" transform="rotate(-90 50 50)"/>` : ''}
+    </svg><div class="ring-c"><b style="font-size:26px">${Math.round(share * 100)}%</b><span>of the plan left</span></div></div>`;
+  const headline = sp.perDay === null ? `<div class="hk">Spent this cycle</div><div class="hv">${rs(d.spent)}</div><div class="hk">${d.cycle.isCurrent ? 'Approve a budget to see what is left' : esc(d.cycle.label)}</div>`
+    : sp.left < 0 ? `<div class="hk">Over budget by</div><div class="hv">${rs(-sp.left)}</div><div class="hk">until ${paydayLabel(d)} · ${d.cycle.daysLeft} days</div>`
+    : `<div class="hk">Left to spend</div><div class="hv">${rs(sp.left)}</div><div class="hk">until ${paydayLabel(d)} · ${d.cycle.daysLeft} days${t.limit ? ' · about ' + rs(t.limit) + ' today' : ''}</div>`;
+  const next = step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
+    : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`;
+  return `<div class="band mood ${m}"><div class="band-left tap" data-act="why">${ringSvg}<div>${headline}<div class="hk" style="margin-top:14px"><b style="color:#fff">Why ›</b></div></div></div><div class="band-right">${next}</div></div>`;
 }
 
 function budgetSection(d, rows, shown, reserve) {
