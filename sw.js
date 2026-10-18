@@ -1,6 +1,6 @@
 // App shell cache: the page opens instantly from cache, then refreshes itself in the background.
 // Only the page and its icon are cached; data requests always go to the network.
-const CACHE = 'money-v17';
+const CACHE = 'money-v18';
 const SHELL = ['./', 'index.html', 'icon-180.png'];
 
 self.addEventListener('install', (e) => {

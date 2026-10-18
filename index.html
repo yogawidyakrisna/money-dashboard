@@ -201,6 +201,8 @@ const catInfo = (d, name) => (d.categoryInfo || []).find(c => c.name === name)
 const groupColor = g => (GROUPS.find(x => x[0] === g) || GROUPS[3])[1];
 const emo = (d, name) => { const c = catInfo(d, name); return `<div class="emo" style="background:color-mix(in srgb, ${groupColor(c.group)} 20%, transparent)">${esc(c.icon || '📦')}</div>`; };
 const dayNum = s => Number(s.slice(8, 10));
+const isWeekendKey = ymd => [0, 6].includes(new Date(ymd + 'T00:00:00').getDay());
+const limitFor = (d, ymd) => d.spend.perWeekend && isWeekendKey(ymd) ? d.spend.perWeekend : d.spend.perDay;
 const todayKey = d => new Date(d.now + 7 * 3600e3).toISOString().slice(0, 10); // WIB date
 
 /** Spending per category and per group for the cycle, biggest first. */
@@ -240,14 +242,16 @@ const tiny = v => v >= 1e6 ? String(Math.round(v / 1e5) / 10).replace('.', ',') 
 /** Bars with their amount written on top and a name under each; optional dashed limit line with its value. */
 function labeledBars(values, color, line, lineLabel) {
   const W = 320, H = 160, top = 22, base = H - 22, n = values.length || 1, step = W / n, bw = Math.min(30, step * 0.62);
-  const max = Math.max(1, line || 0, ...values.map(v => v.v)), y = v => base - (v / max) * (base - top);
+  const max = Math.max(1, line || 0, ...values.map(v => Math.max(v.v, v.lim || 0))), y = v => base - (v / max) * (base - top);
+  const perBar = values.some(v => v.lim !== undefined);
   const bars = values.map((p, i) => {
-    const cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = line && p.v > line;
+    const lim = p.lim !== undefined ? p.lim : line, cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = lim && p.v > lim;
     return `${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="4" style="fill:${over ? 'var(--red)' : color};opacity:${p.hl ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
       <text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:${n > 8 ? 9 : 10}px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(n > 8 ? tiny(p.v) : rs(p.v).replace('Rp', '')) : '0'}</text>
-      <text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>`;
+      <text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>
+      ${perBar && lim ? `<line x1="${i * step + 2}" x2="${(i + 1) * step - 2}" y1="${y(lim)}" y2="${y(lim)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>` : ''}`;
   }).join('');
-  const ln = line ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
+  const ln = line && !perBar ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
     <text x="2" y="${y(line) - 4}" style="font-size:10px;fill:var(--label2)">${esc(lineLabel || '')}</text>` : '';
   return `<svg viewBox="0 0 ${W} ${H}" role="img"><line x1="0" x2="${W}" y1="${base}" y2="${base}" style="stroke:var(--sep)" stroke-width=".5"/>${ln}${bars}</svg>`;
 }
@@ -369,8 +373,9 @@ function whySheet() {
   const d = S.data, sp = d.spend, r = room(d);
   const reason = x => x.reason ? shorten(x.reason) : '';
   sheet('Why ' + rs(sp.perDay) + ' a day', `
-    <div class="big-amount">${rs(sp.perDay)} <span style="font-size:20px;color:var(--label2)">a day</span></div>
-    <div class="footnote" style="text-align:center;padding-top:2px">${sp.left >= 0 ? rs(sp.left) + ' left ÷ ' + r.days + (r.days === 1 ? ' day' : ' days') + ' to payday (' + paydayLabel(d) + ')' : rs(-sp.left) + ' over budget'}</div>
+    <div class="big-amount">${rs(sp.perDay)} <span style="font-size:20px;color:var(--label2)">weekdays</span></div>
+    ${sp.perWeekend && sp.perWeekend !== sp.perDay ? `<div class="big-amount" style="padding-top:0">${rs(sp.perWeekend)} <span style="font-size:20px;color:var(--label2)">weekends</span></div>` : ''}
+    <div class="footnote" style="text-align:center;padding-top:2px">${sp.left >= 0 ? rs(sp.left) + ' left until payday (' + paydayLabel(d) + ')' : rs(-sp.left) + ' over budget'}${sp.weekendRatio > 1 ? ` · a weekend day gets ${String(sp.weekendRatio).replace('.', ',')}× a weekday, from your own habits` : ''}</div>
     <div class="section"><div class="header"><span>OK to spend here</span><span>${rs(r.roomTotal)}</span></div><div class="group">
       ${r.open.length ? r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
         <div class="field"><span class="t">${esc(x.category)}</span><span class="num green">${rs(x.left)} left</span></div>
@@ -426,6 +431,7 @@ function home(d) {
         ${x.limit ? (paid ? `<div class="progress"><div class="done" style="width:100%"></div></div>` : budgetBar(x.spent, x.limit)) : ''}
       </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
     ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
+    ${savingRows(d)}
     ${reserve.budget || reserve.used ? `<div class="cell tap" data-act="cat" data-id="Other">${emo(d, 'Other')}<div class="main"><div class="t">Urgent reserve</div>
       <div class="s wrap">Only for emergencies, not daily money${reserve.used ? ' · used ' + rs(reserve.used) + ' this cycle' : ' · not used'}</div></div><span class="chev">›</span></div>` : ''}
     ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
@@ -457,8 +463,8 @@ function home(d) {
 function todayInfo(d) {
   const key = todayKey(d), day = (d.daily || []).find(x => x.date === key);
   const spent = day ? day.amount - (day.fixed || 0) - (day.other || 0) : 0; // fixed bills and the urgent reserve stay out
-  const sp = d.spend, days = Math.max(1, d.cycle.daysLeft);
-  const limit = d.cycle.isCurrent && sp.perDay !== null ? Math.max(0, Math.floor((sp.left + spent) / days / 1000) * 1000) : null;
+  const sp = d.spend;
+  const limit = d.cycle.isCurrent && sp.perDay !== null ? (sp.today !== undefined && sp.today !== null ? sp.today : sp.perDay) : null;
   const group = (d.days || []).find(g => g.date === key);
   return { spent, limit, txs: group ? group.txs.filter(t => t.spending && !t.fixed && t.category !== 'Other') : [] };
 }
@@ -485,7 +491,8 @@ function moodCard(d) {
     <div class="ring" style="width:210px;height:210px;margin:10px auto 0"><svg viewBox="0 0 100 100">
       <circle r="44" cx="50" cy="50" fill="none" stroke-width="7" style="stroke:rgba(255,255,255,.18)"/>
       ${leftShare > 0 ? `<circle r="44" cx="50" cy="50" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:#fff" stroke-dasharray="${Math.max(1, 276.5 * leftShare)} 300" transform="rotate(-90 50 50)"/>` : ''}
-    </svg><div class="ring-c"><span>Left to spend today</span><b>${rs(leftToday)}</b><span>${t.spent > t.limit ? rs(t.spent - t.limit) + ' over today' : 'of ' + rs(t.limit) + ' a day'}</span></div></div>
+    </svg><div class="ring-c"><span>Left to spend today</span><b>${rs(leftToday)}</b><span>${t.spent > t.limit ? rs(t.spent - t.limit) + ' over today' : 'of ' + rs(t.limit) + (isWeekendKey(todayKey(d)) ? ' · weekend' : ' today')}</span></div></div>
+    ${sp.perWeekend && sp.perWeekend !== sp.perDay ? `<div class="mood-line" style="margin-top:2px;opacity:.9">${rs(sp.perDay)} on weekdays · ${rs(sp.perWeekend)} on weekends</div>` : ''}
     <div class="mood-line">${line}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>
     <div class="mood-why"><span>${esc(whyLine(d))}</span><b>Why ›</b></div>
   </div></div>`;
@@ -507,11 +514,11 @@ function todayCard(d) {
 function savingSection(d) {
   const b = d.budgets, e = b.emergency, inv = b.investing || { amount: 0, invested: 0, split: [] };
   if (!e && !inv.amount) return '';
-  return `<div class="section"><div class="header"><span>Saving this cycle</span><span>${rs((e ? e.amount : 0) + inv.amount)}</span></div><div class="group">
+  return `<div class="section" id="saving"><div class="header"><span>Saving this cycle</span><span>${rs((e ? e.amount : 0) + inv.amount)}</span></div><div class="group">
     ${e ? `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund</div><div class="s">Move it to your savings pocket</div></div><span class="num">${rs(e.amount)}</span></div>` : ''}
     ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investing</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('left', 'to go').replace('over', 'more than planned')}</span></div>
       ${budgetBar(inv.invested, inv.amount)}<div class="s num">Invested ${rs(inv.invested)} of ${rs(inv.amount)}</div>
-      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span>${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">+' + x.moved + '% from stocks</span>' : ' <span class="orange">· paused</span>') : ''}</span><span class="num">${rs(x.amount)}</span></div>`).join('')
+      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· paused</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('')
         : '<div class="s" style="margin-top:6px">Your split between Bibit, Stockbit and Treasury is not set yet. Tell Claude your split.</div>'}
       ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep)">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' on ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
   </div></div>`;
@@ -626,7 +633,7 @@ function transactions(d) {
 function chartCard(d, r, txs) {
   const flex = r.days.map(x => ({ ...x, v: flexOf(x) })), total = flex.reduce((s, x) => s + x.v, 0);
   const avg = total / (flex.length || 1), limit = todayInfo(d).limit || d.spend.perDay || 0;
-  const today = todayKey(d), overDays = limit ? flex.filter(x => x.v > limit).length : 0;
+  const today = todayKey(d), overDays = limit ? flex.filter(x => x.v > (limitFor(d, x.date) || limit)).length : 0;
   let chart;
   if (S.chartBy === 'category') {
     const by = {};
@@ -646,16 +653,23 @@ function chartCard(d, r, txs) {
   } else {
     chart = labeledBars(flex.map(x => {
       const dt = new Date(x.date + 'T00:00:00');
-      return { v: x.v, hl: x.date === today, label: x.date === today ? 'Today' : S.range === '7' ? dt.toLocaleDateString([], { weekday: 'short' }) : String(dt.getDate()) };
+      return { v: x.v, hl: x.date === today, lim: limitFor(d, x.date) || 0, label: x.date === today ? 'Today' : S.range === '7' ? dt.toLocaleDateString([], { weekday: 'short' }) : String(dt.getDate()) };
     }), 'var(--tint)', limit, '');
   }
   const facts = S.chartBy === 'category' ? 'Share of your everyday spending. Tap a category for its details'
-    : `About ${rs(avg)} a day${limit ? ` · limit ${rs(limit)}` : ''}${overDays ? ` · <span class="red">${overDays} ${overDays === 1 ? 'day' : 'days'} over</span>` : ''}${S.range === 'cycle' ? ' · bars are weeks' : S.range === '14' ? ' · amounts in rb' : ''}`;
+    : `About ${rs(avg)} a day${d.spend.perDay ? ` · limit ${rs(d.spend.perDay)}${d.spend.perWeekend && d.spend.perWeekend !== d.spend.perDay ? ' (' + rs(d.spend.perWeekend) + ' weekends)' : ''}` : ''}${overDays ? ` · <span class="red">${overDays} ${overDays === 1 ? 'day' : 'days'} over</span>` : ''}${S.range === 'cycle' ? ' · bars are weeks' : S.range === '14' ? ' · amounts in rb' : ''}`;
   return `<div class="section"><div class="group chart" style="padding:12px">
     ${seg('chartBy', S.chartBy, [['time', 'Over time'], ['category', 'By category']], true)}
     <div class="field" style="margin:2px 2px 8px"><span class="num" style="font-size:24px;font-weight:700">${rs(total)}</span><span class="d" style="font-size:13px">everyday spending</span></div>
     ${chart}
   </div><div class="footnote">${facts}. Fixed payments and urgent costs are left out.</div></div>`;
+}
+
+/** Emergency fund and Investing as budget rows: planned amount, and for Investing how much was actually invested. */
+function savingRows(d) {
+  return (d.budgets.saving || []).map(r => `<div class="cell tap" data-act="${r.category === 'Investing' ? 'gotoSaving' : 'plan'}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
+    <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${r.category === 'Investing' ? budgetLeft(r.spent, r.limit).replace('left', 'to go').replace('over', 'more than planned') : rs(r.limit)}</span></div>
+    ${budgetBar(r.spent, r.limit)}<div class="s num">${r.category === 'Investing' ? 'Invested ' + rs(r.spent) + ' of ' + rs(r.limit) : 'Set aside this cycle · saving, not spending'}</div></div><span class="chev">›</span></div>`).join('');
 }
 
 /** The cycle's plan, short: the total and the three categories closest to their budget; the rest on request. */
@@ -670,6 +684,7 @@ function planCard(d) {
       <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${budgetLeft(r.spent, r.limit)}</span></div>
       ${budgetBar(r.spent, r.limit)}<div class="s num">${rs(r.spent)} of ${r.limit ? rs(r.limit) : 'no budget'}</div></div><span class="chev">›</span></div>`).join('')}
     ${rows.length > 3 ? `<div class="cell tap" data-act="planAll"><div class="main link">${S.planAll ? 'Show less' : 'All ' + rows.length + ' categories'}</div></div>` : ''}
+    ${savingRows(d)}
   </div><div class="footnote">White line = budget. Family (fixed) and the urgent reserve are not in the plan.</div></div>`;
 }
 
@@ -1096,6 +1111,7 @@ document.addEventListener('click', e => {
     case 'history': historySheet(); break;
     case 'todo': setTodo(id, Number(el.dataset.i), el.dataset.on !== '1', el); break;
     case 'gotoCfo': openMoreAt('cfo'); break;
+    case 'gotoSaving': openMoreAt('saving'); break;
     case 'useSug': { const input = [...document.querySelectorAll('input[data-cat]')].find(x => x.dataset.cat === el.dataset.cat); if (input) { input.value = el.dataset.amount; formatMoneyInput(input); input.dispatchEvent(new Event('input', { bubbles: true })); } break; }
     case 'shot': shotSheet(id); break;
     case 'image': showImage(id); break;
