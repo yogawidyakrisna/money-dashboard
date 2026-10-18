@@ -143,6 +143,10 @@
   .check.on { background: var(--green); border-color: var(--green); }
   .check svg { width: 14px; height: 14px; }
   .chip.blue { background: var(--tint-soft); color: var(--tint); }
+  .acct { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; flex: none; background: #fff; padding: 6px; font-weight: 800; font-size: 15px; color: #fff; }
+  .acct.sm { width: 24px; height: 24px; border-radius: 7px; padding: 3px; font-size: 9px; }
+  .acct img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .acct svg { width: 22px; height: 22px; } .acct.sm svg { width: 13px; height: 13px; }
   .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
   .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
 </style>
@@ -448,7 +452,7 @@ function home(d) {
   </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
 
   <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
-    ${nw.accounts.map(a => `<div class="cell"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
+    ${nw.accounts.map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
   </div>${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
 
   <div class="section"><div class="group">
@@ -596,9 +600,17 @@ function txRow(t, sub, act) {
   const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rs(t.amount);
   const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">check</span>'
     : t.spending && t.claim === 'todo' ? '<span class="chip blue">to claim</span>' : '';
-  return `<div class="cell ${act ? 'tap' : ''}" data-act="${act || ''}" data-id="${t.id}"><div class="main">
+  return `<div class="cell ${act ? 'tap' : ''}" data-act="${act || ''}" data-id="${t.id}">${acct(t.direction === 'in' && t.to ? t.to : t.account, true)}<div class="main">
     <div class="t">${esc(t.merchant || t.category)}${chip}</div><div class="s">${esc(sub)}</div></div>
     <span class="num ${color}">${amount}</span></div>`;
+}
+/** Account badges: the real logos (public-domain SVGs from Wikimedia Commons) on a white tile; a drawn icon for Cash. */
+const LOGO = { Mandiri: 'mandiri', Jago: 'jago', GoPay: 'gopay', OVO: 'ovo', DANA: 'dana' };
+function acct(name, small) {
+  const file = LOGO[name];
+  if (file) return `<div class="acct ${small ? 'sm' : ''}" aria-label="${esc(name)}"><img src="logos/${file}.svg" alt=""></div>`;
+  if (name === 'Cash') return `<div class="acct ${small ? 'sm' : ''}" style="background:#2e7d32" aria-label="Cash"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="11" rx="2" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12.5" r="2.5" fill="#fff"/></svg></div>`;
+  return `<div class="acct ${small ? 'sm' : ''}" style="background:#636366" aria-label="${esc(name)}">${esc(String(name || '?').slice(0, 2).toUpperCase())}</div>`;
 }
 const txSub = t => t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account;
 
