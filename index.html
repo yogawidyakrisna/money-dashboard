@@ -120,6 +120,10 @@
   .stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--fill); }
   .stack > div { height: 100%; }
   .emo { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--fill); }
+  /* Budget bar: the fill is what you spent, the bold white line is the budget. Past the line = over. */
+  .bbar { position: relative; height: 10px; border-radius: 5px; background: var(--fill); margin: 9px 4px 4px 0; }
+  .bbar > .bfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
+  .bbar > .bline { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #fff; }
   .share { height: 4px; border-radius: 2px; background: var(--fill); margin-top: 6px; overflow: hidden; }
   .share > div { height: 100%; border-radius: 2px; }
   .why { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 11px; border-top: .5px solid var(--sep); font-size: 15px; color: var(--label2); }
@@ -206,6 +210,33 @@ function ring(parts, total, size, center) {
     off += len + gap; return el;
   }).join('');
   return `<div class="ring" style="width:${size}px;height:${size}px"><svg viewBox="0 0 100 100"><circle r="${r}" cx="50" cy="50" fill="none" stroke-width="13" style="stroke:var(--fill)"/>${arcs}</svg><div class="ring-c">${center}</div></div>`;
+}
+
+/** Spent against budget: fill = spent, bold line = the budget. Green, amber from 80%, red when past the line. */
+function budgetBar(spent, limit) {
+  if (!limit) return `<div class="bbar"><div class="bfill" style="width:100%;background:var(--label3)"></div></div>`;
+  const scale = Math.max(limit, spent), color = spent > limit ? 'var(--red)' : spent >= limit * 0.8 ? 'var(--orange)' : 'var(--green)';
+  return `<div class="bbar"><div class="bfill" style="width:${Math.max(1, spent / scale * 100)}%;background:${color}"></div><div class="bline" style="left:${limit / scale * 100}%"></div></div>`;
+}
+/** "Rp210 rb left" in green/amber or "Rp40 rb over" in red. */
+function budgetLeft(spent, limit) {
+  if (!limit) return `<span class="d">No budget</span>`;
+  return spent > limit ? `<span class="red">${rs(spent - limit)} over</span>` : `<span class="${spent >= limit * 0.8 ? 'orange' : 'green'}">${rs(limit - spent)} left</span>`;
+}
+
+/** Bars with their amount written on top and a name under each; optional dashed limit line with its value. */
+function labeledBars(values, color, line, lineLabel) {
+  const W = 320, H = 160, top = 22, base = H - 22, n = values.length || 1, step = W / n, bw = Math.min(30, step * 0.62);
+  const max = Math.max(1, line || 0, ...values.map(v => v.v)), y = v => base - (v / max) * (base - top);
+  const bars = values.map((p, i) => {
+    const cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = line && p.v > line;
+    return `${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="4" style="fill:${over ? 'var(--red)' : color};opacity:${p.hl ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
+      <text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:10px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(rs(p.v).replace('Rp', '')) : '0'}</text>
+      <text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>`;
+  }).join('');
+  const ln = line ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
+    <text x="2" y="${y(line) - 4}" style="font-size:10px;fill:var(--label2)">${esc(lineLabel || '')}</text>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"><line x1="0" x2="${W}" y1="${base}" y2="${base}" style="stroke:var(--sep)" stroke-width=".5"/>${ln}${bars}</svg>`;
 }
 
 /** Bars per day across the cycle, with an optional dashed "daily limit" line. */
@@ -379,7 +410,7 @@ function home(d) {
       const label = paid ? '✓ Paid' : x.limit ? (over ? rs(x.spent - x.limit) + ' over' : rs(x.limit - x.spent) + ' left') : rs(x.spent) + ' spent';
       return `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
         <div class="field"><span class="t">${esc(x.category)}</span><span class="num ${paid ? 'green' : over ? 'red' : 'd'}">${label}</span></div>
-        ${x.limit ? `<div class="progress"><div class="${paid ? 'done' : over ? 'over' : pct >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, paid ? 100 : pct))}%"></div></div>` : ''}
+        ${x.limit ? (paid ? `<div class="progress"><div class="done" style="width:100%"></div></div>` : budgetBar(x.spent, x.limit)) : ''}
       </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
     ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
     ${reserve.budget || reserve.used ? `<div class="cell tap" data-act="cat" data-id="Other">${emo(d, 'Other')}<div class="main"><div class="t">Urgent reserve</div>
@@ -556,29 +587,48 @@ function transactions(d) {
 /** Everyday spending per day (fixed payments left out, so the bars stay readable). */
 function dayCard(d) {
   if (!d.daily || !d.daily.length) return '';
-  const values = d.daily.map(x => ({ date: x.date, v: x.amount - (x.fixed || 0) - (x.other || 0) }));
-  const fixed = d.daily.reduce((s, x) => s + (x.fixed || 0), 0);
-  const avgDays = values.filter(v => !d.cycle.isCurrent || v.date <= todayKey(d)).length || 1;
-  const avg = values.reduce((s, v) => s + v.v, 0) / avgDays;
-  return `<div class="section"><div class="header"><span>Day by day</span><span>about ${rs(avg)} a day</span></div>
-    <div class="group chart">${dayBars(d, values, 'var(--tint)', d.spend.perDay || 0)}</div>
-    <div class="footnote">${d.spend.perDay ? 'Dashed line: what you can spend a day now. ' : ''}${fixed ? 'Fixed payments (' + rs(fixed) + ') and urgent costs are left out.' : ''}</div></div>`;
+  const today = todayKey(d), upto = d.cycle.isCurrent ? d.daily.filter(x => x.date <= today) : d.daily;
+  const week = upto.slice(-7).map(x => {
+    const dt = new Date(x.date + 'T00:00:00');
+    return { v: x.amount - (x.fixed || 0) - (x.other || 0), label: x.date === today ? 'Today' : dt.toLocaleDateString([], { weekday: 'short' }), hl: x.date === today };
+  });
+  const avg = week.reduce((s, x) => s + x.v, 0) / (week.length || 1), limit = todayInfo(d).limit || d.spend.perDay || 0;
+  return `<div class="section"><div class="header"><span>Last 7 days</span><span>${limit ? 'limit ' + rs(limit) + ' a day' : ''}</span></div>
+    <div class="group chart">${labeledBars(week, 'var(--tint)', limit, '')}</div>
+    <div class="footnote">You spent about ${rs(avg)} a day. The dashed line is your daily limit; red bars went over it. Fixed payments and urgent costs are left out.</div></div>`;
 }
 
-/** Where the money went: one bar split by group, then every category. Tap one for its details. */
+/** Your planned spending: each category against its budget (bold line = the budget). Fixed Family and the urgent reserve are left out. */
 function whereItWent(d) {
-  const { cats, groups } = spendTree(d), total = groups.reduce((s, g) => s + g.spent, 0), top = cats.length ? cats[0].spent : 1;
-  if (!total) return '';
-  return `<div class="section"><div class="header"><span>Where it went</span><span>${rs(total)}</span></div><div class="group">
-    <div class="cell" style="display:block"><div class="stack">${groups.map(g => `<div style="width:${g.spent / total * 100}%;background:${g.color}"></div>`).join('')}</div>
-      <div class="legend" style="margin-top:10px">${groups.map(g => `<div><span class="dot" style="background:${g.color}"></span>${esc(g.group)}<span class="num">${Math.round(g.spent / total * 100)}%</span></div>`).join('')}</div></div>
-    ${cats.map(c => `<div class="cell tap" data-act="cat" data-id="${esc(c.category)}">${emo(d, c.category)}<div class="main">
-      <div class="field"><span class="t">${esc(c.category)}</span><span class="num">${rs(c.spent)}</span></div>
-      <div class="share"><div style="width:${Math.max(2, c.spent / top * 100)}%;background:${groupColor(c.group)}"></div></div></div><span class="chev">›</span></div>`).join('')}
-  </div><div class="footnote">Tap a category to see what's inside.</div></div>`;
+  const rows = d.budgets.rows.filter(r => !r.reserve && r.category !== 'Family' && (r.limit > 0 || r.spent > 0))
+    .map(r => ({ ...r, ...catInfo(d, r.category) })).sort((a, b) => (b.limit ? b.spent / b.limit : 9) - (a.limit ? a.spent / a.limit : 9));
+  if (!rows.length) return '';
+  const spent = rows.reduce((s, r) => s + r.spent, 0), limit = rows.reduce((s, r) => s + r.limit, 0);
+  const family = d.budgets.rows.find(r => r.category === 'Family'), reserve = d.spend.reserve || { used: 0 };
+  return `<div class="section"><div class="header"><span>Your plan</span><span>${esc(d.cycle.label)}</span></div><div class="group">
+    <div class="cell" style="display:block">
+      <div class="field"><span class="num" style="font-size:24px;font-weight:700">${rs(spent)}</span><span class="d num">of ${rs(limit)} planned</span></div>
+      ${budgetBar(spent, limit)}
+      <div class="s">${budgetLeft(spent, limit)} · ${d.cycle.isCurrent ? d.cycle.daysLeft + ' days to payday' : 'cycle ended'}</div>
+    </div>
+    ${rows.map(r => `<div class="cell tap" data-act="cat" data-id="${esc(r.category)}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
+      <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${budgetLeft(r.spent, r.limit)}</span></div>
+      ${budgetBar(r.spent, r.limit)}
+      <div class="s num">${rs(r.spent)} of ${r.limit ? rs(r.limit) : 'no budget'}</div></div><span class="chev">›</span></div>`).join('')}
+  </div><div class="footnote">The bar fills as you spend. The white line is the budget: past it means over. Not shown${family ? ': Family ' + rs(family.spent) + ' (fixed every month)' : ''}${reserve.used ? ' · urgent reserve used ' + rs(reserve.used) : ''}.</div></div>`;
 }
 
-/** One category: spent vs budget, day by day, top places and every transaction. */
+/** The cycle in 7-day blocks with what was spent in each: [{label: '25 Sep', v, hl}]. */
+function cycleWeeks(d, byDay) {
+  const weeks = [], today = todayKey(d);
+  for (let i = 0; i < d.daily.length; i += 7) {
+    const days = d.daily.slice(i, i + 7);
+    weeks.push({ label: shortDay(days[0].date), v: days.reduce((s, x) => s + (byDay[x.date] || 0), 0), hl: days.some(x => x.date === today) });
+  }
+  return weeks;
+}
+
+/** One category: spent vs budget, week by week, top places and every transaction. */
 function catSheet(name) {
   const d = S.data, c = catInfo(d, name), row = d.budgets.rows.find(r => r.category === name) || { spent: 0, limit: 0 };
   const txs = [];
@@ -602,8 +652,8 @@ function catSheet(name) {
       ${name === 'Health' && d.claims && d.claims.total ? `<div class="k" style="margin-top:4px"><span class="link">${rs(d.claims.total)} still to claim back</span></div>` : ''}
       ${last ? `<div class="k" style="margin-top:4px">Last cycle ${rs(last)}${last && Math.abs(diff) >= 1000 ? ` · <span class="${diff > 0 ? 'red' : 'green'}">${diff > 0 ? '↑' : '↓'} ${rs(Math.abs(diff))}</span>` : ''}</div>` : ''}
     </div>${ring([{ v: spent, color: paid ? 'var(--green)' : limit && spent > limit ? 'var(--red)' : color }], Math.max(1, limit || spent), 96, center)}</div></div></div></div>
-    ${spentTx.length ? `<div class="section"><div class="header"><span>Day by day</span></div>
-      <div class="group chart">${dayBars(d, d.daily.map(x => ({ date: x.date, v: byDay[x.date] || 0 })), color, 0)}</div></div>` : ''}
+    ${spentTx.length ? `<div class="section"><div class="header"><span>Week by week</span></div>
+      <div class="group chart">${labeledBars(cycleWeeks(d, byDay), color, 0)}</div></div>` : ''}
     ${topPlaces.length ? `<div class="section"><div class="header"><span>${c.group === 'Family' && name === 'Family' ? 'Who got it' : 'Top places'}</span></div><div class="group">
       ${topPlaces.map(p => `<div class="cell"><div class="main"><div class="field"><span class="t">${esc(p.name)}</span><span class="num">${rs(p.v)}</span></div>
         <div class="share"><div style="width:${Math.max(2, p.v / topPlaces[0].v * 100)}%;background:${color}"></div></div>
