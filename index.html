@@ -252,13 +252,27 @@ function status() {
 
 // ---------- Home ----------
 
+/** Approved budgets the CFO's latest plan would now set differently: [{category, from, to}]. */
+function cfoChanges(d) {
+  const p = d.reports.latest;
+  if (!p || d.budgets.state !== 'approved' || !p.budget_proposal || p.created_at < (d.budgets.approvedAt || 0)) return [];
+  return p.budget_proposal.filter(x => x.category !== 'Emergency fund').map(x => {
+    const row = d.budgets.rows.find(r => r.category === x.category);
+    return { category: x.category, from: row ? row.limit : 0, to: x.amount };
+  }).filter(x => Math.abs(x.to - x.from) >= 10000);
+}
+
 function nextStep(d) {
   const n = d.improve ? d.improve.items.length : 0;
   if (d.budgets.state === 'proposed' && d.cycle.isCurrent) return { act: 'plan', title: 'Approve your budget', sub: 'About 1 minute · your CFO already filled it in' };
+  const changes = cfoChanges(d).length;
+  if (changes && d.cycle.isCurrent) return { act: 'plan', title: "Review the CFO's new budget", sub: `${changes} change${changes === 1 ? '' : 's'} · about 1 minute` };
   if (d.toCheck) return { act: 'review', title: `Check ${d.toCheck} transaction${d.toCheck === 1 ? '' : 's'}`, sub: 'About 1 minute · tap "Looks right" or fix it' };
   const missing = (d.pay || []).find(p => p.state === 'missing');
   if (missing && d.cycle.isCurrent) return { act: 'gotoPay', title: `Log your ${shortDay(missing.date)} pay`, sub: 'Screenshot it in your bank app · so the CFO sees all your income' };
   if (d.claims && d.claims.todo.length) return { act: 'gotoClaims', title: `Claim back ${rs(d.claims.total)}`, sub: `${d.claims.todo.length} medical bill${d.claims.todo.length === 1 ? '' : 's'} · tick each one when claimed` };
+  const p = d.reports.latest, todo = p && (p.actions || []).findIndex((_, i) => !(p.actions_done || []).includes(i));
+  if (p && todo >= 0) return { act: 'gotoCfo', title: shorten(p.actions[todo]), sub: 'From your CFO · tick it when done' };
   if (n) return { act: 'gotoImprove', title: `Send ${n} note${n === 1 ? '' : 's'} to Claude`, sub: 'About 1 minute · copy, then paste in Claude Code' };
   const stale = d.netWorth.accounts.filter(a => !a.hasSnapshot && a.name !== 'Cash');
   if (stale.length) return { act: '', title: `Screenshot your ${stale[0].name} balance`, sub: 'So your total is complete' };
@@ -337,9 +351,6 @@ function home(d) {
   const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
   const rows = b.rows.filter(x => x.limit > 0 || x.spent > 0);
   const shown = S.showAll ? rows : rows.slice(0, 5);
-  const writing = r.pending.length;
-  const newest = r.weekly && !r.weekly.pending && !r.weekly.error && r.weekly.created_at > ((r.monthly && r.monthly.created_at) || 0) ? 'weekly' : 'monthly';
-  const canOpen = r[newest] && !r[newest].pending && !r[newest].error;
   return `
   <div class="title-row"><h1 class="large-title">Money</h1>${d.cycle.isCurrent ? `<span class="pill">${d.cycle.daysLeft} days to payday</span>` : `<span class="pill">${esc(d.cycle.label)}</span>`}</div>
 
@@ -358,10 +369,7 @@ function home(d) {
   <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
     : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>
 
-  ${r.advice || writing ? `<div class="section"><div class="group"><div class="cell ${canOpen ? 'tap' : ''}" data-act="${canOpen ? 'report' : ''}" data-id="${newest}">
-    <div class="icon" style="background:var(--tint)">${ICON.spark}</div>
-    <div class="main"><div class="wrap">${r.advice ? esc(shorten(r.advice)) : 'Your CFO is looking at your numbers…'}</div>${writing ? '<div class="s">Writing a new report…</div>' : ''}</div>
-    ${canOpen ? '<span class="chev">›</span>' : ''}</div></div></div>` : ''}
+  ${cfoSection(d)}
 
   <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? '✓ Approved' : b.state === 'proposed' ? 'Not approved yet' : ''}</span></div><div class="group">
     ${rows.length ? shown.map(x => {
@@ -373,7 +381,7 @@ function home(d) {
         ${x.limit ? `<div class="progress"><div class="${paid ? 'done' : over ? 'over' : pct >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, paid ? 100 : pct))}%"></div></div>` : ''}
       </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
     ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
-    ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.includes('monthly') ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask" data-id="monthly"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
+    ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
 
@@ -388,10 +396,6 @@ function home(d) {
   <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
     ${nw.accounts.map(a => `<div class="cell"><div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
   </div>${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
-
-  <div class="section"><div class="header"><span>Reports</span></div><div class="group">
-    ${reportRow(r.monthly, 'Pay-cycle plan', 'monthly', d)}${reportRow(r.weekly, 'Weekly check-in', 'weekly', d)}
-  </div></div>
 
   <div class="section"><div class="group">
     <div class="cell tap" data-act="prev"><div class="main link">See last cycle</div></div>
@@ -432,12 +436,23 @@ function paySection(d) {
   </div><div class="footnote">Pay comes on the Friday before when the 25th or 15th is a weekend.${pay.some(p => p.state === 'missing') ? ' Screenshot a pay that is not logged yet.' : ''}</div></div>`;
 }
 
-function reportRow(r, label, kind, d) {
-  if (!r) return d.cycle.isCurrent ? `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s">${kind === 'weekly' ? 'Comes Sunday evening · tap to get it now' : 'Tap to get it now'}</div></div><span class="chev">›</span></div>` : '';
-  if (r.pending) return `<div class="cell"><div class="main"><div>${label}</div><div class="s">Writing…</div></div></div>`;
-  if (r.error) return `<div class="cell tap" data-act="ask" data-id="${kind}"><div class="main"><div>${label}</div><div class="s red">Didn't work · tap to try again</div></div></div>`;
-  return `<div class="cell tap" data-act="report" data-id="${kind}"><div class="main"><div class="t">${label}</div><div class="s">${esc(shorten(r.title))}</div></div><span class="chev">›</span></div>`;
+/** The CFO: latest advice, its "Do this" checklist, ask for a new plan, history. It only works when asked. */
+function cfoSection(d) {
+  const r = d.reports, p = r.latest, writing = r.pending.length > 0, acts = (p && p.actions) || [];
+  return `<div class="section" id="cfo"><div class="header"><span>Your CFO</span><span>${p ? esc(when(p.created_at)) : ''}</span></div><div class="group">
+    ${writing ? `<div class="cell"><div class="icon" style="background:var(--tint)">${ICON.spark}</div><div class="main"><div>Your CFO is thinking…</div><div class="s">About 1 minute. This page updates by itself.</div></div></div>` : ''}
+    ${p ? `<div class="cell tap" data-act="report" data-id="${p.id}"><div class="icon" style="background:var(--tint)">${ICON.spark}</div>
+      <div class="main"><div class="wrap">${esc(shorten(p.advice_card || p.title))}</div><div class="s">Plan, retro and budget</div></div><span class="chev">›</span></div>` : ''}
+    ${acts.map((a, i) => todoRow(p, a, i)).join('')}
+    ${r.failed && !writing ? `<div class="cell"><div class="main"><div class="red">The last ask didn't work</div><div class="s wrap">${esc(r.failed)}</div></div></div>` : ''}
+    ${!writing && d.cycle.isCurrent ? `<div class="cell tap" data-act="ask"><div class="main"><div class="link">${p ? 'Ask the CFO for a new plan' : 'Ask the CFO for a plan'}</div>
+      <div class="s wrap">About 1 minute · about $0.06 of AI credit · looks back at the last plan</div></div></div>` : ''}
+    ${r.count ? `<div class="cell tap" data-act="history"><div class="main">History</div><span class="num d">${r.count}</span><span class="chev">›</span></div>` : ''}
+  </div><div class="footnote">The CFO only works when you ask. Tick each step when it's done, so the next plan knows.</div></div>`;
 }
+
+const todoRow = (p, text, i) => { const on = (p.actions_done || []).includes(i); return `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="todo" data-id="${p.id}" data-i="${i}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Done' : 'Mark as done'}">${on ? ICON.ok : ''}</button>
+  <div class="main wrap ${on ? 'muted' : ''}">${esc(shorten(text))}</div></div>`; };
 
 // ---------- Spending ----------
 
@@ -624,7 +639,7 @@ async function confirmTx(id) {
 }
 
 function planSheet() {
-  const d = S.data, b = d.budgets, m = d.reports.monthly;
+  const d = S.data, b = d.budgets, m = d.reports.latest, sug = Object.fromEntries(cfoChanges(d).map(x => [x.category, x.to]));
   const items = d.categories.filter(c => !['Income', 'Transfer', 'Investment'].includes(c)).map(cat => {
     const r = b.rows.find(x => x.category === cat) || {};
     return { cat, amount: r.limit || 0, spent: r.spent || 0, reason: r.reason || '' };
@@ -636,7 +651,9 @@ function planSheet() {
     <div class="section"><div class="group">${items.map((i, n) => `<label class="cell field" style="align-items:flex-start">
       <div class="main"><div>${esc(i.cat)}</div><div class="s wrap">${[i.spent ? 'Spent ' + rs(i.spent) : '', esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
       <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${n}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
-      <div class="s" id="h${n}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div></div></label>`).join('')}</div>
+      <div class="s" id="h${n}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
+      ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`).join('')}</div>
+    ${Object.keys(sug).length ? '<div class="footnote">Blue amounts are what your CFO now suggests. Tap one to use it.</div>' : ''}
     <div class="err" id="pErr"></div>
     <button class="btn" data-act="approve" style="margin-top:6px">Approve budget</button></div>`, { label: 'Approve', act: 'approve' });
 }
@@ -649,16 +666,58 @@ async function approve() {
   catch (e) { err(e.message); }
 }
 
-function reportSheet(kind) {
-  const r = S.data.reports[kind];
-  if (!r || r.pending || r.error) return;
-  const list = (title, arr) => arr && arr.length ? `<div class="section"><div class="header"><span>${title}</span></div><div class="group">${arr.map(x => `<div class="cell"><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>` : '';
-  sheet(kind === 'monthly' ? 'Pay-Cycle Plan' : 'Weekly Check-In', `
-    <div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main"><div class="wrap" style="font-weight:600">${esc(shorten(r.title))}</div>
-      <div class="wrap" style="margin-top:6px">${esc(shorten(r.summary))}</div></div></div></div></div>
-    ${list('Do this', r.actions)}${list('What happened', r.highlights)}
-    <div class="section"><div class="group"><div class="cell tap" data-act="ask" data-id="${kind}"><div class="main link">Ask the CFO again</div></div></div>
-    <div class="footnote">Written ${when(r.created_at)}.</div></div>`);
+function findReport(id) {
+  const latest = S.data.reports.latest;
+  return latest && latest.id === id ? latest : (S.history || []).find(x => x.id === id) || null;
+}
+
+/** One CFO answer: the retro of the plan before it, what it thinks, the steps, and the budget it proposed. */
+function reportSheet(id) {
+  const r = findReport(id), d = S.data;
+  if (!r) return;
+  const isLatest = d.reports.latest && d.reports.latest.id === r.id, rt = r.retro;
+  const list = (title, arr, mark, color) => arr && arr.length ? `<div class="section"><div class="header"><span>${title}</span></div><div class="group">
+    ${arr.map(x => `<div class="cell" style="align-items:flex-start"><span style="color:${color};font-weight:700;width:16px;flex:none">${mark}</span><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>` : '';
+  const retro = rt && (rt.verdict || rt.went_well.length || rt.went_badly.length || rt.not_done.length || rt.cfo_mistakes.length) ? `
+    <div class="section"><div class="header"><span>Looking back at the last plan</span></div><div class="group"><div class="cell"><div class="main wrap" style="font-weight:600">${esc(shorten(rt.verdict || 'Little has changed.'))}</div></div></div></div>
+    ${list('Went well', rt.went_well, '✓', 'var(--green)')}${list('Went badly', rt.went_badly, '✗', 'var(--red)')}
+    ${list('Not done yet', rt.not_done, '○', 'var(--orange)')}${list('What the CFO got wrong', rt.cfo_mistakes, '!', 'var(--label2)')}` : '';
+  const plan = (r.budget_proposal || []).filter(x => x.amount > 0 || x.category === 'Emergency fund');
+  sheet('CFO plan', `
+    <div class="footnote" style="text-align:center;padding-top:0">${esc(when(r.created_at))}${r.kind === 'weekly' ? ' · weekly check-in' : ''}</div>
+    ${retro}
+    <div class="section"><div class="header"><span>What I think now</span></div><div class="group"><div class="cell"><div class="main">
+      <div class="wrap" style="font-weight:600">${esc(shorten(r.title))}</div><div class="wrap" style="margin-top:6px">${esc(shorten(r.summary))}</div></div></div>
+      ${(r.highlights || []).map(x => `<div class="cell"><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>
+    ${(r.actions || []).length ? `<div class="section"><div class="header"><span>Do this</span></div><div class="group">${r.actions.map((a, i) => todoRow(r, a, i)).join('')}</div></div>` : ''}
+    ${plan.length ? `<div class="section"><div class="header"><span>Budget it proposed</span><span>${rs(plan.filter(x => x.category !== 'Emergency fund').reduce((s, x) => s + x.amount, 0))}</span></div><div class="group">
+      ${plan.map(x => `<div class="cell" style="align-items:flex-start">${x.category === 'Emergency fund' ? '<div class="emo">🛟</div>' : emo(d, x.category)}<div class="main">
+        <div class="field"><span class="t">${esc(x.category)}</span><span class="num">${rs(x.amount)}</span></div>${x.reason ? `<div class="s wrap">${esc(shorten(x.reason))}</div>` : ''}</div></div>`).join('')}
+    </div>${r.emergency_fund && r.emergency_fund.target_amount ? `<div class="footnote">Emergency fund goal ${rs(r.emergency_fund.target_amount)} (${String(r.emergency_fund.months_of_expenses).replace('.', ',')} months).</div>` : ''}</div>` : ''}
+    <div class="section"><div class="group">
+      ${isLatest && d.cycle.isCurrent && !d.reports.pending.length ? '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a new plan</div></div>' : ''}
+      <div class="cell tap" data-act="history"><div class="main link">All CFO answers</div></div>
+    </div></div>`);
+}
+
+/** Every CFO answer, newest first. */
+async function historySheet() {
+  const render = () => sheet('CFO history', S.history ? (S.history.length ? `<div class="section" style="margin-top:6px"><div class="group">
+    ${S.history.map(r => `<div class="cell tap" data-act="report" data-id="${r.id}"><div class="main">
+      <div class="t">${esc(shorten(r.title))}</div><div class="s wrap">${esc(when(r.created_at))}${r.retro && r.retro.verdict ? ' · ' + esc(shorten(r.retro.verdict)) : ''}</div></div><span class="chev">›</span></div>`).join('')}
+    </div><div class="footnote">Each answer looks back at the one before it.</div></div>` : '<div class="empty">No answers yet.</div>') : '<p class="status">Loading…</p>');
+  render();
+  try { S.history = await api('GET', null, '?view=cfo'); render(); }
+  catch (e) { document.getElementById('sheet').insertAdjacentHTML('beforeend', `<p class="err">${esc(e.message)}</p>`); }
+}
+
+async function setTodo(id, i, done, el) {
+  el.classList.toggle('on', done); el.innerHTML = done ? ICON.ok : '';
+  for (const r of [S.data.reports.latest, ...(S.history || [])]) {
+    if (r && r.id === id) r.actions_done = done ? [...new Set([...(r.actions_done || []), i])] : (r.actions_done || []).filter(x => x !== i);
+  }
+  try { await api('POST', { action: 'toggle_action', id, index: i, done }); if (document.getElementById('sheetBg').style.display !== 'flex') render(); load(); }
+  catch (e) { S.error = e.message; status(); }
 }
 
 function shotSheet(id) {
@@ -715,9 +774,9 @@ function render() {
 
 function goTab(tab) { S.tab = tab; store.set('money:tab', tab); window.scrollTo(0, 0); render(); if (tab === 'activity') load(); }
 
-async function ask(kind) {
-  try { await api('POST', { action: 'generate', kind }); closeSheet(); load(); }
-  catch (e) { S.error = e.message; status(); }
+async function ask() {
+  try { await api('POST', { action: 'generate' }); closeSheet(); await load(); const box = document.getElementById('cfo'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  catch (e) { closeSheet(); S.error = e.message; status(); alert(e.message); }
 }
 
 document.addEventListener('click', e => {
@@ -735,7 +794,11 @@ document.addEventListener('click', e => {
     case 'plan': planSheet(); break;
     case 'approve': approve(); break;
     case 'report': reportSheet(id); break;
-    case 'ask': ask(id); break;
+    case 'ask': ask(); break;
+    case 'history': historySheet(); break;
+    case 'todo': setTodo(id, Number(el.dataset.i), el.dataset.on !== '1', el); break;
+    case 'gotoCfo': { const box = document.getElementById('cfo'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
+    case 'useSug': { const input = [...document.querySelectorAll('input[data-cat]')].find(x => x.dataset.cat === el.dataset.cat); if (input) { input.value = el.dataset.amount; formatMoneyInput(input); input.dispatchEvent(new Event('input', { bubbles: true })); } break; }
     case 'shot': shotSheet(id); break;
     case 'image': showImage(id); break;
     case 'more': S.showAll = !S.showAll; render(); break;
