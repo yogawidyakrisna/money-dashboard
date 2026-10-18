@@ -281,6 +281,7 @@
   .env .eb { position: relative; height: 8px; border-radius: 4px; background: #d9d5cb; margin-top: 9px; } .env .eb i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
   .env .eb .ln2 { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; background: var(--paper-ink); border-radius: 2px; }
   .env.sealed { background: #e4e2dc; }
+  .env .tb { margin-top: 10px; padding-top: 9px; border-top: 2px dashed var(--paper-cut); color: #b05f00; font-weight: 600; font-size: 15px; }
   .grade { font-size: 56px; font-weight: 700; line-height: .9; letter-spacing: -0.04em; }
   .wallet { display: grid; gap: 10px; margin-top: 10px; }
   .card { border-radius: 16px; padding: 14px 16px; background: var(--cell); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; }
@@ -480,6 +481,8 @@ function nextStep(d) {
   if (d.budgets.state === 'proposed' && d.cycle.isCurrent) return { act: 'plan', title: 'Ada PR: setujui amplop', sub: 'Sekitar 1 menit · CFO sudah mengisinya' };
   const changes = cfoChanges(d).length;
   if (changes && d.cycle.isCurrent) return { act: 'plan', title: 'CFO usul ganti amplop', sub: `${changes} perubahan · sekitar 1 menit` };
+  const jebol = jebolRows(d)[0];
+  if (jebol) return { act: 'tambal', id: jebol.category, title: `${catName(jebol.category)} jebol ${rs(jebol.spent - jebol.limit)}: tambal dulu`, sub: 'Sekitar 1 menit · pilih amplop yang dikurangi, supaya sisanya jujur' };
   if (d.toCheck) return { act: 'review', title: `Cek ${d.toCheck} transaksi`, sub: 'Sekitar 1 menit · ketuk "Sudah benar" atau betulkan' };
   const missing = (d.pay || []).find(p => p.state === 'missing');
   if (missing && d.cycle.isCurrent) return { act: 'gotoPay', title: `Catat gaji ${shortDay(missing.date)}`, sub: 'Screenshot di aplikasi bank · supaya CFO melihat semua pemasukan' };
@@ -554,7 +557,8 @@ function whySheet() {
     </div></div>
     ${r.over.length ? `<div class="section"><div class="header"><span>Amplop yang jebol</span><span class="red">−${rs(r.overTotal)}</span></div><div class="group">
       ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num red">lewat ${rs(x.over)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
-    </div><div class="footnote">Uang yang lewat dari amplop ini sudah keluar, jadi diambil dari ruang amplop lain.</div></div>` : ''}
+      ${jebolRows(d).map(x => `<div class="cell tap" data-act="tambal" data-id="${esc(x.category)}"><div class="main link">Tambal ${esc(catName(x.category))} dari amplop lain</div><span class="chev">›</span></div>`).join('')}
+    </div><div class="footnote">Uang yang lewat dari amplop ini sudah keluar, jadi diambil dari ruang amplop lain. Tambal supaya sisa tiap amplop jujur.</div></div>` : ''}
     ${r.done.length ? `<div class="footnote">Lunas: ${r.done.map(x => esc(catName(x.category))).join(', ')}.</div>` : ''}`);
 }
 
@@ -570,7 +574,7 @@ function homeParts(d) {
   const shown = S.showAll ? rows : rows.slice(0, 5);
   const moreOpen = S.more || isWide();
   const parts = {
-    next: `<div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
+    next: `<div class="section">${step ? `<div class="next" data-act="${step.act}" data-id="${esc(step.id || '')}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
       : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">Beres semua. Santai dulu.</div><div class="muted">Tidak ada PR hari ini</div></div></div>`}</div>`,
     budget: budgetSection(d, rows, shown, reserve), saving: savingSection(d),
   };
@@ -811,6 +815,7 @@ function catStamp(d, r) {
   if (!r.limit) return ['abu', 'BEBAS'];
   if (fixedDone(d, r.category) && r.spent <= r.limit * 1.02) return ['aman', 'LUNAS'];
   if (r.spent > r.limit) return ['jebol', 'JEBOL'];
+  if (r.spent >= r.limit * 0.98) return ['mepet', 'PAS'];
   if (r.spent >= r.limit * 0.8) return ['mepet', 'MEPET'];
   return FIXED_CATS.includes(r.category) ? ['abu', 'DISEGEL'] : ['aman', 'AMAN'];
 }
@@ -825,7 +830,8 @@ function envelope(d, r, sealed) {
     : r.spent > r.limit ? `tekor <b>${rs(r.spent - r.limit)}</b>` : `sisa <b>${rs(r.limit - r.spent)}</b>`;
   return `<div class="env ${sealed ? 'sealed' : ''}" data-act="cat" data-id="${esc(r.category)}"><div class="top"><span>${esc(catName(r.category))}</span>${stp([cls, word])}</div>
     <div class="bot"><span>${line}</span><span>dari ${rs(r.limit)}</span></div>
-    <div class="eb"><i style="width:${Math.max(1, r.spent / scale * 100)}%;background:${stampColor(cls)}"></i><span class="ln2" style="left:${r.limit / scale * 100}%"></span></div></div>`;
+    <div class="eb"><i style="width:${Math.max(1, r.spent / scale * 100)}%;background:${stampColor(cls)}"></i><span class="ln2" style="left:${r.limit / scale * 100}%"></span></div>
+    ${jebolRows(d).some(x => x.category === r.category) ? `<div class="tb" data-act="tambal" data-id="${esc(r.category)}">Tambal dari amplop lain ›</div>` : ''}</div>`;
 }
 
 function amplopPage(d) {
@@ -834,7 +840,7 @@ function amplopPage(d) {
   const planned = incomeGroups(d).reduce((a, g) => a + g.total, 0), free = cap ? cap - planned : 0;
   const inv = b.investing || { amount: 0, invested: 0, split: [] }, em = b.emergency, emRow = (b.saving || []).find(r => r.category === 'Emergency fund') || { spent: 0 };
   const fromFund = b.rows.filter(r => r.reserve && r.spent > 0);
-  const step = nextStep(d), planStep = step && step.act === 'plan' ? `<div class="section"><div class="next" data-act="plan"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div></div>` : '';
+  const step = nextStep(d), planStep = step && (step.act === 'plan' || step.act === 'tambal') ? `<div class="section"><div class="next" data-act="${step.act}" data-id="${esc(step.id || '')}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div></div>` : '';
   const head = cap ? pageHead(`Gaji ${rs(cap)} dibagi ke`, 'Amplop', free < 0 ? `<span class="red">Kebanyakan ${rs(-free)}</span> dari gaji · kurangi dulu` : free > 0 ? `<b>${rs(free)}</b> belum masuk amplop mana pun` : 'Semua gaji sudah masuk amplop')
     : pageHead(esc(d.cycle.label), 'Amplop', 'Belum ada anggaran siklus ini');
   const env = !rows.length ? '' : `
@@ -915,6 +921,83 @@ function dompetPage(d) {
   const tools = toolsSection(d);
   if (isWide()) return `${head}<div class="dash"><div class="dash-cell span-7">${accounts}</div><div class="dash-cell span-5">${bagi}${gajian}${piutang}</div><div class="dash-cell span-12">${tools}</div></div>`;
   return `${head}${bagi}${accounts}${gajian}${piutang}${tools}`;
+}
+
+// ---------- Tambal amplop: cover an envelope that went over with money from envelopes that still have room ----------
+
+/** Everyday envelopes that went over this cycle, worst first (only once the budget is approved). */
+function jebolRows(d) {
+  if (!d.cycle.isCurrent || d.budgets.state !== 'approved') return [];
+  return d.budgets.rows.filter(r => !r.reserve && r.limit > 0 && r.spent > r.limit && !FIXED_CATS.includes(r.category)).sort((a, b) => (b.spent - b.limit) - (a.spent - a.limit));
+}
+/** Envelopes that can give: everyday ones with room left, most room first. */
+function tambalDonors(d, cat) {
+  return d.budgets.rows.filter(r => !r.reserve && r.limit > r.spent && !FIXED_CATS.includes(r.category) && r.category !== cat)
+    .map(r => ({ cat: r.category, room: r.limit - r.spent, limit: r.limit, spent: r.spent, reason: r.reason || '' })).sort((a, b) => b.room - a.room);
+}
+/** A first suggestion: 'rata' takes from each in proportion to its room, 'longgar' empties the roomiest first. Amounts in whole thousands. */
+function tambalPlan(donors, over, mode) {
+  const roomSum = donors.reduce((a, x) => a + x.room, 0), need = Math.min(over, roomSum), take = {};
+  donors.forEach(x => { take[x.cat] = 0; });
+  if (mode === 'longgar') { let rest = need; for (const x of donors) { const t = Math.min(x.room, rest); take[x.cat] = t; rest -= t; } return take; }
+  let given = 0;
+  for (const x of donors) { take[x.cat] = Math.min(x.room, Math.floor(need * x.room / Math.max(1, roomSum) / 1000) * 1000); given += take[x.cat]; }
+  for (const x of donors) { if (given >= need) break; const t = Math.min(x.room - take[x.cat], need - given); take[x.cat] += t; given += t; }
+  return take;
+}
+
+function tambalSheet(cat) {
+  const d = S.data, row = d.budgets.rows.find(r => r.category === cat);
+  if (!row || row.spent <= row.limit) return;
+  const over = row.spent - row.limit, donors = tambalDonors(d, cat), mode = S.tambalMode || 'rata', take = tambalPlan(donors, over, mode);
+  S.tambal = { cat, over, donors };
+  const body = donors.length ? `
+    <div class="paper-slot" style="margin-top:6px"><div class="struk">
+      <div class="sh"><div class="shop">TAMBAL AMPLOP</div><div class="sd">${esc(catName(cat))} · ${rs(row.spent)} dari ${rs(row.limit)}</div><div class="stamp-row">${stp(['jebol', 'JEBOL'])}</div></div>
+      <div class="cut"></div>
+      <p style="margin:0;font-size:17px;line-height:1.35">Uang ${rs(over)} itu sudah keluar. Pilih amplop yang dikurangi, supaya sisa di amplop lain tidak terlihat lebih aman dari kenyataan.</p>
+      <div class="cut"></div><div class="tot big"><span>Perlu ditambal</span><span>${dots(over)}</span></div>
+    </div></div>
+    ${seg('tambalMode', mode, [['rata', 'Bagi rata'], ['longgar', 'Yang paling longgar dulu']])}
+    <div class="section"><div class="header"><span>Ambil dari</span><span>ketik sendiri juga bisa</span></div><div class="group">
+      ${donors.map(x => `<label class="cell field" style="align-items:flex-start"><div class="main"><div class="t">${esc(catName(x.cat))}</div><div class="s" id="tb-${esc(x.cat)}">sisa ${rs(x.room)} → ${rs(x.room - take[x.cat])}</div></div>
+        <input inputmode="numeric" data-money data-tambal="${esc(x.cat)}" value="${take[x.cat] ? dots(take[x.cat]) : ''}" placeholder="0" style="width:120px"></label>`).join('')}
+    </div></div>
+    <div class="section"><div class="group"><div class="cell"><div class="main"><div class="t" id="tbTotal"></div><div class="s" id="tbNote"></div></div></div></div>
+      <div class="err" id="tbErr"></div><button class="btn" data-act="tambalSave" data-id="${esc(cat)}" style="margin-top:6px">Tambal sekarang</button>
+      <div class="footnote">Sisa sampai gajian tidak berubah: uangnya hanya pindah amplop. Bisa dibatalkan setelahnya.</div></div>`
+    : `<div class="section"><div class="group"><div class="cell"><div class="main wrap">Tidak ada amplop harian yang masih punya sisa. ${esc(catName(cat))} lewat ${rs(over)}, dan itu sudah mengurangi sisa sampai gajian.</div></div></div></div>`;
+  sheet('Tambal ' + catName(cat), body);
+  updateTambal();
+}
+
+function tambalInputs() { return [...document.querySelectorAll('input[data-tambal]')].map(i => ({ el: i, cat: i.dataset.tambal, v: moneyValue(i) })); }
+function updateTambal() {
+  const t = S.tambal, total = document.getElementById('tbTotal');
+  if (!t || !total) return;
+  const rows = tambalInputs(), sum = rows.reduce((a, x) => a + x.v, 0);
+  rows.forEach(x => { const dn = t.donors.find(y => y.cat === x.cat), el = document.getElementById('tb-' + x.cat); if (el && dn) { el.innerHTML = x.v > dn.room ? `<span class="red">lebih dari sisanya (${rs(dn.room)})</span>` : `sisa ${rs(dn.room)} → ${rs(dn.room - x.v)}`; } });
+  total.textContent = 'Ditambal ' + rs(sum) + ' dari ' + rs(t.over);
+  document.getElementById('tbNote').innerHTML = sum === t.over ? `<span class="green">Pas. ${esc(catName(t.cat))} tertutup.</span>` : sum > t.over ? `<span class="red">Kelebihan ${rs(sum - t.over)}</span>` : `Masih kurang ${rs(t.over - sum)}${sum ? ' · boleh, sisanya tetap jebol' : ''}`;
+}
+
+async function tambalSave(cat) {
+  const d = S.data, t = S.tambal, err = m => { document.getElementById('tbErr').textContent = m; };
+  if (!t || t.cat !== cat) return;
+  const rows = tambalInputs().filter(x => x.v > 0), sum = rows.reduce((a, x) => a + x.v, 0);
+  if (!sum) return err('Isi minimal satu amplop.');
+  if (sum > t.over) return err(`Kelebihan ${rs(sum - t.over)}. Tambal secukupnya saja.`);
+  const bad = rows.find(x => x.v > t.donors.find(y => y.cat === x.cat).room);
+  if (bad) return err(`${catName(bad.cat)} cuma punya sisa ${rs(t.donors.find(y => y.cat === bad.cat).room)}.`);
+  const row = d.budgets.rows.find(r => r.category === cat), day = tgl(todayKey(d)).slice(5);
+  const items = [{ category: cat, amount: row.limit + sum, reason: `Ditambal ${rs(sum)} dari ${rows.map(x => catName(x.cat)).join(', ')} (${day})` }]
+    .concat(rows.map(x => { const dn = t.donors.find(y => y.cat === x.cat); return { category: x.cat, amount: dn.limit - x.v, reason: `Dipakai ${rs(x.v)} untuk tambal ${catName(cat)} (${day})` }; }));
+  const before = [{ category: cat, amount: row.limit, reason: row.reason || '' }].concat(rows.map(x => { const dn = t.donors.find(y => y.cat === x.cat); return { category: x.cat, amount: dn.limit, reason: dn.reason }; }));
+  try {
+    await api('POST', { action: 'approve_budgets', cycle_start: d.cycle.start, items });
+    closeSheet(); load();
+    toast(catName(cat) + ' ditambal ' + rs(sum), () => api('POST', { action: 'approve_budgets', cycle_start: d.cycle.start, items: before }));
+  } catch (e) { err(e.message); }
 }
 
 // ---------- Spending ----------
@@ -999,7 +1082,7 @@ function rangeCatSheet(cat) {
     <div class="section"><div class="header"><span>Pembayaran ${esc(v.r.label)}</span><span>${rs(v.spent)}</span></div><div class="group">
       ${v.txs.map(t => txRow(t, t.day + (t.time ? ' · ' + t.time : '') + ' · ' + t.account, 'edit')).join('') || '<div class="cell"><div class="main muted">Tidak ada</div></div>'}
     </div></div>
-    <div class="section"><div class="group"><div class="cell tap" data-act="cat" data-id="${esc(cat)}"><div class="main link">Detail ${esc(catName(cat))} satu siklus</div><span class="chev">›</span></div></div></div>`);
+    <div class="section"><div class="group">${jebolRows(d).some(x => x.category === cat) ? `<div class="cell tap" data-act="tambal" data-id="${esc(cat)}"><div class="main link">Tambal ${esc(catName(cat))} dari amplop lain</div><span class="chev">›</span></div>` : ''}<div class="cell tap" data-act="cat" data-id="${esc(cat)}"><div class="main link">Detail ${esc(catName(cat))} satu siklus</div><span class="chev">›</span></div></div></div>`);
 }
 
 function transactions(d) {
@@ -1548,6 +1631,9 @@ document.addEventListener('click', e => {
     case 'more': S.showAll = !S.showAll; render(); break;
     case 'cat': catSheet(id); break;
     case 'rangeCat': rangeCatSheet(id); break;
+    case 'tambal': tambalSheet(id); break;
+    case 'tambalMode': S.tambalMode = id; if (S.tambal) tambalSheet(S.tambal.cat); break;
+    case 'tambalSave': tambalSave(id); break;
     case 'why': whySheet(); break;
     case 'toggleMore': S.more = !S.more; store.set('money:more', S.more); render(); break;
     case 'review': S.filter = 'review'; goTab('transactions'); break;
@@ -1571,6 +1657,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => { if (e.target.dataset.money !== undefined) {
   formatMoneyInput(e.target);
+  if (e.target.dataset.tambal !== undefined) updateTambal();
   const total = document.getElementById('planTotal');
   if (total) {
     const sum = [...document.querySelectorAll('input[data-cat]')].reduce((s, i) => s + moneyValue(i), 0);
