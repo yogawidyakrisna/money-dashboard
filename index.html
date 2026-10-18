@@ -1,39 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Money">
-<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-title" content="Duit">
+<meta name="theme-color" content="#0c0f14">
 <link rel="apple-touch-icon" href="icon-180.png">
-<title>Money</title>
+<title>Duit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* iOS dark system colors (always dark, the owner's choice), grouped lists, one clear number per screen. */
+  /* "Struk": a navy-black page (always dark, the owner's choice), each day printed as a paper receipt, tangerine for actions, one clear number per screen. */
   :root {
     color-scheme: dark;
-    --bg: #000000; --cell: #1c1c1e; --label: #ffffff; --label2: rgba(235,235,245,.6); --label3: rgba(235,235,245,.3);
-    --sep: rgba(84,84,88,.65); --fill: rgba(120,120,128,.32); --tint: #0a84ff; --green: #30d158; --red: #ff453a;
-    --orange: #ff9f0a; --bar: rgba(22,22,24,.94); --sheet: #1c1c1e; --tint-soft: rgba(10,132,255,.2);
+    --bg: #0c0f14; --cell: #161b23; --label: #ffffff; --label2: #a4abb8; --label3: #6b7383;
+    --sep: rgba(255,255,255,.07); --fill: #252d39; --tint: #f7941d; --green: #38c27c; --red: #ef5f63;
+    --orange: #e3a020; --bar: #0c0f14; --sheet: #161b23; --tint-soft: rgba(247,148,29,.16);
+    --paper: #efeeea; --paper-ink: #1f2b4d; --paper-muted: #5d6680; --paper-cut: #b9b4a8;
+    --font: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   }
-  .sheet .group { background: #2c2c2e; }
+  .sheet .group { background: #1f2631; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--label); }
-  body { font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { font: 17px/1.35 var(--font); -webkit-font-smoothing: antialiased; }
   button, input, select { font: inherit; color: inherit; }
   .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .screen { max-width: 600px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 10px) 0 calc(env(safe-area-inset-bottom) + 96px); }
   .title-row { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-  .large-title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: .37px; margin: 0; }
+  .large-title { font-size: 40px; line-height: 1; font-weight: 500; letter-spacing: -0.035em; margin: 0; }
   .pill { display: inline-block; font-size: 15px; font-weight: 600; padding: 5px 12px; border-radius: 16px; background: var(--tint-soft); color: var(--tint); }
   .subtitle { color: var(--label2); font-size: 15px; padding: 2px 16px 0; }
   .section { margin: 20px 16px 0; }
-  .header { display: flex; justify-content: space-between; font-size: 13px; color: var(--label2); padding: 0 16px 7px; }
-  .header > span:first-child { text-transform: uppercase; }
-  .footnote { font-size: 13px; color: var(--label2); padding: 7px 16px 0; line-height: 1.35; }
-  .group { background: var(--cell); border-radius: 12px; overflow: hidden; }
+  .header { display: flex; justify-content: space-between; font-size: 15px; color: var(--label2); padding: 0 16px 7px; }
+  .header > span:first-child { color: var(--label); font-weight: 500; font-size: 15px; }
+  .footnote { font-size: 15px; color: var(--label2); padding: 7px 16px 0; line-height: 1.35; }
+  .group { background: var(--cell); border-radius: 14px; overflow: hidden; }
   .cell { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px 16px; color: inherit; text-decoration: none; }
   .cell + .cell::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; border-top: .5px solid var(--sep); }
   .tap { cursor: pointer; }
@@ -53,24 +58,26 @@
   .progress { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; margin-top: 10px; }
   .progress > div { height: 100%; border-radius: 3px; background: var(--tint); }
   .progress > .warn { background: var(--orange); } .progress > .over { background: var(--red); } .progress > .done { background: var(--green); }
-  .next { display: flex; align-items: center; gap: 12px; padding: 15px 20px; background: var(--tint); color: #fff; border-radius: 999px; cursor: pointer; }
+  .next { display: flex; align-items: center; gap: 12px; padding: 15px 20px; background: var(--tint); color: #1f2b4d; border-radius: 999px; cursor: pointer; transition: transform .15s; }
+  .next:active { transform: scale(.98); }
   .next .main div:last-child { opacity: .85; font-size: 15px; margin-top: 2px; }
   .next.done { background: var(--cell); color: var(--label); cursor: default; }
   .icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; color: #fff; font-weight: 700; font-size: 15px; }
   .icon svg { width: 18px; height: 18px; }
-  .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 6px; border-radius: 5px; margin-left: 6px; vertical-align: 2px; background: rgba(255,149,0,.18); color: var(--orange); }
+  .chip { display: inline-block; font-size: 13px; font-weight: 600; padding: 1px 6px; border-radius: 5px; margin-left: 6px; vertical-align: 2px; background: rgba(255,149,0,.18); color: var(--orange); }
   .empty { color: var(--label2); text-align: center; padding: 36px 24px; font-size: 15px; }
   .segment { display: flex; background: var(--fill); border-radius: 9px; padding: 2px; margin: 14px 16px 0; }
   .segment button { flex: 1; border: 0; background: none; padding: 7px 0; border-radius: 7px; font-size: 13px; font-weight: 600; }
   .segment button.on { background: var(--cell); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); }
-  .status { text-align: center; color: var(--label2); font-size: 12px; margin-top: 16px; min-height: 15px; }
-  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); border-top: .5px solid var(--sep); padding-bottom: env(safe-area-inset-bottom); }
-  .tabbar .in { max-width: 600px; margin: 0 auto; display: flex; height: 49px; }
-  .tabbar button { position: relative; flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 500; color: #999; }
-  .tabbar button.on { color: var(--tint); }
-  .tabbar svg { width: 25px; height: 25px; }
+  .status { text-align: center; color: var(--label2); font-size: 13px; margin-top: 16px; min-height: 15px; }
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--bar); padding-bottom: env(safe-area-inset-bottom); }
+  .tabbar .in { max-width: 600px; margin: 0 auto; display: flex; height: 58px; padding: 6px 10px; gap: 4px; }
+  .tabbar button { position: relative; flex: 1; border: 0; background: none; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; color: var(--label2); border-radius: 999px; cursor: pointer; transition: background .2s, color .2s, transform .15s; }
+  .tabbar button.on { color: var(--label); background: var(--fill); }
+  .tabbar button:active { transform: scale(.97); }
+  .tabbar svg { display: none; }
   .tabbar .desk { display: none; }
-  .badge { position: absolute; top: 3px; left: 50%; margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 12px; font-weight: 600; line-height: 18px; }
+  .badge { position: static; margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 12px; font-weight: 600; line-height: 18px; }
   .sheet-bg { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.4); display: none; align-items: flex-end; justify-content: center; }
   .sheet { background: var(--sheet); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; border-radius: 12px 12px 0 0; padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
   .sheet-bar { position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 16px 10px; background: var(--sheet); }
@@ -83,8 +90,9 @@
   .field select { direction: rtl; }
   .field input:focus { outline: none; color: var(--label); }
   .err { color: var(--red); font-size: 13px; padding: 7px 16px 0; min-height: 20px; }
-  .btn { display: block; width: 100%; border: 0; border-radius: 12px; background: var(--tint); color: #fff; font-weight: 600; padding: 15px; cursor: pointer; }
-  .btn.green { background: var(--green); }
+  .btn { display: block; width: 100%; border: 0; border-radius: 999px; background: var(--tint); color: #1f2b4d; font-weight: 600; padding: 15px; cursor: pointer; transition: transform .15s; }
+  .btn:active { transform: scale(.98); }
+  .btn.green { background: var(--green); color: #fff; }
   .btn.plain { background: var(--cell); color: var(--tint); }
   .big-amount { text-align: center; font-size: 34px; font-weight: 700; padding: 6px 16px 0; font-variant-numeric: tabular-nums; }
   .shot { width: 100%; display: block; border-radius: 12px; }
@@ -124,7 +132,7 @@
   /* Budget bar: the fill is what you spent, the bold white line is the budget. Past the line = over. */
   .seg { display: flex; background: var(--fill); border-radius: 10px; padding: 2px; margin: 12px 16px 0; }
   .seg button { flex: 1; border: 0; background: none; padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--label2); cursor: pointer; }
-  .seg button.on { background: #636366; color: #fff; }
+  .seg button.on { background: #3a4659; color: #fff; }
   .seg.small { margin: 0 0 10px; } .seg.small button { padding: 6px 0; font-size: 13px; }
   .grp-h .chev { transition: transform .15s; } .grp-h.open .chev { transform: rotate(90deg); }
   .grp-body { background: rgba(255,255,255,.03); }
@@ -137,9 +145,9 @@
   .share > div { height: 100%; border-radius: 2px; }
   .why { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 11px; border-top: .5px solid var(--sep); font-size: 15px; color: var(--label2); }
   .why .link { flex: none; }
-  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 64px); transform: translateX(-50%); z-index: 20; display: none; align-items: center; gap: 16px;
-    padding: 12px 18px; border-radius: 14px; background: rgba(28,28,30,.94); color: #fff; font-size: 15px; box-shadow: 0 6px 24px rgba(0,0,0,.25); white-space: nowrap; }
-  .toast button { border: 0; background: none; color: #64d2ff; font-weight: 600; padding: 0; }
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 72px); transform: translateX(-50%); z-index: 20; display: none; align-items: center; gap: 16px;
+    padding: 12px 18px; border-radius: 14px; background: #2a3341; color: #fff; font-size: 15px; box-shadow: 0 6px 24px rgba(0,0,0,.25); white-space: nowrap; }
+  .toast button { border: 0; background: none; color: var(--tint); font-weight: 600; padding: 0; }
   .check[disabled] { opacity: .6; }
   .check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--label3); flex: none; display: grid; place-items: center; color: #fff; background: none; padding: 0; cursor: pointer; }
   .check.on { background: var(--green); border-color: var(--green); }
@@ -154,7 +162,7 @@
   /* Desktop (Mac, iPad landscape), after Apple's HIG for macOS: sidebar, a 12-column grid with wide gutters, equal-height rows, larger type, lots of air. */
   .cols, .cols > .col { display: contents; }
   @media (min-width: 900px) {
-    :root { --bg: #141416; --cell: #1e1e22; --sheet: #1e1e22; --bar: #141416; }
+    :root { --bar: #10141a; }
     body { font-size: 16px; }
     .screen { max-width: 1600px; margin: 0; padding: 48px 56px 80px 284px; }
     .title-row { padding: 0 0 12px; margin-bottom: 16px; } .title-row .seg { margin: 0; width: 380px; }
@@ -177,11 +185,11 @@
     .footnote { padding: 12px 6px 0; font-size: 14px; }
     .more { display: none; }
     .emo { width: 38px; height: 38px; border-radius: 11px; font-size: 20px; } .acct { width: 46px; height: 46px; }
-    .tabbar { top: 0; bottom: 0; right: auto; width: 236px; border-top: 0; border-right: .5px solid var(--sep); padding: 36px 20px 0; background: var(--bar); backdrop-filter: none; }
+    .tabbar { top: 0; bottom: 0; right: auto; width: 236px; padding: 36px 20px 0; background: var(--bar); }
     .tabbar .in { flex-direction: column; height: auto; gap: 6px; align-items: stretch; }
-    .tabbar .in::before { content: 'Money'; font-size: 24px; font-weight: 700; color: var(--label); padding: 4px 14px 24px; }
+    .tabbar .in::before { content: 'Duit'; font-size: 28px; font-weight: 700; letter-spacing: -0.04em; color: var(--label); padding: 4px 14px 24px; }
     .tabbar button { flex: none; flex-direction: row; justify-content: flex-start; gap: 14px; height: 48px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-weight: 500; color: var(--label2); }
-    .tabbar button.on { background: rgba(255,255,255,.08); color: var(--label); }
+    .tabbar button.on { background: var(--fill); color: var(--label); }
     .tabbar .desk { display: flex; }
     .span-5 { grid-column: span 5; } .span-7 { grid-column: span 7; }
     .tabbar svg { width: 22px; height: 22px; }
@@ -189,20 +197,116 @@
     .sheet-bg { align-items: center; } .sheet { border-radius: 20px; max-height: 88vh; max-width: 680px; }
   }
   @media (min-width: 1700px) { .screen { max-width: 1900px; } }
+  /* Home: the one number, the cycle as a strip of days, and the chosen day printed as a struk. */
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; padding: 6px 16px 0; }
+  .topbar .mark { font-weight: 700; font-size: 26px; letter-spacing: -0.04em; }
+  .topbar .gaj { color: var(--label2); font-size: 15px; } .topbar .gaj b { color: var(--label); font-weight: 500; }
+  .sisa { padding: 26px 16px 0; cursor: pointer; }
+  .sisa .big { font-size: clamp(56px, 17vw, 104px); line-height: .9; letter-spacing: -0.045em; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .sisa .big.over { color: var(--red); }
+  .sisa .sub { font-size: 19px; color: var(--label2); margin-top: 10px; line-height: 1.3; }
+  .sisa .sub b { color: var(--label); font-weight: 500; }
+  .strip-box { margin: 26px 16px 0; background: var(--cell); border-radius: 14px; padding: 16px 14px 12px; }
+  .strip-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 15px; color: var(--label2); }
+  .strip-head b { color: var(--label); font-weight: 500; font-size: 15px; }
+  .strip { position: relative; display: flex; align-items: flex-end; gap: 3px; height: 140px; margin-top: 14px; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: pointer; }
+  .sday { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; position: relative; }
+  .sday i { display: block; width: 100%; border-radius: 3px 3px 1px 1px; background: #4a5363; transform-origin: bottom; position: relative; z-index: 1; }
+  .sday.fut i { background: #2c3545; } .sday.fut.wk i { background: #3a4659; }
+  .sday.over i { background: var(--red); } .sday.today i { background: var(--tint); }
+  .sday b { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px 3px 1px 1px; background: rgba(247,148,29,.3); }
+  .sday.sel::after { content: ''; position: absolute; left: 50%; bottom: -11px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--label); }
+  .strip-foot { display: flex; justify-content: space-between; margin-top: 16px; font-size: 13px; color: var(--label2); }
+  .skey { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 13px; color: var(--label2); }
+  .skey span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: 0; background: var(--c); }
+  .struk-slot { overflow: hidden; margin: 22px 16px 0; padding-bottom: 12px; }
+  .struk { background: var(--paper); color: var(--paper-ink); padding: 24px 20px 16px; position: relative; max-width: 460px; margin: 0 auto; }
+  .struk::after { content: ''; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='10'%3E%3Cpath d='M0 0h14L7 10z' fill='%23efeeea'/%3E%3C/svg%3E") repeat-x 0 0 / 14px 10px; }
+  .struk.print { animation: print .65s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes print { from { transform: translateY(-104%); } to { transform: none; } }
+  .struk .sh { text-align: center; } .struk .shop { font-weight: 700; font-size: 19px; letter-spacing: .02em; }
+  .struk .sd { color: var(--paper-muted); font-size: 14px; margin-top: 2px; }
+  .struk .stamp-row { text-align: center; margin-top: 10px; }
+  .stamp { display: inline-block; transform: rotate(-5deg); border: 3px solid currentColor; border-radius: 6px; padding: 3px 10px; font-weight: 700; font-size: 22px; letter-spacing: .05em; }
+  .stamp.aman { color: #1f8a55; } .stamp.mepet { color: #b87100; } .stamp.jebol { color: #c8323c; } .stamp.nanti { color: var(--paper-muted); }
+  .struk .cut { border-top: 2px dashed var(--paper-cut); margin: 12px 0; }
+  .struk .ln { display: grid; grid-template-columns: 3em minmax(0, 1fr) auto; gap: 8px; padding: 6px 0; font-size: 16px; cursor: pointer; border-radius: 4px; }
+  .struk .ln:active { background: rgba(31,43,77,.06); }
+  .struk .ln .tm { color: var(--paper-muted); } .struk .ln .mm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .struk .ln small { display: block; color: var(--paper-muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+  .struk .ln .am { text-align: right; font-variant-numeric: tabular-nums; }
+  .struk .ln.out { opacity: .6; }
+  .struk .chip { background: rgba(184,113,0,.14); color: #8a5500; }
+  .struk .grp { font-size: 13px; color: var(--paper-muted); margin: 8px 0 0; }
+  .struk .tot { display: flex; justify-content: space-between; padding: 3px 0; font-variant-numeric: tabular-nums; }
+  .struk .tot.big { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; padding-top: 8px; }
+  .struk .tot.big.over { color: #c8323c; }
+  .struk .sf { text-align: center; color: var(--paper-muted); font-size: 14px; margin-top: 10px; }
+  .struk .nil { text-align: center; color: var(--paper-muted); padding: 14px 0 4px; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; align-items: end; height: 190px; padding: 16px 14px 12px; }
+  .wd { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; text-align: center; font-size: 13px; color: var(--label2); }
+  .wd i { display: block; background: #4a5363; border-radius: 4px 4px 2px 2px; margin: 6px 0 8px; transform-origin: bottom; }
+  .wd.top i { background: var(--tint); } .wd.top { color: var(--label); font-weight: 600; } .wd .v { color: var(--label); font-variant-numeric: tabular-nums; }
+  .grow i { animation: grow .7s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes grow { from { transform: scaleY(0); } }
+  .rise { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(22px); } }
+  .still .rise, .still .grow i { animation: none; }
+  @media (min-width: 900px) {
+    .topbar { display: none; }
+    .homegrid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); column-gap: 56px; align-items: start; margin-bottom: 56px; }
+    .homegrid .sisa, .homegrid .strip-box { grid-column: 1; margin-left: 0; margin-right: 0; } .homegrid .sisa { padding: 0; }
+    .homegrid .struk-slot { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+    .strip { height: 190px; }
+    .sisa .big { font-size: clamp(72px, 7vw, 112px); }
+  }
+  /* Stamps: the struk's rubber-stamp words, used on every page. */
+  .stp { display: inline-block; flex: none; transform: rotate(-4deg); border: 2px solid currentColor; border-radius: 5px; padding: 0 7px; font-weight: 700; font-size: 13px; line-height: 20px; letter-spacing: .05em; white-space: nowrap; }
+  .stp.aman { color: var(--green); } .stp.mepet { color: var(--orange); } .stp.jebol { color: var(--red); } .stp.abu { color: var(--label2); } .stp.or { color: var(--tint); }
+  .struk .stp.aman, .env .stp.aman { color: #1f8a55; } .struk .stp.mepet, .env .stp.mepet { color: #a86700; } .struk .stp.jebol, .env .stp.jebol { color: #c8323c; } .struk .stp.abu, .env .stp.abu { color: var(--paper-muted); } .struk .stp.or, .env .stp.or { color: #b05f00; }
+  .page-head { padding: 6px 16px 0; } .page-head .k { color: var(--label2); font-size: 15px; }
+  .page-head .big { font-size: clamp(44px, 13vw, 88px); line-height: .92; letter-spacing: -0.045em; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .page-head .sub { color: var(--label2); font-size: 17px; margin-top: 8px; line-height: 1.3; } .page-head .sub b { color: var(--label); font-weight: 500; }
+  .paper-slot { margin: 20px 16px 0; padding-bottom: 12px; }
+  .struk .nrow { padding: 8px 0; cursor: pointer; } .struk .nrow + .nrow { border-top: 2px dashed var(--paper-cut); }
+  .struk .nrow .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; }
+  .struk .nrow .bot { display: flex; justify-content: space-between; gap: 10px; color: var(--paper-muted); font-size: 14px; margin-top: 2px; }
+  .struk .nrow .bot span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .struk .nrow .bot span:last-child { color: var(--paper-ink); font-variant-numeric: tabular-nums; flex: none; }
+  .envs { display: grid; gap: 10px; margin-top: 10px; }
+  .env { background: var(--paper); color: var(--paper-ink); border-radius: 4px; padding: 20px 14px 12px; position: relative; cursor: pointer; transition: transform .15s; }
+  .env:active { transform: scale(.985); }
+  .env::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 14px; background: #dcd8ce; clip-path: polygon(0 0, 100% 0, 50% 100%); border-radius: 4px 4px 0 0; }
+  .env .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; }
+  .env .bot { display: flex; justify-content: space-between; gap: 10px; color: var(--paper-muted); font-size: 14px; margin-top: 3px; } .env .bot b { color: var(--paper-ink); font-weight: 600; }
+  .env .eb { position: relative; height: 8px; border-radius: 4px; background: #d9d5cb; margin-top: 9px; } .env .eb i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .env .eb .ln2 { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; background: var(--paper-ink); border-radius: 2px; }
+  .env.sealed { background: #e4e2dc; }
+  .grade { font-size: 56px; font-weight: 700; line-height: .9; letter-spacing: -0.04em; }
+  .wallet { display: grid; gap: 10px; margin-top: 10px; }
+  .card { border-radius: 16px; padding: 14px 16px; background: var(--cell); display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; }
+  .card .nm { font-weight: 600; font-size: 17px; } .card .bal { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .card .note { grid-column: 2 / -1; color: var(--label2); font-size: 14px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+  .card.titip { background: #1d2740; } .card.serep { background: #1a2a24; }
+  .srow { display: flex; align-items: center; gap: 12px; padding: 13px 16px; } .srow + .srow { box-shadow: inset 0 1px 0 var(--sep); }
+  .srow .main .t { font-size: 17px; }
+  @media (min-width: 900px) { .page-head { padding: 0 0 8px; } .paper-slot { margin: 0; } .envs { grid-template-columns: 1fr 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .env { transition: none; } }
+  @media (max-width: 899px) { .tabbar button { font-size: 14px; } .tabbar .in { padding: 6px 6px; gap: 2px; } .tabbar .badge { position: absolute; top: 8px; right: 6px; min-width: 8px; width: 8px; height: 8px; padding: 0; margin: 0; font-size: 0; } }
+  @media (prefers-reduced-motion: reduce) { .struk.print, .grow i, .rise { animation: none; } .next, .btn, .tabbar button { transition: none; } }
 </style>
 </head>
 <body>
-<div id="app"><p class="status" style="padding-top:40vh">Loading…</p></div>
+<div id="app"><p class="status" style="padding-top:40vh">Membuka…</p></div>
 <nav class="tabbar"><div class="in">
-  <button data-tab="home"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.5 11h2.7v9h5.3v-5.5h3V20h5.3v-9h2.7z"/></svg>Home</button>
-  <button data-tab="transactions"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><rect x="9" y="5" width="12" height="2" rx="1"/><rect x="9" y="11" width="12" height="2" rx="1"/><rect x="9" y="17" width="12" height="2" rx="1"/></svg>Spending</button>
-  <button data-tab="plan" class="desk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19h16M4 5v14M8 15v-4M12 15V8M16 15v-6"/></svg>Plan</button>
-  <button data-tab="money" class="desk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Money</button>
-  <button data-tab="cfo" class="desk"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>CFO</button>
-  <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Activity<span class="badge" id="badge" hidden></span></button>
+  <button data-tab="home"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.5 11h2.7v9h5.3v-5.5h3V20h5.3v-9h2.7z"/></svg>Hari ini</button>
+  <button data-tab="transactions"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><rect x="9" y="5" width="12" height="2" rx="1"/><rect x="9" y="11" width="12" height="2" rx="1"/><rect x="9" y="17" width="12" height="2" rx="1"/></svg>Rekap</button>
+  <button data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19h16M4 5v14M8 15v-4M12 15V8M16 15v-6"/></svg>Amplop</button>
+  <button data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Dompet</button>
+  <button data-tab="cfo" class="desk"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>Rapat CFO</button>
+  <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Jepretan<span class="badge" id="badge" hidden></span></button>
 </div></nav>
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
-<div class="toast" id="toast" role="status"><span id="toastText"></span><button id="toastUndo">Undo</button></div>
+<div class="toast" id="toast" role="status"><span id="toastText"></span><button id="toastUndo">Batalkan</button></div>
 <script>
 const API = 'https://vxyofgwxkeruvaxqqzhq.supabase.co/functions/v1/api';
 const INGEST = API.replace(/\/api$/, '/ingest');
@@ -229,10 +333,10 @@ const rs = n => {
 };
 const shorten = text => String(text || '').replace(/Rp\s?(\d{1,3}(?:\.\d{3})+)(?:,\d+)?/g, (_, n) => rs(Number(n.replace(/\./g, ''))));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ago = ms => { if (!ms) return 'No balance yet'; const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : d + ' days ago'; };
-const when = ms => new Date(ms).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-const shortDay = ymd => new Date(ymd + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' });
-const paydayLabel = d => new Date(d.cycle.nextStart + 'T00:00:00').toLocaleDateString([], { day: 'numeric', month: 'short' });
+const ago = ms => { if (!ms) return 'Belum ada saldo'; const d = Math.floor((Date.now() - ms) / 864e5); return d <= 0 ? 'Hari ini' : d === 1 ? 'Kemarin' : d + ' hari lalu'; };
+const when = ms => new Date(ms).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const shortDay = ymd => new Date(ymd + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+const paydayLabel = d => new Date(d.cycle.nextStart + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
 const ICON = {
   spark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>',
   ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
@@ -246,6 +350,10 @@ const ICON = {
 const GROUPS = [['Family', 'var(--g-family)'], ['Needs', 'var(--g-needs)'], ['Wants', 'var(--g-wants)'], ['Other', 'var(--g-other)']];
 const catInfo = (d, name) => (d.categoryInfo || []).find(c => c.name === name)
   || { name, group: 'Other', icon: name === 'Investing' ? '📈' : name === 'Emergency fund' ? '🛟' : '📦', hint: '' };
+/** Indonesian names for the categories on screen (the data keeps the English keys). */
+const CAT_ID = { Family: 'Keluarga', 'Family Entertainment': 'Hiburan keluarga', Food: 'Makan', Groceries: 'Belanja dapur', Transport: 'Transport',
+  Bills: 'Tagihan', Medical: 'Medis', Other: 'Tak terduga', Income: 'Gaji', Transfer: 'Pindah dana', Investment: 'Investasi', 'Emergency fund': 'Dana darurat', Investing: 'Investasi' };
+const catName = c => CAT_ID[c] || c;
 const groupColor = g => (GROUPS.find(x => x[0] === g) || GROUPS[3])[1];
 const emo = (d, name) => { const c = catInfo(d, name); return `<div class="emo" style="background:color-mix(in srgb, ${groupColor(c.group)} 20%, transparent)">${esc(c.icon || '📦')}</div>`; };
 const dayNum = s => Number(s.slice(8, 10));
@@ -280,8 +388,8 @@ function budgetBar(spent, limit) {
 }
 /** "Rp210 rb left" in green/amber or "Rp40 rb over" in red. */
 function budgetLeft(spent, limit) {
-  if (!limit) return `<span class="d">No budget</span>`;
-  return spent > limit ? `<span class="red">${rs(spent - limit)} over</span>` : `<span class="${spent >= limit * 0.8 ? 'orange' : 'green'}">${rs(limit - spent)} left</span>`;
+  if (!limit) return `<span class="d">Tanpa anggaran</span>`;
+  return spent > limit ? `<span class="red">lewat ${rs(spent - limit)}</span>` : `<span class="${spent >= limit * 0.8 ? 'orange' : 'green'}">sisa ${rs(limit - spent)}</span>`;
 }
 
 /** Very short amounts for crowded charts: 222 (= Rp222 rb), 1,1jt. */
@@ -317,7 +425,7 @@ function dayBars(d, values, color, line) {
   }).join('');
   const label = (i, text, anchor) => `<text x="${Math.min(W, Math.max(0, i * step + step / 2))}" y="${H - 4}" text-anchor="${anchor}">${esc(text)}</text>`;
   const ti = values.findIndex(p => p.date === today);
-  const labels = label(0, dayNum(values[0].date) + ' ' + new Date(values[0].date + 'T00:00:00').toLocaleDateString([], { month: 'short' }), 'start')
+  const labels = label(0, dayNum(values[0].date) + ' ' + new Date(values[0].date + 'T00:00:00').toLocaleDateString('id-ID', { month: 'short' }), 'start')
     + (ti > 3 && ti < n - 4 ? label(ti, 'Today', 'middle') : '') + label(n - 1, String(dayNum(values[n - 1].date)), 'end');
   const ln = line ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
     <text x="${W}" y="${y(line) - 4}" text-anchor="end">${esc(rs(line))} a day</text>` : '';
@@ -333,7 +441,7 @@ async function api(method, body, query) {
 }
 
 async function load() {
-  if (!KEY) { document.getElementById('app').innerHTML = '<div class="empty">Open the dashboard with your private link (it ends in ?k=…).</div>'; return; }
+  if (!KEY) { document.getElementById('app').innerHTML = '<div class="empty">Buka dengan link pribadi kamu (diakhiri ?k=…).</div>'; return; }
   S.loading = true; S.error = ''; status();
   try {
     const jobs = [api('GET', null, S.cycle ? '?cycle=' + S.cycle : '')];
@@ -346,13 +454,13 @@ async function load() {
     clearTimeout(poll);
     if (d.reports.pending.length && document.visibilityState === 'visible') poll = setTimeout(load, 15000);
   } catch (e) {
-    S.error = e.message === 'Failed to fetch' || e.message === 'Load failed' ? 'Offline · showing your last numbers' : e.message;
+    S.error = e.message === 'Failed to fetch' || e.message === 'Load failed' ? 'Offline · menampilkan angka terakhir' : e.message;
   } finally { S.loading = false; status(); }
 }
 
 function status() {
   const el = document.getElementById('status');
-  if (el) el.textContent = S.error || (S.loading ? 'Updating…' : S.at ? 'Updated ' + new Date(S.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+  if (el) el.textContent = S.error || (S.loading ? 'Memperbarui…' : S.at ? 'Diperbarui ' + new Date(S.at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '');
 }
 
 // ---------- Home ----------
@@ -369,18 +477,18 @@ function cfoChanges(d) {
 
 function nextStep(d) {
   const n = d.improve ? d.improve.items.length : 0;
-  if (d.budgets.state === 'proposed' && d.cycle.isCurrent) return { act: 'plan', title: 'Approve your budget', sub: 'About 1 minute · your CFO already filled it in' };
+  if (d.budgets.state === 'proposed' && d.cycle.isCurrent) return { act: 'plan', title: 'Ada PR: setujui amplop', sub: 'Sekitar 1 menit · CFO sudah mengisinya' };
   const changes = cfoChanges(d).length;
-  if (changes && d.cycle.isCurrent) return { act: 'plan', title: "Review the CFO's new budget", sub: `${changes} change${changes === 1 ? '' : 's'} · about 1 minute` };
-  if (d.toCheck) return { act: 'review', title: `Check ${d.toCheck} transaction${d.toCheck === 1 ? '' : 's'}`, sub: 'About 1 minute · tap "Looks right" or fix it' };
+  if (changes && d.cycle.isCurrent) return { act: 'plan', title: 'CFO usul ganti amplop', sub: `${changes} perubahan · sekitar 1 menit` };
+  if (d.toCheck) return { act: 'review', title: `Cek ${d.toCheck} transaksi`, sub: 'Sekitar 1 menit · ketuk "Sudah benar" atau betulkan' };
   const missing = (d.pay || []).find(p => p.state === 'missing');
-  if (missing && d.cycle.isCurrent) return { act: 'gotoPay', title: `Log your ${shortDay(missing.date)} pay`, sub: 'Screenshot it in your bank app · so the CFO sees all your income' };
-  if (d.claims && d.claims.todo.length) return { act: 'gotoClaims', title: `Claim back ${rs(d.claims.total)}`, sub: `${d.claims.todo.length} medical bill${d.claims.todo.length === 1 ? '' : 's'} · tick each one when claimed` };
+  if (missing && d.cycle.isCurrent) return { act: 'gotoPay', title: `Catat gaji ${shortDay(missing.date)}`, sub: 'Screenshot di aplikasi bank · supaya CFO melihat semua pemasukan' };
+  if (d.claims && d.claims.todo.length) return { act: 'gotoClaims', title: `Tagih kantor ${rs(d.claims.total)}`, sub: `${d.claims.todo.length} tagihan medis · centang setelah diklaim` };
   const p = d.reports.latest, todo = p && (p.actions || []).findIndex((_, i) => !(p.actions_done || []).includes(i));
-  if (p && todo >= 0) return { act: 'gotoCfo', title: shorten(p.actions[todo]), sub: 'From your CFO · tick it when done' };
-  if (n) return { act: 'gotoImprove', title: `Send ${n} note${n === 1 ? '' : 's'} to Claude`, sub: 'About 1 minute · copy, then paste in Claude Code' };
+  if (p && todo >= 0) return { act: 'gotoCfo', title: shorten(p.actions[todo]), sub: 'PR dari CFO · centang kalau sudah' };
+  if (n) return { act: 'gotoImprove', title: `Titip ${n} catatan ke Claude`, sub: 'Sekitar 1 menit · salin, lalu tempel di Claude Code' };
   const stale = d.netWorth.accounts.filter(a => !a.hasSnapshot && a.name !== 'Cash');
-  if (stale.length) return { act: '', title: `Screenshot your ${stale[0].name} balance`, sub: 'So your total is complete' };
+  if (stale.length) return { act: '', title: `Screenshot saldo ${stale[0].name}`, sub: 'Supaya totalnya lengkap' };
   return null;
 }
 
@@ -420,25 +528,25 @@ function whyLine(d) {
 function whySheet() {
   const d = S.data, sp = d.spend, r = room(d), t = todayInfo(d);
   const leftToday = Math.max(0, (t.limit || 0) - t.spent), overToday = Math.max(0, t.spent - (t.limit || 0));
-  const weekendNote = sp.perWeekend && sp.perWeekend !== sp.perDay ? ' · more on weekends, from your own habits' : '';
-  sheet('Why', `
+  const weekendNote = sp.perWeekend && sp.perWeekend !== sp.perDay ? ' · lebih banyak di akhir pekan, dari kebiasaanmu sendiri' : '';
+  sheet('Kenapa', `
     <div class="big-amount ${overToday ? 'red' : ''}">${overToday ? rs(overToday) : rs(leftToday)}</div>
-    <div class="footnote" style="text-align:center;padding-top:2px">${overToday ? 'over for today · fresh start tomorrow' : 'left for today'}</div>
+    <div class="footnote" style="text-align:center;padding-top:2px">${overToday ? 'lewat jatah hari ini · besok mulai baru' : 'sisa jatah hari ini'}</div>
     <div class="section"><div class="group">
-      <div class="cell"><div class="main"><div class="t">Today's allowance</div><div class="s">${rs(t.spent)} spent so far${weekendNote}</div></div><span class="num">${rs(t.limit || 0)}</span></div>
-      <div class="cell"><div class="main"><div class="t">Until payday</div><div class="s">${d.cycle.daysLeft} days · ${esc(paydayLabel(d))}</div></div><span class="num">${rs(Math.max(0, sp.left))}</span></div>
+      <div class="cell"><div class="main"><div class="t">Jatah hari ini</div><div class="s">${rs(t.spent)} terpakai${weekendNote}</div></div><span class="num">${rs(t.limit || 0)}</span></div>
+      <div class="cell"><div class="main"><div class="t">Sampai gajian</div><div class="s">${d.cycle.daysLeft} hari · ${esc(paydayLabel(d))}</div></div><span class="num">${rs(Math.max(0, sp.left))}</span></div>
     </div></div>
-    <div class="section"><div class="header"><span>Where it can go</span><span>${rs(r.roomTotal)} room</span></div><div class="group">
-      ${r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(x.category)}</span><span class="num green">${rs(x.left)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
-      ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(x.category)}</span><span class="num red">${rs(x.over)} over</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
-      ${!r.open.length && !r.over.length ? '<div class="cell"><div class="main muted">Every category is used up.</div></div>' : ''}
-    </div><div class="footnote">${r.over.length ? 'Red categories are over budget; that comes out of the room. ' : ''}${r.done.length ? 'Paid in full: ' + r.done.map(x => esc(x.category)).join(', ') + '. ' : ''}${whySum(r, sp)}.</div></div>`);
+    <div class="section"><div class="header"><span>Masih ada ruang di</span><span>ruang ${rs(r.roomTotal)}</span></div><div class="group">
+      ${r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num green">${rs(x.left)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
+      ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num red">lewat ${rs(x.over)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
+      ${!r.open.length && !r.over.length ? '<div class="cell"><div class="main muted">Semua kategori sudah habis.</div></div>' : ''}
+    </div><div class="footnote">${r.over.length ? 'Kategori merah sudah lewat batas; itu mengurangi ruang. ' : ''}${r.done.length ? 'Lunas: ' + r.done.map(x => esc(catName(x.category))).join(', ') + '. ' : ''}${whySum(r, sp)}.</div></div>`);
 }
 
 /** The sum behind the number, exact: room − over (± what is left in paid fixed bills) = left. */
 function whySum(r, sp) {
-  const slack = sp.left - (r.roomTotal - r.overTotal);
-  return `Room ${rs(r.roomTotal)}${r.overTotal ? ' − over ' + rs(r.overTotal) : ''}${Math.abs(slack) >= 1000 ? (slack > 0 ? ' + ' : ' − ') + rs(Math.abs(slack)) + ' in paid fixed bills' : ''} = ${rs(sp.left)} left`;
+  const cut = sp.investCut || 0, slack = sp.left + cut - (r.roomTotal - r.overTotal);
+  return `Ruang ${rs(r.roomTotal)}${r.overTotal ? ' − lewat ' + rs(r.overTotal) : ''}${Math.abs(slack) >= 1000 ? (slack > 0 ? ' + ' : ' − ') + rs(Math.abs(slack)) + ' dari tagihan tetap yang lunas' : ''}${cut ? ' − ' + rs(cut) + ' untuk investasi wajib' : ''} = sisa ${rs(sp.left)}`;
 }
 
 /** A fixed category (family transfers, subscriptions) is done once all its fixed payments went out. */
@@ -453,11 +561,9 @@ function homeParts(d) {
   const shown = S.showAll ? rows : rows.slice(0, 5);
   const moreOpen = S.more || isWide();
   const parts = {
-    hero: moodCard(d), today: todayCard(d),
     next: `<div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
-      : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>`,
-    income: incomeCard(d), cfo: cfoSection(d), budget: budgetSection(d, rows, shown, reserve), saving: savingSection(d),
-    claims: claimsSection(d), pay: paySection(d), fixed: fixedSection(d), money: moneySection(d), tools: toolsSection(d),
+      : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">Beres semua. Santai dulu.</div><div class="muted">Tidak ada PR hari ini</div></div></div>`}</div>`,
+    budget: budgetSection(d, rows, shown, reserve), saving: savingSection(d),
   };
   return { parts, step, moreOpen };
 }
@@ -469,87 +575,55 @@ function home(d) {
   const { parts, step, moreOpen } = homeParts(d);
   if (isWide()) {
     // Desktop Home: the one number, today, and the budget at a glance. Plan, Money and CFO are their own pages.
-    return `${desktopHero(d, step)}<div class="dash">${cell(parts, 'span-4', 'today')}${cell(parts, 'span-4', 'budget')}${cell(parts, 'span-4', 'saving')}</div>`;
+    return `${strukHome(d)}<div class="dash">${cell(parts, 'span-4', 'next', { html: weekCard(d) })}${cell(parts, 'span-4', 'budget')}${cell(parts, 'span-4', 'saving')}</div>`;
   }
-  return `${parts.hero}${parts.today}${parts.next}${parts.income}
-  <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
-  ${moreOpen ? parts.cfo + parts.budget + parts.saving + parts.claims + parts.pay + parts.fixed + parts.money + parts.tools : ''}`;
+  return `${strukHome(d)}${parts.next}${weekCard(d)}`;
 }
 
 /** Desktop-only pages (the sidebar splits Home up so each visual has room). */
-function planPage(d) {
-  const { parts } = homeParts(d);
-  return `${pageTitle('Plan', d.cycle.label)}<div class="dash">${cell(parts, 'span-5', 'income')}${cell(parts, 'span-7', 'budget')}${cell(parts, 'span-6', 'saving')}${cell(parts, 'span-6', 'fixed')}</div>`;
-}
-function moneyPage(d) {
-  const { parts } = homeParts(d);
-  return `${pageTitle('Money', rs(d.netWorth.total))}<div class="dash">${cell(parts, 'span-7', 'money')}${cell(parts, 'span-5', 'pay', 'claims')}${cell(parts, 'span-12', 'tools')}</div>`;
-}
+function planPage(d) { return amplopPage(d); }
+function moneyPage(d) { return dompetPage(d); }
 function cfoPage(d) {
-  const { parts } = homeParts(d), latest = d.reports.latest;
-  const report = latest ? `<div class="section"><div class="header"><span>Latest plan</span><span>${esc(when(latest.created_at))}</span></div><div class="group" style="padding:4px 0 12px">${reportBody(latest)}</div></div>`
-    : '<div class="section"><div class="group"><div class="cell"><div class="main muted">No plan yet. Ask the CFO on the left.</div></div></div></div>';
-  return `${pageTitle('Your CFO', d.reports.count ? d.reports.count + ' answers' : '')}<div class="dash">${cell(parts, 'span-5', 'cfo')}${cell(parts, 'span-7', { html: report })}</div>`;
-}
-
-/** Desktop hero band: the ring, the one number in large type, and the next step, side by side. */
-function desktopHero(d, step) {
-  const sp = d.spend, m = mood(d), t = todayInfo(d);
-  const share = sp.limit > 0 ? Math.max(0, Math.min(1, sp.left / sp.limit)) : 0;
-  const ringSvg = `<div class="ring" style="width:200px;height:200px;flex:none"><svg viewBox="0 0 100 100">
-      <circle r="44" cx="50" cy="50" fill="none" stroke-width="7" style="stroke:rgba(255,255,255,.18)"/>
-      ${share > 0 ? `<circle r="44" cx="50" cy="50" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:#fff" stroke-dasharray="${Math.max(1, 276.5 * share)} 300" transform="rotate(-90 50 50)"/>` : ''}
-    </svg><div class="ring-c"><b style="font-size:26px">${Math.round(share * 100)}%</b><span>of the plan left</span></div></div>`;
-  const headline = sp.perDay === null ? `<div class="hk">Spent this cycle</div><div class="hv">${rs(d.spent)}</div><div class="hk">${d.cycle.isCurrent ? 'Approve a budget to see what is left' : esc(d.cycle.label)}</div>`
-    : sp.left < 0 ? `<div class="hk">Over budget by</div><div class="hv">${rs(-sp.left)}</div><div class="hk">until ${paydayLabel(d)} · ${d.cycle.daysLeft} days</div>`
-    : `<div class="hk">Left to spend</div><div class="hv">${rs(sp.left)}</div><div class="hk">until ${paydayLabel(d)} · ${d.cycle.daysLeft} days${t.limit ? ' · about ' + rs(t.limit) + ' today' : ''}</div>`;
-  const next = step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
-    : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`;
-  return `<div class="band mood ${m}"><div class="band-left tap" data-act="why">${ringSvg}<div>${headline}<div class="hk" style="margin-top:14px"><b style="color:#fff">Why ›</b></div></div></div><div class="band-right">${next}</div></div>`;
+  const latest = d.reports.latest;
+  const report = latest ? `<div class="section"><div class="header"><span>Notulen rapat terakhir</span><span>${esc(when(latest.created_at))}</span></div><div class="group" style="padding:4px 0 12px">${reportBody(latest)}</div></div>`
+    : '<div class="section"><div class="group"><div class="cell"><div class="main muted">Belum pernah rapat. Panggil CFO di kiri.</div></div></div></div>';
+  return `${pageTitle('Rapat CFO', d.reports.count ? 'jawaban ke-' + d.reports.count : '')}<div class="dash"><div class="dash-cell span-5">${rapatSection(d)}</div><div class="dash-cell span-7">${report}</div></div>`;
 }
 
 function budgetSection(d, rows, shown, reserve) {
   const b = d.budgets, r = d.reports;
   return `
-  <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? '✓ Approved' : b.state === 'proposed' ? 'Not approved yet' : ''}</span></div><div class="group">
+  <div class="section"><div class="header"><span>Anggaran</span><span>${b.state === 'approved' ? '✓ Disetujui' : b.state === 'proposed' ? 'Belum disetujui' : ''}</span></div><div class="group">
     ${rows.length ? shown.map(x => {
       const paid = x.limit && fixedDone(d, x.category) && x.spent <= x.limit * 1.02;
       const over = x.limit && x.spent > x.limit && !paid, pct = x.limit ? Math.round(x.spent / x.limit * 100) : null;
-      const label = paid ? '✓ Paid' : x.limit ? (over ? rs(x.spent - x.limit) + ' over' : rs(x.limit - x.spent) + ' left') : rs(x.spent) + ' spent';
+      const label = paid ? '✓ Lunas' : x.limit ? (over ? 'lewat ' + rs(x.spent - x.limit) : 'sisa ' + rs(x.limit - x.spent)) : rs(x.spent) + ' terpakai';
       return `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
-        <div class="field"><span class="t">${esc(x.category)}</span><span class="num ${paid ? 'green' : over ? 'red' : 'd'}">${label}</span></div>
+        <div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num ${paid ? 'green' : over ? 'red' : 'd'}">${label}</span></div>
         ${x.limit ? (paid ? `<div class="progress"><div class="done" style="width:100%"></div></div>` : budgetBar(x.spent, x.limit)) : ''}
-      </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
-    ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
+      </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">Belum ada belanja</div></div>'}
+    ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Lebih sedikit' : 'Lihat semua ' + rows.length}</div></div>` : ''}
     ${savingRows(d)}
-    ${reserve.used ? b.rows.filter(r => r.reserve && r.spent > 0).map(r => `<div class="cell tap" data-act="cat" data-id="${esc(r.category)}">${emo(d, r.category)}<div class="main"><div class="t">${esc(r.category)} · from your emergency fund</div>
-      <div class="s wrap">${rs(r.spent)} this cycle · not part of the plan</div></div><span class="chev">›</span></div>`).join('') : ''}
-    ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
-    ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
+    ${reserve.used ? b.rows.filter(r => r.reserve && r.spent > 0).map(r => `<div class="cell tap" data-act="cat" data-id="${esc(r.category)}">${emo(d, r.category)}<div class="main"><div class="t">${esc(catName(r.category))} · dari dana darurat</div>
+      <div class="s wrap">${rs(r.spent)} siklus ini · di luar rencana</div></div><span class="chev">›</span></div>`).join('') : ''}
+    ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">CFO sedang menulis anggaran…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Minta anggaran ke CFO</div></div>') : ''}
+    ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Cek dan setujui' : 'Ubah anggaran'}</div></div>` : ''}
   </div></div>
-`;
-}
-
-function fixedSection(d) {
-  return `
-  ${d.fixed && d.fixed.length ? `<div class="section"><div class="header"><span>Fixed every month</span><span>${rs(d.fixed.reduce((s, f) => s + f.amount, 0))}</span></div><div class="group">
-    ${d.fixed.map(f => { const done = f.done !== undefined ? f.done : f.paid >= f.amount; return `<div class="cell">${emo(d, f.category)}<div class="main"><div class="t">${esc(f.label.replace(/\s*\(.*\)$/, ''))}</div><div class="s">${esc(f.category)}</div></div>
-      <span class="num ${done ? 'green' : 'd'}">${done ? '✓ ' : ''}${rs(f.amount)}</span></div>`; }).join('')}
-  </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
 `;
 }
 
 function toolsSection(d) {
   return `
   <div class="section"><div class="group">
-    <div class="cell tap" data-act="prev"><div class="main link">See last cycle</div></div>
-    ${!d.cycle.isCurrent ? '<div class="cell tap" data-act="current"><div class="main link">Back to this cycle</div></div>' : ''}
-    <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export to Excel (CSV)</a>
-    <div class="cell tap" data-act="copy"><div class="main link">Copy Shortcut URL</div></div>
-  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div></div>`;
+    <div class="cell tap" data-act="prev"><div class="main link">Lihat siklus lalu</div></div>
+    ${!d.cycle.isCurrent ? '<div class="cell tap" data-act="current"><div class="main link">Kembali ke siklus ini</div></div>' : ''}
+    <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Ekspor ke Excel (CSV)</a>
+    <div class="cell tap" data-act="copy"><div class="main link">Salin URL Shortcut</div></div>
+  </div><div class="footnote">Biaya AI siklus ini: $${d.aiCost.toFixed(2).replace('.', ',')} · ${d.screenshots} screenshot</div></div></div>`;
 }
 /** Where the income goes: fixed (Family, Bills, Emergency fund), investing, adjustable (the everyday categories), and what is not planned yet. */
 const FIXED_CATS = ['Family', 'Bills'];
+const GROUP_ID = { Fixed: 'Tetap', Investing: 'Investasi', Adjustable: 'Fleksibel', 'Not planned': 'Belum direncanakan' };
 const GROUP_COLOR = { Fixed: 'var(--label3)', Investing: 'var(--g-family)', Adjustable: 'var(--green)', 'Not planned': 'var(--fill)' };
 /** Every budget line in its group: Fixed (Family, Bills, Emergency fund) · Investing · Adjustable (the rest). */
 function incomeGroups(d) {
@@ -557,30 +631,14 @@ function incomeGroups(d) {
   const fixedIn = cat => fx.filter(f => f.category === cat).map(f => f.label.replace(/\s*\(.*\)$/, '') + ' ' + rs(f.amount)).join(', ');
   const line = (r, why) => ({ category: r.category, limit: r.limit, spent: r.spent, why });
   const groups = [
-    { name: 'Fixed', why: 'Same every month', items: [
-      ...rows.filter(r => FIXED_CATS.includes(r.category)).map(r => line(r, fixedIn(r.category) ? 'Fixed: ' + fixedIn(r.category) : r.category === 'Bills' ? 'PLN, WiFi, phone, subscriptions' : '')),
-      ...saving.filter(r => r.category === 'Emergency fund').map(r => line(r, 'Your plan')),
+    { name: 'Fixed', why: 'sama tiap bulan', items: [
+      ...rows.filter(r => FIXED_CATS.includes(r.category)).map(r => line(r, fixedIn(r.category) ? 'Tetap: ' + fixedIn(r.category) : r.category === 'Bills' ? 'PLN, WiFi, telepon, langganan' : '')),
+      ...saving.filter(r => r.category === 'Emergency fund').map(r => line(r, 'Rencanamu')),
     ] },
-    { name: 'Investing', why: 'Bibit, Stockbit or Treasury', items: saving.filter(r => r.category === 'Investing').map(r => line(r, 'What is left after needs and savings')) },
-    { name: 'Adjustable', why: 'You decide these', items: rows.filter(r => !FIXED_CATS.includes(r.category)).sort((a, b) => b.limit - a.limit).map(r => line(r, '')) },
+    { name: 'Investing', why: 'Bibit, Stockbit atau Treasury', items: saving.filter(r => r.category === 'Investing').map(r => line(r, 'Sisa setelah kebutuhan dan tabungan')) },
+    { name: 'Adjustable', why: 'kamu yang atur', items: rows.filter(r => !FIXED_CATS.includes(r.category)).sort((a, b) => b.limit - a.limit).map(r => line(r, '')) },
   ].map(g => ({ ...g, total: g.items.reduce((a, r) => a + r.limit, 0) }));
   return groups;
-}
-
-function incomeCard(d) {
-  const cap = d.budgets.cap;
-  if (!cap || d.budgets.state === 'none') return '';
-  const groups = incomeGroups(d), planned = groups.reduce((a, g) => a + g.total, 0), free = cap - planned;
-  const parts = groups.map(g => [g.name, g.total]).concat([['Not planned', Math.max(0, free)]]).filter(p => p[1] > 0);
-  return `<div class="section"><div class="header"><span>Your ${rs(cap)} a cycle</span><span>${free < 0 ? '<span class="red">' + rs(-free) + ' over</span>' : rs(free) + ' not planned'}</span></div><div class="group">
-    <div class="cell" style="display:block"><div class="stack">${parts.map(p => `<div style="width:${p[1] / cap * 100}%;background:${GROUP_COLOR[p[0]]}"></div>`).join('')}</div>
-      <div class="legend" style="margin-top:10px">${parts.map(p => `<div><span class="dot" style="background:${GROUP_COLOR[p[0]]}"></span>${p[0]}<span class="num">${rs(p[1])}</span></div>`).join('')}</div></div>
-    ${groups.filter(g => g.items.length).map(g => `<div class="cell" style="display:block;padding-bottom:6px">
-      <div class="field"><span style="font-weight:600"><span class="dot" style="background:${GROUP_COLOR[g.name]};display:inline-block;margin-right:6px"></span>${g.name === 'Fixed' ? '🔒 ' : ''}${g.name} <span class="d" style="font-weight:400">· ${g.why}</span></span><span class="num" style="font-weight:600">${rs(g.total)}</span></div>
-      ${g.items.map(r => `<div style="margin-top:6px"><div class="field s" style="color:var(--label)"><span class="t">${esc(catInfo(d, r.category).icon || '')} ${esc(r.category)}</span><span class="num" style="flex:none">${rs(r.limit)}</span></div>${r.why ? `<div class="s wrap" style="font-size:12px;color:var(--label3)">${esc(r.why)}</div>` : ''}</div>`).join('')}
-    </div>`).join('')}
-    <div class="cell tap" data-act="plan"><div class="main link">Edit budget</div></div>
-  </div><div class="footnote">Fixed lines stay the same every month. Medical and Other are paid from your emergency fund and are not in this plan.</div></div>`;
 }
 
 /** What today looks like: spent so far (fixed bills left out) against today's share of what is left. */
@@ -593,60 +651,120 @@ function todayInfo(d) {
   return { spent, limit, txs: group ? group.txs.filter(t => t.spending && !t.fixed && t.category !== 'Other') : [] };
 }
 
-function mood(d) {
-  const sp = d.spend, t = todayInfo(d);
-  if (!d.cycle.isCurrent || sp.perDay === null) return 'calm';
-  if (sp.left < 0) return 'over';
-  if (t.limit !== null && t.spent > t.limit) return 'tight';
-  return 'good';
+
+// ---------- Struk: the cycle as a strip of days, each day printed as a receipt ----------
+
+const HARI = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const HARI_PANJANG = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const dateOf = ymd => new Date(ymd + 'T00:00:00');
+const tgl = ymd => { const t = dateOf(ymd); return HARI[t.getDay()] + ', ' + t.getDate() + ' ' + BULAN[t.getMonth()]; };
+const dots = n => String(Math.round(Math.abs(n || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+/** Every day of the cycle: everyday spending (fixed bills and the emergency fund left out), that day's allowance, and its payments. */
+function cycleDays(d) {
+  const today = d.cycle.isCurrent ? todayKey(d) : '9999', days = new Map((d.days || []).map(g => [g.date, g]));
+  const hasLimit = d.cycle.isCurrent && d.spend.perDay !== null;
+  return (d.daily || []).map(x => ({ key: x.date, wk: isWeekendKey(x.date), today: x.date === today, future: x.date > today,
+    every: Math.max(0, flexOf(x)), limit: !hasLimit ? 0 : x.date === today ? todayInfo(d).limit : limitFor(d, x.date),
+    txs: (days.get(x.date) || {}).txs || [] }));
 }
 
-/** The top card: one big number in a ring (how much of the budget is left), on a color that says how it's going. */
-function moodCard(d) {
-  const sp = d.spend, m = mood(d);
-  const top = `<div class="mood-top"><b>Money</b><span>${d.cycle.isCurrent ? d.cycle.daysLeft + ' days to payday' : esc(d.cycle.label)}</span></div>`;
-  if (m === 'calm') return `<div class="section"><div class="mood calm">${top}
-    ${ring([{ v: 1, color: 'var(--tint)' }], 1, 200, `<span>Spent this cycle</span><b>${rs(d.spent)}</b><span>${d.cycle.isCurrent ? 'Approve a budget to see what is left' : ''}</span>`).replace('class="ring"', 'class="ring" style="margin:10px auto 0"')}
-  </div></div>`;
-  // One number: what is left until payday. The ring is how much of the cycle's money is still there. Everything else is behind "Why".
-  const share = sp.limit > 0 ? Math.max(0, Math.min(1, sp.left / sp.limit)) : 0;
-  const center = sp.left < 0 ? `<span>Over budget by</span><b>${rs(-sp.left)}</b><span>until ${paydayLabel(d)}</span>` : `<span>Left to spend</span><b>${rs(sp.left)}</b><span>until ${paydayLabel(d)}</span>`;
-  return `<div class="section"><div class="mood ${m} tap" data-act="why">${top}
-    <div class="ring" style="width:210px;height:210px;margin:10px auto 0"><svg viewBox="0 0 100 100">
-      <circle r="44" cx="50" cy="50" fill="none" stroke-width="7" style="stroke:rgba(255,255,255,.18)"/>
-      ${share > 0 ? `<circle r="44" cx="50" cy="50" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:#fff" stroke-dasharray="${Math.max(1, 276.5 * share)} 300" transform="rotate(-90 50 50)"/>` : ''}
-    </svg><div class="ring-c">${center}</div></div>
-    <div class="mood-why" style="justify-content:flex-end"><b>Why ›</b></div>
-  </div></div>`;
+function stripBox(d) {
+  const days = cycleDays(d);
+  if (!days.length) return '';
+  const max = Math.max(1, ...days.map(c => c.limit)) * 1.35, hasLimit = days.some(c => c.limit);
+  const top = Math.max(1, ...days.map(c => c.every)), scale = hasLimit ? max : top;
+  const bars = days.map(c => {
+    const v = c.future ? c.limit : c.every, h = Math.max(3, Math.min(100, v / scale * 100));
+    const cls = ['sday', c.future && 'fut', c.wk && 'wk', c.today && 'today', !c.future && !c.today && c.limit && c.every > c.limit && 'over', c.key === S.day && 'sel'].filter(Boolean).join(' ');
+    return `<div class="${cls}" data-day="${c.key}" role="option" aria-selected="${c.key === S.day}" tabindex="${c.key === S.day ? 0 : -1}" aria-label="${tgl(c.key)}: ${c.future ? 'jatah ' + rs(c.limit) : 'terpakai ' + rs(c.every)}"><i style="height:${h}%"></i>${c.today && c.limit ? `<b style="height:${Math.min(100, c.limit / scale * 100)}%"></b>` : ''}</div>`;
+  }).join('');
+  return `<div class="strip-box rise"><div class="strip-head"><b>Siklus ${esc(tgl(days[0].key).slice(5))} – ${esc(tgl(days[days.length - 1].key).slice(5))}</b><span>geser untuk pilih hari</span></div>
+    <div class="strip grow" id="strip" role="listbox" aria-label="Hari dalam siklus">${bars}</div>
+    <div class="strip-foot"><span>${esc(tgl(days[0].key))}</span><span>${esc(tgl(days[days.length - 1].key))}</span></div>
+    <div class="skey"><span style="--c:#4a5363">terpakai</span><span style="--c:var(--red)">lewat jatah</span>${d.cycle.isCurrent ? '<span style="--c:var(--tint)">hari ini</span><span style="--c:#3a4659">jatah ke depan</span>' : ''}</div></div>`;
 }
 
-/** Today: what went out today (fixed bills left out), updated after every screenshot. */
-function todayCard(d) {
-  const t = todayInfo(d);
-  if (t.limit === null) return '';
-  const shown = t.txs.slice(0, 3);
-  return `<div class="section"><div class="header"><span>Today</span><span class="num">${t.spent ? rs(t.spent) + ' spent' : ''}</span></div><div class="group">
-    ${shown.length ? shown.map(x => txRow(x, txSub(x) + (x.time ? ' · ' + x.time : ''), 'edit')).join('')
-      : '<div class="cell"><div class="main muted">Nothing spent yet today</div></div>'}
-    ${t.txs.length > 3 ? `<div class="cell tap" data-tab="transactions"><div class="main link">See all ${t.txs.length}</div></div>` : ''}
-  </div></div>`;
+/** One day as a receipt: its everyday payments (tap one to fix it), then what sits outside the daily allowance, then the totals and a stamp. */
+function strukHtml(d, animate) {
+  const all = cycleDays(d), c = all.find(x => x.key === S.day);
+  if (!c) return '';
+  const out = c.txs.filter(t => t.direction === 'out' && t.status !== 'replaced');
+  const inside = out.filter(t => t.spending && !t.fixed && t.category !== 'Other' && t.category !== 'Medical');
+  const outside = out.filter(t => !inside.includes(t));
+  const ix = all.indexOf(c) + 1, n = all.length, sisa = c.limit - c.every, t = dateOf(c.key);
+  const [stamp, label] = c.future ? ['nanti', 'NANTI'] : !c.limit ? ['nanti', 'TERCATAT'] : sisa < 0 ? ['jebol', 'JEBOL'] : sisa < 25000 && c.today ? ['mepet', 'RECEH'] : sisa < c.limit * .2 ? ['mepet', 'MEPET'] : ['aman', 'AMAN'];
+  const line = x => `<div class="ln${inside.includes(x) ? '' : ' out'}" data-act="edit" data-id="${x.id}"><span class="tm">${esc(x.time || '')}</span>
+    <span class="mm">${esc(x.merchant || catName(x.category))}${x.status === 'check' && !x.reviewed ? '<span class="chip">cek</span>' : ''}<small>${esc(catName(x.category))} · ${esc(x.account)}${x.fixed ? ' · tetap' : x.category === 'Other' || x.category === 'Medical' ? ' · dana darurat' : ''}</small></span><span class="am">${dots(x.amount)}</span></div>`;
+  return `<div class="struk${animate ? ' print' : ''}" aria-live="polite">
+    <div class="sh"><div class="shop">STRUK ${c.today ? 'HARI INI' : c.future ? 'PERKIRAAN' : 'HARIAN'}</div>
+      <div class="sd">${HARI_PANJANG[t.getDay()]}, ${t.getDate()} ${BULAN[t.getMonth()]} ${t.getFullYear()} · hari ke-${ix} dari ${n}</div>
+      <div class="stamp-row"><span class="stamp ${stamp}">${label}</span></div></div>
+    <div class="cut"></div>
+    ${c.future ? `<p class="nil">Belum ada transaksi.<br>Jatah ${c.wk ? 'akhir pekan' : 'hari kerja'}: ${rs(c.limit)}</p>` : inside.length ? inside.map(line).join('') : '<p class="nil">Tidak ada belanja harian.</p>'}
+    ${outside.length ? `<div class="grp">Di luar jatah harian</div>${outside.map(line).join('')}` : ''}
+    <div class="cut"></div>
+    ${c.future ? '' : `<div class="tot"><span>Terpakai</span><span>${dots(c.every)}</span></div>`}
+    ${c.limit ? `<div class="tot"><span>Jatah${c.today ? ' hari ini' : ''}</span><span>${dots(c.limit)}</span></div>` : ''}
+    ${!c.future && c.limit ? `<div class="tot big ${sisa < 0 ? 'over' : ''}"><span>${sisa < 0 ? 'Lewat' : 'Sisa'}</span><span>${dots(sisa)}</span></div>` : ''}
+    <div class="cut"></div>
+    <div class="sf">${d.cycle.isCurrent && d.spend.perDay !== null ? 'Sisa sampai gajian ' + rs(Math.max(0, d.spend.left)) + '<br>' : ''}${c.today ? (!inside.length ? 'Belum jajan hari ini. Mantap.' : sisa < 0 ? 'Hari ini jebol ' + rs(-sisa) + '. Besok mulai lagi.' : sisa < 25000 ? 'Tinggal receh: ' + rs(sisa) + '.' : 'Ketuk satu baris untuk membetulkan.') : c.future ? (c.wk ? 'Akhir pekan: jatah lebih longgar.' : 'Jatah dihitung dari sisa siklus.') : sisa < 0 ? 'Jebol ' + rs(-sisa) + ' hari itu.' : 'Hemat ' + rs(sisa) + ' hari itu.'}</div>
+  </div>`;
+}
+
+function pickDay(key, how) {
+  if (!key || key === S.day) return;
+  S.day = key;
+  document.querySelectorAll('.sday').forEach(el => { const on = el.dataset.day === key; el.classList.toggle('sel', on); el.setAttribute('aria-selected', on); el.tabIndex = on ? 0 : -1; if (on && how === 'key') el.focus(); });
+  const slot = document.getElementById('strukSlot');
+  if (slot) slot.innerHTML = strukHtml(S.data, true);
+}
+
+/** The one number: left until payday. Tap it for the Why sheet. */
+function sisaBlock(d) {
+  const sp = d.spend;
+  if (!d.cycle.isCurrent || sp.perDay === null) return `<div class="sisa rise"><div class="big">${rs(d.spent)}</div><div class="sub">terpakai ${d.cycle.isCurrent ? 'siklus ini · setujui anggaran untuk melihat sisa' : esc(d.cycle.label)}</div></div>`;
+  return `<div class="sisa rise" data-act="why"><div class="big ${sp.left < 0 ? 'over' : ''}">${sp.left < 0 ? '−' + rs(-sp.left) : rs(sp.left)}</div>
+    <div class="sub">${sp.left < 0 ? 'boncos · di atas anggaran siklus ini' : 'sisa sampai gajian'}${sp.investCut ? ` · <span class="orange">dipotong ${rs(sp.investCut)} untuk investasi wajib</span>` : ''} · <b>${rs(sp.perDay)}</b> per hari kerja, lebih di akhir pekan · <b>Kenapa ›</b></div></div>`;
+}
+
+const topBar = d => `<div class="topbar"><span class="mark">Duit</span><span class="gaj">${d.cycle.isCurrent ? `<b>${d.cycle.daysLeft} hari lagi</b> gajian · ${esc(tgl(d.cycle.nextStart))}` : esc(d.cycle.label)}</span></div>`;
+
+/** Which weekday costs the most, from this cycle's everyday spending. */
+function weekCard(d) {
+  const today = d.cycle.isCurrent ? todayKey(d) : '9999', by = Array.from({ length: 7 }, () => ({ sum: 0, n: 0 }));
+  (d.daily || []).filter(x => x.date <= today).forEach(x => { const w = dateOf(x.date).getDay(); by[w].sum += Math.max(0, flexOf(x)); by[w].n++; });
+  const avg = by.map(w => w.n ? w.sum / w.n : 0), order = [1, 2, 3, 4, 5, 6, 0];
+  if (!avg.some(Boolean)) return '';
+  const top = order.reduce((a, b) => avg[b] > avg[a] ? b : a, 1), max = Math.max(...avg, 1);
+  const next = cycleDays(d).filter(c => c.future && c.limit).sort((a, b) => b.limit - a.limit)[0];
+  return `<div class="section" id="boros"><div class="header"><span>${HARI_PANJANG[top]} = hari rawan</span><span>rata-rata ${rs(avg[top])}</span></div><div class="group">
+    <div class="week grow">${order.map(w => `<div class="wd ${w === top ? 'top' : ''}"><span class="v">${tiny(avg[w])}</span><i style="height:${Math.max(2, avg[w] / max * 70)}%"></i>${HARI[w]}</div>`).join('')}</div>
+  </div><div class="footnote">Rata-rata belanja harian per hari dalam siklus ini (rb), tanpa tagihan tetap.${next ? ' Hari terberat ke depan: ' + esc(tgl(next.key)) + ', jatah ' + rs(next.limit) + '.' : ''}</div></div>`;
+}
+
+function strukHome(d) {
+  const days = cycleDays(d);
+  if (!S.day || !days.find(c => c.key === S.day)) S.day = (days.find(c => c.today) || days.filter(c => !c.future).pop() || days[0] || {}).key;
+  return `${topBar(d)}<div class="homegrid">${sisaBlock(d)}${stripBox(d)}<div class="struk-slot rise" id="strukSlot">${strukHtml(d, false)}</div></div>`;
 }
 
 /** Money set aside this cycle: the emergency fund and investing (with the owner's own split). */
 function savingSection(d) {
   const b = d.budgets, e = b.emergency, inv = b.investing || { amount: 0, invested: 0, split: [] };
   if (!e && !inv.amount) return '';
-  return `<div class="section" id="saving"><div class="header"><span>Saving this cycle</span><span>${rs((e ? e.amount : 0) + inv.amount)}</span></div><div class="group">
-    ${e ? (() => { const row = (b.saving || []).find(r => r.category === 'Emergency fund') || { spent: 0 }; return `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund</div><div class="s">${row.spent >= e.amount ? '✓ Moved ' + rs(row.spent) + ' to Dana Darurat' : 'Move it to Dana Darurat · ' + rs(row.spent) + ' done'}</div></div><span class="num ${row.spent >= e.amount ? 'green' : ''}">${rs(e.amount)}</span></div>`; })() : ''}
-    ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investing</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('left', 'to go').replace('over', 'more than planned')}</span></div>
-      ${budgetBar(inv.invested, inv.amount)}<div class="s num">Invested ${rs(inv.invested)} of ${rs(inv.amount)}</div>
-      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· paused</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('')
-        : '<div class="s" style="margin-top:6px">Your split between Bibit, Stockbit and Treasury is not set yet. Tell Claude your split.</div>'}
+  return `<div class="section" id="saving"><div class="header"><span>Tabungan siklus ini</span><span>${rs((e ? e.amount : 0) + inv.amount)}</span></div><div class="group">
+    ${e ? (() => { const row = (b.saving || []).find(r => r.category === 'Emergency fund') || { spent: 0 }; return `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Dana darurat</div><div class="s">${row.spent >= e.amount ? '✓ ' + rs(row.spent) + ' sudah ke Dana Darurat' : 'Pindahkan ke Dana Darurat · ' + rs(row.spent) + ' sudah'}</div></div><span class="num ${row.spent >= e.amount ? 'green' : ''}">${rs(e.amount)}</span></div>`; })() : ''}
+    ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investasi</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('sisa', 'kurang').replace('lewat', 'lebih dari rencana')}</span></div>
+      ${budgetBar(inv.invested, inv.amount)}<div class="s num">Sudah ${rs(inv.invested)} dari ${rs(inv.amount)}</div>
+      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· ditahan</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('')
+        : '<div class="s" style="margin-top:6px">Pembagian Bibit, Stockbit dan Treasury belum diatur. Beri tahu Claude pembagianmu.</div>'}
       ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep)">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' on ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
   </div></div>`;
 }
 
-/** The money picture, in one card with two views: "This cycle" (what is usable now) and "All accounts" (every balance, with the parked pay marked). */
+/** The money picture: what this cycle can still use (balances minus the parked 15th pay and the emergency fund), and where it should go. */
 function moneyBuckets(d) {
   const total = d.netWorth.total, sp = d.spend, sv = d.budgets.saving || [];
   const daily = Math.max(0, sp.left), fund = d.netWorth.fund || 0, parked = d.parked || 0;
@@ -655,106 +773,148 @@ function moneyBuckets(d) {
   const usable = Math.max(0, total - parked - fund); // what this cycle can still use
   const free = Math.max(0, usable - daily - toFund);
   const canInvest = Math.min(toInvest, free), short = toInvest - canInvest, spare = Math.max(0, free - canInvest);
-  return { total, parked, fund, usable, daily, toFund, canInvest, short, spare };
-}
-
-function moneySection(d) {
-  const nw = d.netWorth, m = moneyBuckets(d), view = S.moneyView || 'cycle';
-  const head = `<div class="header"><span>Your money</span><span>${rs(nw.total)}${nw.investments ? ' + ' + rs(nw.investments) + ' invested' : ''}</span></div>`;
-  const toggle = seg('moneyView', view, [['cycle', 'This cycle'], ['all', 'All accounts']], true);
-  if (view === 'cycle' && d.cycle.isCurrent) {
-    const parts = [['Daily until payday', m.daily, 'var(--green)'], ['To invest', m.canInvest, 'var(--g-family)'], ['To the emergency fund', m.toFund, 'var(--cyan, #64d2ff)'], ['Not allocated', m.spare, 'var(--fill)']].filter(p => p[1] > 0);
-    return `<div class="section" id="money">${head}<div class="group" style="padding:12px 16px 4px">${toggle}
-      <div class="s">Usable this cycle</div><div class="num" style="font-size:30px;font-weight:700">${rs(m.usable)}</div>
-      <div class="stack" style="margin-top:10px">${parts.map(p => `<div style="width:${p[1] / Math.max(1, m.usable) * 100}%;background:${p[2]}"></div>`).join('')}</div>
-      ${parts.map(p => `<div class="field" style="margin-top:10px"><span><span class="dot" style="background:${p[2]};display:inline-block;margin-right:8px"></span>${p[0]}</span><span class="num">${rs(p[1])}</span></div>`).join('')}
-      ${m.short > 0 ? `<div class="s wrap" style="margin-top:8px">The investing plan is ${rs(m.short)} more than what is free; that part waits for next cycle.</div>` : ''}
-      <div class="s wrap" style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--sep)">Kept aside: <b style="font-weight:600;color:var(--label)">${rs(m.parked)}</b> parked for the ${paydayLabel(d)} cycle (your 15th pay, in Mandiri) · <b style="font-weight:600;color:var(--label)">${rs(m.fund)}</b> emergency fund (Dana Darurat).</div>
-    </div></div>`;
-  }
-  const row = a => { const isMandiri = a.name === 'Mandiri', parkedHere = isMandiri && m.parked > 0;
-    return `<div class="cell" style="${parkedHere ? 'display:block' : ''}">${parkedHere ? '<div style="display:flex;align-items:center;gap:12px">' : ''}${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}${a.name === 'Dana Darurat' ? ' <span class="chip blue">emergency fund</span>' : ''}${a.kind === 'investment' ? ' <span class="chip">investment</span>' : ''}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span>${parkedHere ? '</div>' : ''}
-      ${parkedHere ? `<div class="stack" style="margin:10px 0 0 54px;height:8px"><div style="width:${Math.min(100, (a.balance - m.parked) / Math.max(1, a.balance) * 100)}%;background:var(--green)"></div><div style="width:${Math.min(100, m.parked / Math.max(1, a.balance) * 100)}%;background:var(--orange)"></div></div>
-      <div class="s" style="margin:6px 0 0 54px"><div class="field"><span><span class="dot" style="background:var(--green);display:inline-block;margin-right:6px"></span>Usable this cycle</span><span class="num">${rs(a.balance - m.parked)}</span></div>
-      <div class="field"><span><span class="dot" style="background:var(--orange);display:inline-block;margin-right:6px"></span>Parked for the ${esc(paydayLabel(d))} cycle</span><span class="num">${rs(m.parked)}</span></div></div>` : ''}</div>`; };
-  return `<div class="section" id="money">${head}<div class="group"><div style="padding:12px 16px 0">${toggle}</div>
-    ${nw.accounts.filter(a => a.kind !== 'investment').map(row).join('')}
-    ${nw.accounts.filter(a => a.kind === 'investment').map(row).join('')}
-  </div><div class="footnote">${nw.runwayMonths !== null ? 'Enough for about ' + String(nw.runwayMonths).replace('.', ',') + ' months of normal spending. ' : ''}Investments are not counted in your money.</div></div>`;
-}
-
-/** Medical bills to claim back from work: tick each one once it is claimed. */
-function claimsSection(d) {
-  const c = d.claims;
-  if (!c || (!c.todo.length && !c.done.length)) return '';
-  const row = (x, on) => `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="claim" data-id="${x.id}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Claimed' : 'Mark as claimed'}">${on ? ICON.ok : ''}</button>
-    <div class="main tap" data-act="edit" data-id="${x.id}"><div class="t ${on ? 'muted' : ''}">${esc(x.merchant || 'Medical')}</div><div class="s">${esc(x.label)} · ${esc(x.account)}</div></div>
-    <span class="num ${on ? 'muted' : ''}">${rs(x.amount)}</span></div>`;
-  return `<div class="section" id="claims"><div class="header"><span>To reimburse</span><span>${c.todo.length ? rs(c.total) : '✓ All claimed'}</span></div><div class="group">
-    ${c.todo.map(x => row(x, false)).join('')}${c.done.slice(0, 3).map(x => row(x, true)).join('')}
-  </div><div class="footnote">Clinic and hospital bills you paid yourself. Tick ○ once you've claimed it back.</div></div>`;
-}
-
-/** Pay this cycle: 25th and 15th, moved to Friday on weekends. */
-function paySection(d) {
-  const pay = d.pay || [];
-  if (!pay.length) return '';
-  const got = pay.reduce((s, p) => s + p.amount, 0);
-  const want = d.expectedIncome;
-  return `<div class="section" id="pay"><div class="header"><span>Pay this cycle</span><span>${want ? rs(got) + ' of ' + rs(want) + ' in' : got ? rs(got) + ' in' : ''}</span></div><div class="group">
-    ${pay.map(p => {
-      const icon = p.state === 'received' ? `<div class="check on" style="cursor:default">${ICON.ok}</div>` : `<div class="check" style="cursor:default;${p.state === 'missing' ? 'border-color:var(--orange)' : ''}"></div>`;
-      const right = p.state === 'received' ? `<span class="num green">+${rs(p.amount)}</span>`
-        : p.state === 'missing' ? '<span class="orange" style="font-size:15px">Not logged yet</span>'
-        : `<span class="num d">${p.usual ? rs(p.usual) : 'Coming'}</span>`;
-      const sub = [p.label, p.moved ? 'moved from the weekend' : '', p.state === 'missing' && p.usual ? rs(p.usual) + ' expected' : ''].filter(Boolean).join(' · ');
-      return `<div class="cell">${icon}<div class="main"><div class="t">Pay · ${p.day}${p.day === 1 ? 'st' : p.day === 2 ? 'nd' : p.day === 3 ? 'rd' : 'th'}</div>
-        <div class="s">${esc(sub)}</div></div>${right}</div>`;
-    }).join('')}
-  </div><div class="footnote">Pay comes on the Friday before when the 25th or 15th is a weekend.${pay.some(p => p.state === 'missing') ? ' Screenshot a pay that is not logged yet.' : ''}</div></div>`;
-}
-
-/** The CFO: latest advice, its "Do this" checklist, ask for a new plan, history. It only works when asked. */
-function cfoSection(d) {
-  const r = d.reports, p = r.latest, writing = r.pending.length > 0, acts = (p && p.actions) || [];
-  return `<div class="section" id="cfo"><div class="header"><span>Your CFO</span><span>${p ? esc(when(p.created_at)) : ''}</span></div><div class="group">
-    ${writing ? `<div class="cell"><div class="icon" style="background:var(--tint)">${ICON.spark}</div><div class="main"><div>Your CFO is thinking…</div><div class="s">About 1 minute. This page updates by itself.</div></div></div>` : ''}
-    ${p ? `<div class="cell tap" data-act="report" data-id="${p.id}"><div class="icon" style="background:var(--tint)">${ICON.spark}</div>
-      <div class="main"><div class="wrap">${esc(shorten(p.advice_card || p.title))}</div><div class="s">Plan, retro and budget</div></div><span class="chev">›</span></div>` : ''}
-    ${acts.map((a, i) => todoRow(p, a, i)).join('')}
-    ${p ? emergencyBlock(p, true) : ''}
-    ${r.failed && !writing ? `<div class="cell"><div class="main"><div class="red">The last ask didn't work</div><div class="s wrap">${esc(r.failed)}</div></div></div>` : ''}
-    ${!writing && d.cycle.isCurrent ? `<div class="cell tap" data-act="ask"><div class="main"><div class="link">${p ? 'Ask the CFO for a new plan' : 'Ask the CFO for a plan'}</div>
-      <div class="s wrap">About 1 minute · about $0.06 of AI credit · looks back at the last plan</div></div></div>` : ''}
-    ${r.count ? `<div class="cell tap" data-act="history"><div class="main">History</div><span class="num d">${r.count}</span><span class="chev">›</span></div>` : ''}
-  </div><div class="footnote">The CFO only works when you ask. Tick each step when it's done, so the next plan knows.</div></div>`;
+  return { total, parked, fund, usable, daily, toFund, toInvest, canInvest, short, spare };
 }
 
 /** The CFO's verdict on the owner's fixed emergency fund plan. */
-const EMERGENCY_VERDICT = { enough: ['Enough', 'var(--green)'], not_enough: ['Not enough yet', 'var(--orange)'], more_than_needed: ['More than needed', 'var(--tint)'], unknown: ['Not sure yet', 'var(--label2)'] };
+const EMERGENCY_VERDICT = { enough: ['Cukup', 'var(--green)'], not_enough: ['Belum cukup', 'var(--orange)'], more_than_needed: ['Lebih dari perlu', 'var(--tint)'], unknown: ['Belum pasti', 'var(--label2)'] };
 function emergencyBlock(r, compact) {
   const e = r && r.emergency_review;
   if (!e) return '';
   const [label, color] = EMERGENCY_VERDICT[e.verdict] || EMERGENCY_VERDICT.unknown;
-  const goal = e.months_to_goal > 0 ? ` · about ${String(Math.round(e.months_to_goal * 10) / 10).replace('.', ',')} months to the goal` : '';
-  if (compact) return `<div class="cell tap" data-act="report" data-id="${r.id}"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund: <span style="color:${color};font-weight:600">${label}</span></div>
+  const goal = e.months_to_goal > 0 ? ` · sekitar ${String(Math.round(e.months_to_goal * 10) / 10).replace('.', ',')} bulan lagi ke target` : '';
+  if (compact) return `<div class="cell tap" data-act="report" data-id="${r.id}"><div class="emo">🛟</div><div class="main"><div class="t">Dana darurat: <span style="color:${color};font-weight:600">${label}</span></div>
     <div class="s wrap">${esc(shorten(e.reason))}</div></div><span class="chev">›</span></div>`;
-  return `<div class="section"><div class="header"><span>Your emergency fund plan</span><span style="color:${color};font-weight:600">${label}</span></div><div class="group">
+  return `<div class="section"><div class="header"><span>Rencana dana daruratmu</span><span style="color:${color};font-weight:600">${label}</span></div><div class="group">
     <div class="cell"><div class="emo">🛟</div><div class="main"><div class="wrap">${esc(shorten(e.reason))}</div>${goal ? `<div class="s">${esc(goal.slice(3))}</div>` : ''}</div></div>
     ${(e.improve || []).map(x => `<div class="cell" style="align-items:flex-start"><span style="color:var(--tint);font-weight:700;width:16px;flex:none">→</span><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}
   </div></div>`;
 }
 
-const todoRow = (p, text, i) => { const on = (p.actions_done || []).includes(i); return `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="todo" data-id="${p.id}" data-i="${i}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Done' : 'Mark as done'}">${on ? ICON.ok : ''}</button>
+const todoRow = (p, text, i) => { const on = (p.actions_done || []).includes(i); return `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="todo" data-id="${p.id}" data-i="${i}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Sudah' : 'Tandai sudah'}">${on ? ICON.ok : ''}</button>
   <div class="main wrap ${on ? 'muted' : ''}">${esc(shorten(text))}</div></div>`; };
+
+// ---------- Stamps, and the Amplop, Rapat CFO and Dompet pages ----------
+
+const stp = ([cls, word]) => `<span class="stp ${cls}">${word}</span>`;
+/** A budget line's stamp: LUNAS (fixed and paid), JEBOL (over), MEPET (80%+), DISEGEL (fixed, not due yet), AMAN. */
+function catStamp(d, r) {
+  if (!r.limit) return ['abu', 'BEBAS'];
+  if (fixedDone(d, r.category) && r.spent <= r.limit * 1.02) return ['aman', 'LUNAS'];
+  if (r.spent > r.limit) return ['jebol', 'JEBOL'];
+  if (r.spent >= r.limit * 0.8) return ['mepet', 'MEPET'];
+  return FIXED_CATS.includes(r.category) ? ['abu', 'DISEGEL'] : ['aman', 'AMAN'];
+}
+const stampColor = cls => ({ aman: '#1f8a55', mepet: '#a86700', jebol: '#c8323c', abu: '#8a8f9c', or: '#b05f00' })[cls];
+const pageHead = (k, big, sub) => `<div class="page-head rise"><div class="k">${k}</div><div class="big">${big}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+
+/** One envelope: name and stamp, what is left (or how far over), and a bar with the budget line. */
+function envelope(d, r, sealed) {
+  const [cls, word] = catStamp(d, r), fx = (d.fixed || []).filter(f => f.category === r.category);
+  const scale = Math.max(r.limit, r.spent, 1);
+  const line = word === 'LUNAS' ? (fx.length ? fx.map(f => f.label.replace(/\s*\(.*\)$/, '')).join(' + ') + ' · lunas' : 'lunas siklus ini')
+    : r.spent > r.limit ? `tekor <b>${rs(r.spent - r.limit)}</b>` : `sisa <b>${rs(r.limit - r.spent)}</b>`;
+  return `<div class="env ${sealed ? 'sealed' : ''}" data-act="cat" data-id="${esc(r.category)}"><div class="top"><span>${esc(catName(r.category))}</span>${stp([cls, word])}</div>
+    <div class="bot"><span>${line}</span><span>dari ${rs(r.limit)}</span></div>
+    <div class="eb"><i style="width:${Math.max(1, r.spent / scale * 100)}%;background:${stampColor(cls)}"></i><span class="ln2" style="left:${r.limit / scale * 100}%"></span></div></div>`;
+}
+
+function amplopPage(d) {
+  const b = d.budgets, cap = b.cap, rows = b.rows.filter(r => !r.reserve && r.limit > 0);
+  const sealed = rows.filter(r => FIXED_CATS.includes(r.category)), daily = rows.filter(r => !FIXED_CATS.includes(r.category)).sort((x, y) => y.limit - x.limit);
+  const planned = incomeGroups(d).reduce((a, g) => a + g.total, 0), free = cap ? cap - planned : 0;
+  const inv = b.investing || { amount: 0, invested: 0, split: [] }, em = b.emergency, emRow = (b.saving || []).find(r => r.category === 'Emergency fund') || { spent: 0 };
+  const fromFund = b.rows.filter(r => r.reserve && r.spent > 0);
+  const step = nextStep(d), planStep = step && step.act === 'plan' ? `<div class="section"><div class="next" data-act="plan"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div></div>` : '';
+  const head = cap ? pageHead(`Gaji ${rs(cap)} dibagi ke`, 'Amplop', free < 0 ? `<span class="red">Kebanyakan ${rs(-free)}</span> dari gaji · kurangi dulu` : free > 0 ? `<b>${rs(free)}</b> belum masuk amplop mana pun` : 'Semua gaji sudah masuk amplop')
+    : pageHead(esc(d.cycle.label), 'Amplop', 'Belum ada anggaran siklus ini');
+  const env = !rows.length ? '' : `
+    ${sealed.length || em ? `<div class="section"><div class="header"><span>Disegel · sama tiap bulan</span><span>${rs(sealed.reduce((a, r) => a + r.limit, 0) + (em ? em.amount : 0))}</span></div><div class="envs">${sealed.map(r => envelope(d, r, true)).join('')}</div></div>` : ''}
+    <div class="section"><div class="header"><span>Amplop harian · kamu yang atur</span><span>${rs(daily.reduce((a, r) => a + r.limit, 0))}</span></div><div class="envs">${daily.map(r => envelope(d, r, false)).join('')}</div></div>`;
+  const saving = (em || inv.amount) ? `<div class="section" id="saving"><div class="header"><span>Investasi dan dana darurat</span><span>${rs((em ? em.amount : 0) + inv.amount)}</span></div><div class="group">
+    ${inv.amount ? `<div class="srow" style="display:block"><div class="field"><span class="t" style="font-weight:600">Investasi wajib</span>${stp(inv.invested >= inv.amount ? ['aman', 'TUNTAS'] : ['or', 'WAJIB'])}</div>
+      <div class="s num">${inv.invested >= inv.amount ? rs(inv.invested) + ' sudah masuk. Siklus ini tuntas.' : rs(inv.invested) + ' dari ' + rs(inv.amount) + ' sudah masuk · kurang ' + rs(inv.amount - inv.invested) + ' sebelum gajian'}</div>${budgetBar(Math.min(inv.invested, inv.amount), inv.amount)}
+      ${(inv.split || []).map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· ditahan</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('') || '<div class="s wrap" style="margin-top:6px">Pembagian Bibit, Stockbit dan Treasury belum diatur. Beri tahu Claude pembagianmu.</div>'}
+      ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' per ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
+    ${em ? `<div class="srow"><div class="main"><div class="t" style="font-weight:600">Dana darurat</div><div class="s">${emRow.spent >= em.amount ? rs(emRow.spent) + ' sudah ke Dana Darurat' : 'Pindahkan ' + rs(em.amount - emRow.spent) + ' lagi ke Dana Darurat'}</div></div>${stp(emRow.spent >= em.amount ? ['aman', 'TERISI'] : ['mepet', 'KURANG'])}</div>` : ''}
+    ${fromFund.map(r => `<div class="srow tap" data-act="cat" data-id="${esc(r.category)}"><div class="main"><div class="t">${esc(catName(r.category))}</div><div class="s">diambil dari dana darurat · di luar amplop</div></div><span class="num">${rs(r.spent)}</span></div>`).join('')}
+  </div></div>` : '';
+  const action = d.cycle.isCurrent && b.state !== 'none' ? `<div class="section"><button class="btn" data-act="plan">${b.state === 'proposed' ? 'Cek dan setujui amplop' : 'Atur ulang amplop'}</button></div>`
+    : d.cycle.isCurrent ? `<div class="section"><div class="group"><div class="cell tap" data-act="ask"><div class="main link">${d.reports.pending.length ? 'CFO sedang mengisi amplop…' : 'Minta CFO mengisi amplop'}</div></div></div></div>` : '';
+  if (isWide()) return `${head}${planStep}<div class="dash"><div class="dash-cell span-7">${env}</div><div class="dash-cell span-5">${saving}${action}</div></div>`;
+  return `${head}${planStep}${env}${saving}${action}${rapatSection(d)}`;
+}
+
+/** A grade for the last plan, worked out by Duit from the CFO's own look back (✓ went well, ✗ went badly, ○ not done). */
+function raporGrade(rt) {
+  if (!rt) return null;
+  const w = rt.went_well.length, b = rt.went_badly.length, n = rt.not_done.length, all = w + b + n;
+  if (!all) return null;
+  const score = (w + n * 0.4) / all;
+  return score >= 0.85 ? 'A' : score >= 0.7 ? 'B' : score >= 0.55 ? 'C' : score >= 0.4 ? 'D' : 'E';
+}
+
+function rapatSection(d) {
+  const r = d.reports, p = r.latest, writing = r.pending.length > 0, acts = (p && p.actions) || [], rt = p && p.retro, grade = raporGrade(rt);
+  const done = acts.filter((_, i) => (p.actions_done || []).includes(i)).length;
+  const lines = (arr, mark, color) => (arr || []).slice(0, 2).map(x => `<div style="display:flex;gap:8px;padding:3px 0"><span style="color:${color};font-weight:700;flex:none">${mark}</span><span>${esc(shorten(x))}</span></div>`).join('');
+  return `<div class="section" id="cfo"><div class="header"><span>Rapat sama CFO</span><span>${p ? esc(when(p.created_at)) : ''}</span></div>
+    ${writing ? `<div class="group"><div class="cell"><div class="icon" style="background:var(--tint)">${ICON.spark}</div><div class="main"><div>CFO lagi mikir…</div><div class="s">Sekitar 1 menit. Halaman ini memperbarui sendiri.</div></div></div></div>` : ''}
+    ${p ? `<div class="group"><div class="cell tap" data-act="report" data-id="${p.id}"><div class="main"><div class="wrap" style="font-weight:500">${esc(shorten(p.advice_card || p.title))}</div><div class="s">Baca notulen lengkap</div></div><span class="chev">›</span></div></div>` : ''}
+    ${grade ? `<div class="paper-slot" style="margin:12px 0 0"><div class="struk" style="padding:18px 18px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><div class="shop" style="font-weight:700;font-size:17px;letter-spacing:.02em">RAPOR RENCANA LALU</div><div class="sd" style="color:var(--paper-muted);font-size:14px">${esc(shorten(rt.verdict || ''))}</div></div><div class="grade">${grade}</div></div>
+      <div class="cut"></div>${lines(rt.went_well, '✓', '#1f8a55')}${lines(rt.went_badly, '✗', '#c8323c')}${lines(rt.not_done, '○', '#a86700')}
+      <div class="sf" style="text-align:left">Nilai dari Duit, dihitung dari ✓ dan ✗ di evaluasi CFO.</div></div></div>` : ''}
+    ${acts.length ? `<div class="header" style="margin-top:14px"><span>PR dari CFO</span><span>${done} dari ${acts.length} beres</span></div><div class="group">${acts.map((a, i) => todoRow(p, a, i)).join('')}</div>` : ''}
+    ${p ? `<div class="group" style="margin-top:10px">${emergencyBlock(p, true)}</div>` : ''}
+    ${r.failed && !writing ? `<div class="group" style="margin-top:10px"><div class="cell"><div class="main"><div class="red">Rapat terakhir gagal</div><div class="s wrap">${esc(r.failed)}</div></div></div></div>` : ''}
+    ${!writing && d.cycle.isCurrent ? `<button class="btn" data-act="ask" style="margin-top:12px">${p ? 'Panggil CFO lagi' : 'Panggil CFO'} · sekitar $0,06</button>` : ''}
+    ${r.count ? `<div class="group" style="margin-top:10px"><div class="cell tap" data-act="history"><div class="main">Riwayat rapat</div><span class="num d">${r.count}</span><span class="chev">›</span></div></div>` : ''}
+    <div class="footnote">CFO cuma kerja kalau dipanggil. Centang PR yang sudah, supaya rapat berikutnya tahu.</div></div>`;
+}
+
+function dompetPage(d) {
+  const nw = d.netWorth, m = moneyBuckets(d), pay = d.pay || [], c = d.claims || { todo: [], done: [], total: 0 };
+  const cur = d.cycle.isCurrent;
+  const head = `<div class="title-row"><h1 class="large-title">Dompet</h1></div><div style="height:14px"></div>` + pageHead('Semua rekening', rs(nw.total), cur ? `di luar dana darurat dan titipan: <b>${rs(m.usable)}</b>${m.toInvest ? ` · <b>${rs(m.toInvest)}</b> wajib diinvestasikan` : ''} · jatah belanja <b>${rs(m.daily)}</b>` : '');
+  // Investing comes first every cycle: it is a duty, not what is left over.
+  const split = cur ? [['Wajib investasi siklus ini', m.toInvest, 'var(--g-family)', ['or', 'WAJIB']], ['Jatah harian sampai gajian', m.daily, 'var(--green)'], ['Isi dana darurat', m.toFund, '#64d2ff'], ['Nganggur', m.spare, 'var(--fill)']].filter(x => x[1] > 0) : [];
+  const need = m.toInvest + m.daily + m.toFund, gap = need - m.usable;
+  const bagi = split.length ? `<div class="section" id="money"><div class="header"><span>${rs(m.usable)} ini mau ke mana</span><span>investasi duluan</span></div><div class="group" style="padding:14px 16px">
+    <div class="stack">${split.map(x => `<div style="width:${x[1] / Math.max(1, need, m.usable) * 100}%;background:${x[2]}"></div>`).join('')}</div>
+    ${split.map(x => `<div class="field" style="margin-top:10px"><span><span class="dot" style="background:${x[2]};display:inline-block;margin-right:8px"></span>${x[0]}</span><span style="display:flex;gap:8px;align-items:center">${x[3] ? stp(x[3]) : ''}<span class="num">${rs(x[1])}</span></span></div>`).join('')}
+    ${d.spend.investCut ? `<div class="field" style="margin-top:12px"><span>Jatah harian dipotong ${rs(d.spend.investCut)}</span>${stp(['or', 'DIPOTONG'])}</div><div class="s wrap" style="margin-top:4px">Saldo tidak cukup untuk semuanya, jadi investasi wajib didahulukan: jatah belanja ${rs(d.spend.planned)} jadi ${rs(m.daily)}.</div>` : ''}
+    ${gap > 0 ? `<div class="field" style="margin-top:12px"><span class="red">Masih kurang ${rs(gap)}</span>${stp(['jebol', 'TEKOR'])}</div><div class="s wrap" style="margin-top:4px">Jatah harian sudah habis untuk investasi; sisanya tambah dari gaji berikutnya.</div>` : ''}</div>
+    <div class="footnote">Ada di: ${nw.accounts.filter(a => a.kind !== 'investment' && a.name !== 'Dana Darurat' && a.balance > 0).map(a => esc(a.name) + ' ' + rs(a.name === 'Mandiri' ? Math.max(0, a.balance - m.parked) : a.balance)).join(' · ')}.<br>Tidak ikut dihitung: dana darurat ${rs(m.fund)}, titipan ${rs(m.parked)}${nw.investments ? ', investasi ' + rs(nw.investments) : ''}.</div></div>` : '';
+  const card = a => {
+    const parked = a.name === 'Mandiri' && m.parked > 0, serep = a.name === 'Dana Darurat', inv = a.kind === 'investment';
+    const note = parked ? `<div class="note"><span>${rs(m.parked)} titipan siklus ${esc(paydayLabel(d))} · jangan diganggu</span>${stp(['or', 'DITITIP'])}</div><div class="note"><span>sisanya ${rs(Math.max(0, a.balance - m.parked))} untuk investasi wajib dan jatah harian</span></div>`
+      : serep ? `<div class="note"><span>darurat, jangan dipakai${nw.runwayMonths !== null ? ' · cukup ' + String(nw.runwayMonths).replace('.', ',') + ' bulan' : ''}</span>${stp(['aman', 'AMAN'])}</div>`
+      : inv ? `<div class="note"><span>investasi · tidak dihitung</span></div>` : '';
+    return `<div class="card ${parked ? 'titip' : serep ? 'serep' : ''}">${acct(a.name)}<div><div class="nm">${esc(a.name)}</div><div class="s" style="font-size:14px">${esc(ago(a.asOf))}</div></div><div class="bal ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</div>${note}</div>`;
+  };
+  const accounts = `<div class="section"><div class="header"><span>Isi dompet</span><span>${nw.accounts.length} rekening</span></div><div class="wallet">${nw.accounts.filter(a => a.kind !== 'investment').map(card).join('')}${nw.accounts.filter(a => a.kind === 'investment').map(card).join('')}</div></div>`;
+  const got = pay.reduce((a, p) => a + p.amount, 0);
+  const gajian = pay.length ? `<div class="section" id="pay"><div class="header"><span>Gajian</span><span>${d.expectedIncome ? rs(got) + ' dari ' + rs(d.expectedIncome) + ' cair' : ''}</span></div><div class="group">
+    ${pay.map(p => `<div class="srow"><div class="main"><div class="t">Gaji tanggal ${p.day}</div><div class="s">${esc([tgl(p.date), p.moved ? 'maju dari akhir pekan' : '', p.day === 15 && p.state === 'received' ? 'dititip untuk siklus depan' : ''].filter(Boolean).join(' · '))}</div></div>
+      <span class="num" style="margin-right:4px">${rs(p.amount || p.usual || 0)}</span>${stp(p.state === 'received' ? ['aman', 'CAIR'] : p.state === 'missing' ? ['mepet', 'BELUM'] : ['abu', 'NANTI'])}</div>`).join('')}
+  </div><div class="footnote">Gaji masuk Jumat sebelumnya kalau tanggal 25 atau 15 jatuh di akhir pekan.${pay.some(p => p.state === 'missing') ? ' Screenshot gaji yang belum dicatat.' : ''}</div></div>` : '';
+  const crow = (x, on) => `<div class="srow"><button class="check ${on ? 'on' : ''}" data-act="claim" data-id="${x.id}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Sudah diklaim' : 'Tandai sudah diklaim'}">${on ? ICON.ok : ''}</button>
+    <div class="main tap" data-act="edit" data-id="${x.id}"><div class="t ${on ? 'muted' : ''}">${esc(x.merchant || 'Medis')}</div><div class="s">${esc(x.date ? tgl(x.date) : x.label)} · ${esc(x.account)}</div></div><span class="num ${on ? 'muted' : ''}" style="margin-right:4px">${rs(x.amount)}</span>${stp(on ? ['aman', 'LUNAS'] : ['or', 'TAGIH'])}</div>`;
+  const piutang = c.todo.length || c.done.length ? `<div class="section" id="claims"><div class="header"><span>Piutang kantor</span><span>${c.todo.length ? rs(c.total) + ' belum ditagih' : 'semua sudah ditagih'}</span></div><div class="group">
+    ${c.todo.map(x => crow(x, false)).join('')}${c.done.slice(0, 3).map(x => crow(x, true)).join('')}</div><div class="footnote">Tagihan klinik dan rumah sakit yang kamu bayar sendiri. Centang ○ setelah diklaim.</div></div>` : '';
+  const tools = toolsSection(d);
+  if (isWide()) return `${head}<div class="dash"><div class="dash-cell span-7">${accounts}</div><div class="dash-cell span-5">${bagi}${gajian}${piutang}</div><div class="dash-cell span-12">${tools}</div></div>`;
+  return `${head}${bagi}${accounts}${gajian}${piutang}${tools}`;
+}
 
 // ---------- Spending ----------
 
 function txRow(t, sub, act) {
   const color = t.direction === 'in' ? 'green' : t.direction === 'transfer' ? 'muted' : '';
   const amount = (t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rs(t.amount);
-  const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">check</span>'
-    : t.spending && t.claim === 'todo' ? '<span class="chip blue">to claim</span>' : '';
+  const chip = t.status === 'check' && !t.reviewed ? '<span class="chip">cek</span>'
+    : t.spending && t.claim === 'todo' ? '<span class="chip blue">perlu klaim</span>' : '';
   return `<div class="cell ${act ? 'tap' : ''}" data-act="${act || ''}" data-id="${t.id}">${acct(t.direction === 'in' && t.to ? t.to : t.account, true)}<div class="main">
     <div class="t">${esc(t.merchant || t.category)}${chip}</div><div class="s">${esc(sub)}</div></div>
     <span class="num ${color}">${amount}</span></div>`;
@@ -767,45 +927,112 @@ function acct(name, small) {
   if (name === 'Cash') return `<div class="acct ${small ? 'sm' : ''}" style="background:#2e7d32" aria-label="Cash"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="11" rx="2" fill="none" stroke="#fff" stroke-width="2"/><circle cx="12" cy="12.5" r="2.5" fill="#fff"/></svg></div>`;
   return `<div class="acct ${small ? 'sm' : ''}" style="background:#636366" aria-label="${esc(name)}">${esc(String(name || '?').slice(0, 2).toUpperCase())}</div>`;
 }
-const txSub = t => t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account;
+const txSub = t => t.direction === 'transfer' ? t.account + ' → ' + t.to : catName(t.category) + ' · ' + t.account;
 
 /** The days the Spending tab looks at: the last 7 or 14 days, or the whole pay cycle (payday to payday). */
 function rangeOf(d) {
   const today = d.cycle.isCurrent ? todayKey(d) : d.daily[d.daily.length - 1].date;
   const upto = d.daily.filter(x => x.date <= today);
   const days = S.range === 'cycle' ? upto : upto.slice(-Number(S.range));
-  const label = S.range === 'cycle' ? 'this cycle' : `the last ${S.range} days`;
+  const label = S.range === 'cycle' ? 'siklus ini' : `${S.range} hari terakhir`;
   return { days, from: days.length ? days[0].date : today, to: today, label };
 }
 const flexOf = x => x.amount - (x.fixed || 0) - (x.other || 0); // everyday spending: no fixed bills, no urgent reserve
 
 const seg = (act, value, items, small) => `<div class="seg ${small ? 'small' : ''}">${items.map(([v, label]) => `<button data-act="${act}" data-id="${v}" class="${v === value ? 'on' : ''}">${label}</button>`).join('')}</div>`;
 
+/** One category in the chosen range: what it cost, the range's share of its cycle budget, and the stamp that follows.
+ *  Everyday categories are judged by pace (share = budget × days in range / days in cycle); fixed bills (Family, Bills) by the whole cycle. */
+function rangeVerdict(d, cat) {
+  const r = rangeOf(d), N = Math.max(1, (d.daily || []).length), n = r.days.length || 1;
+  const row = d.budgets.rows.find(x => x.category === cat) || { category: cat, limit: 0, spent: 0 };
+  const txs = [];
+  for (const g of d.days) if (g.date >= r.from && g.date <= r.to) for (const t of g.txs)
+    if (t.category === cat && t.spending && !t.fixed) txs.push({ ...t, day: g.label, date: g.date });
+  const spent = txs.reduce((a, t) => a + t.amount, 0), limit = row.limit, share = limit * n / N;
+  const fixed = FIXED_CATS.includes(cat), whole = S.range === 'cycle';
+  let stamp, reason;
+  if (!limit) { stamp = ['abu', 'BEBAS']; reason = 'Kategori ini tidak punya amplop, jadi tidak dinilai.'; }
+  else if (fixed) {
+    stamp = catStamp(d, row);
+    reason = `Tagihan tetap dinilai per siklus, bukan per hari: ${rs(row.spent)} dari ${rs(limit)} siklus ini.`;
+  } else if (whole && row.spent > limit) { stamp = ['jebol', 'JEBOL']; reason = `Siklus ini sudah ${rs(row.spent)}, lewat ${rs(row.spent - limit)} dari amplop ${rs(limit)}.`; }
+  else {
+    const p = spent / Math.max(1, share);
+    stamp = p > 1 ? ['jebol', 'JEBOL'] : p >= 0.8 ? ['mepet', 'MEPET'] : ['aman', 'AMAN'];
+    reason = p > 1 ? `Lewat ${rs(spent - share)} dari jatah ${r.label}.`
+      : p >= 0.8 ? `Tinggal ${rs(share - spent)} dari jatah ${r.label}. Pelan-pelan.`
+      : `Masih sisa ${rs(share - spent)} dari jatah ${r.label}.`;
+  }
+  return { r, cat, row, txs, spent, limit, share, n, N, fixed, stamp, reason, pct: share ? Math.round(spent / share * 100) : 0 };
+}
+
+/** Why a nota row got its stamp: the sum, the pace, where the cycle stands, and the payments in the range. */
+function rangeCatSheet(cat) {
+  const d = S.data, v = rangeVerdict(d, cat), rr = v.row, left = d.cycle.daysLeft;
+  const math = !v.limit ? '' : v.fixed ? `<div class="tot"><span>Amplop siklus</span><span>${dots(v.limit)}</span></div><div class="tot"><span>Terpakai siklus ini</span><span>${dots(rr.spent)}</span></div>`
+    : `<div class="tot"><span>Amplop satu siklus</span><span>${dots(v.limit)}</span></div>
+       <div class="tot" style="color:var(--paper-muted)"><span>× ${v.n} dari ${v.N} hari</span><span></span></div>
+       <div class="tot"><span>Jatah ${esc(v.r.label)}</span><span>${dots(v.share)}</span></div>
+       <div class="tot"><span>Terpakai</span><span>${dots(v.spent)}</span></div>
+       <div class="tot big ${v.spent > v.share ? 'over' : ''}"><span>${v.spent > v.share ? 'Lewat' : 'Sisa'}</span><span>${dots(v.share - v.spent)}</span></div>`;
+  const pace = v.limit && !v.fixed ? `<div class="sf" style="text-align:left">Rata-rata ${rs(v.spent / v.n)} sehari · jatahnya ${rs(v.limit / v.N)} sehari (${v.pct}% terpakai).<br>Aturan stempel: AMAN di bawah 80% · MEPET 80–100% · JEBOL lewat 100%.</div>` : '';
+  const cycle = v.limit && !v.fixed && d.cycle.isCurrent ? `<div class="section"><div class="header"><span>Posisi satu siklus</span>${stp(catStamp(d, rr))}</div><div class="group"><div class="cell" style="display:block">
+      <div class="field"><span>${rs(rr.spent)} dari ${rs(rr.limit)}</span><span class="num ${rr.spent > rr.limit ? 'red' : 'd'}">${rr.spent > rr.limit ? 'tekor ' + rs(rr.spent - rr.limit) : 'sisa ' + rs(rr.limit - rr.spent)}</span></div>${budgetBar(rr.spent, rr.limit)}
+      <div class="s wrap">${rr.spent > rr.limit ? 'Amplopnya sudah jebol untuk siklus ini.' : `Sisa itu untuk ${left} hari lagi, sekitar ${rs((rr.limit - rr.spent) / Math.max(1, left))} sehari.`}</div></div></div></div>` : '';
+  sheet('Kenapa ' + v.stamp[1].toLowerCase() + '?', `
+    <div class="paper-slot" style="margin-top:6px"><div class="struk">
+      <div class="sh"><div class="shop">${esc(catName(cat).toUpperCase())}</div><div class="sd">${esc(tgl(v.r.from))} – ${esc(tgl(v.r.to))} · ${v.txs.length} pembayaran</div><div class="stamp-row">${stp(v.stamp)}</div></div>
+      <div class="cut"></div><p style="margin:0;font-size:17px;line-height:1.35">${esc(v.reason)}</p>
+      ${math ? `<div class="cut"></div>${math}` : ''}${pace ? `<div class="cut"></div>${pace}` : ''}
+    </div></div>
+    ${cycle}
+    <div class="section"><div class="header"><span>Pembayaran ${esc(v.r.label)}</span><span>${rs(v.spent)}</span></div><div class="group">
+      ${v.txs.map(t => txRow(t, t.day + (t.time ? ' · ' + t.time : '') + ' · ' + t.account, 'edit')).join('') || '<div class="cell"><div class="main muted">Tidak ada</div></div>'}
+    </div></div>
+    <div class="section"><div class="group"><div class="cell tap" data-act="cat" data-id="${esc(cat)}"><div class="main link">Detail ${esc(catName(cat))} satu siklus</div><span class="chev">›</span></div></div></div>`);
+}
+
 function transactions(d) {
   if (S.filter) return filteredList(d);
   const r = rangeOf(d);
   const txs = [];
   for (const g of d.days) if (g.date >= r.from && g.date <= r.to) for (const t of g.txs) txs.push({ ...t, day: g.label, date: g.date });
-  const spent = r.days.reduce((a, x) => a + flexOf(x), 0);
+  const spent = r.days.reduce((a, x) => a + flexOf(x), 0), outside = r.days.reduce((a, x) => a + (x.fixed || 0) + (x.other || 0), 0);
   const fold = (key, title, right, body) => { const open = S.folds[key]; return `<div class="section"><div class="group"><div class="cell tap grp-h ${open ? 'open' : ''}" data-act="fold" data-id="${key}"><div class="main"><div class="t" style="font-weight:600">${title}</div></div><span class="num d">${right}</span><span class="chev">›</span></div></div>${open ? body : ''}</div>`; };
-  const headline = `<div class="section"><div class="group"><div class="hero" style="text-align:center">
-      <div class="k">Everyday spending</div><div class="v" style="font-size:40px">${rs(spent)}</div><div class="k">${esc(shortDay(r.from))} – ${esc(shortDay(r.to))} · ${esc(r.label)}</div>
-    </div></div></div>`;
-  const planRight = (() => { const rows = d.budgets.rows.filter(x => !x.reserve && x.category !== 'Family'); const sp2 = rows.reduce((a, x) => a + x.spent, 0), lim = rows.reduce((a, x) => a + x.limit, 0); return budgetLeft(sp2, lim); })();
-  if (isWide()) return `<div class="title-row"><h1 class="large-title">Spending</h1>${seg('range', S.range, [['7', '7 days'], ['14', '14 days'], ['cycle', 'Full cycle']])}</div>
-    <div class="dash"><div class="dash-cell span-4">${headline}${planCard(d)}</div><div class="dash-cell span-8">${chartCard(d, r, txs)}</div>
-    <div class="dash-cell span-12">${groupsCard(d, r, txs)}${(d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Not counted</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : ''}</div></div>`;
-  return `<div class="title-row"><h1 class="large-title">Spending</h1></div>
-    ${seg('range', S.range, [['7', '7 days'], ['14', '14 days'], ['cycle', 'Full cycle']])}
-    ${headline}
-    <div class="cols"><div class="col">
-    ${fold('chart', 'Chart', '', chartCard(d, r, txs))}
-    ${fold('plan', 'Your plan this cycle', planRight, planCard(d))}
-    </div><div class="col">
-    ${fold('tx', 'Transactions', String(txs.length), groupsCard(d, r, txs))}
-    ${(d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Not counted</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : ''}
-    <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>
-    </div></div>`;
+  // The nota: everyday spending per category in the range, each stamped against that range's share of its budget.
+  const by = new Map();
+  for (const t of txs) if (t.spending && !t.fixed && t.category !== 'Other' && t.category !== 'Medical') {
+    const g = by.get(t.category) || { cat: t.category, v: 0, n: 0, places: {} };
+    g.v += t.amount; g.n++; const k = (t.merchant || '').trim(); if (k) g.places[k] = (g.places[k] || 0) + t.amount; by.set(t.category, g);
+  }
+  const cats = [...by.values()].sort((a, b) => b.v - a.v);
+  const verdict = new Map(cats.map(c => [c.cat, rangeVerdict(d, c.cat)]));
+  const jebol = cats.filter(c => verdict.get(c.cat).stamp[1] === 'JEBOL').length;
+  const nota = cats.length ? `<div class="paper-slot rise"><div class="struk"><div class="sh"><div class="shop">NOTA ${esc(r.label.toUpperCase())}</div><div class="sd">${esc(tgl(r.from))} – ${esc(tgl(r.to))} · ${txs.filter(t => t.spending).length} pembayaran</div></div><div class="cut"></div>
+    ${cats.map(c => { const top = Object.entries(c.places).sort((a, b) => b[1] - a[1]).slice(0, 2).map(x => x[0]).join(', ');
+      return `<div class="nrow" data-act="rangeCat" data-id="${esc(c.cat)}"><div class="top"><span>${esc(catName(c.cat))}</span>${stp(verdict.get(c.cat).stamp)}</div><div class="bot"><span>${esc(top)}${c.n > 1 ? ' · ' + c.n + '×' : ''}</span><span>${dots(c.v)}</span></div></div>`; }).join('')}
+    <div class="cut"></div><div class="tot big"><span>TOTAL</span><span>${dots(spent)}</span></div>
+    ${outside ? `<div class="tot" style="color:var(--paper-muted)"><span>Di luar nota: tagihan tetap, dana darurat</span><span>${dots(outside)}</span></div>` : ''}
+    <div class="cut"></div><div class="sf">Stempel = dibanding jatah ${esc(r.label)}. Ketuk baris untuk tahu kenapa.</div></div></div>`
+    : `<div class="section"><div class="group"><div class="cell"><div class="main muted">Belum ada belanja di ${esc(r.label)}. Mantap.</div></div></div></div>`;
+  // Bocor halus: categories that already cost more than the whole of last cycle.
+  const last = d.lastCycle || {};
+  const bocor = d.cycle.isCurrent ? d.budgets.rows.filter(x => !x.reserve && last[x.category] && x.spent > last[x.category] && x.category !== 'Family').map(x => ({ cat: x.category, up: x.spent - last[x.category] })).sort((a, b) => b.up - a.up) : [];
+  const bocorCard = d.cycle.isCurrent && Object.keys(last).length ? `<div class="section"><div class="header"><span>Bocor halus</span><span>vs siklus lalu</span></div><div class="group">
+    ${bocor.length ? bocor.map(x => `<div class="srow tap" data-act="cat" data-id="${esc(x.cat)}"><div class="main"><div class="t">${esc(catName(x.cat))}</div><div class="s">sudah lewat total siklus lalu</div></div><span class="num orange">+${rs(x.up)}</span></div>`).join('')
+      : '<div class="srow"><div class="main"><div class="t">Tidak ada yang bocor</div><div class="s">Semua kategori masih di bawah siklus lalu. Mantap.</div></div></div>'}</div></div>` : '';
+  const head = pageHead(`Belanja harian · ${esc(r.label)}`, rs(spent), jebol ? `<span class="red">${jebol} amplop jebol</span> di nota ini` : cats.length ? 'Belum ada amplop yang jebol' : '');
+  const ranges = seg('range', S.range, [['7', '7 hari'], ['14', '14 hari'], ['cycle', 'Satu siklus']]);
+  const ignored = (d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Tidak dihitung</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : '';
+  if (isWide()) return `<div class="title-row"><h1 class="large-title">Rekap</h1>${ranges}</div>${head}
+    <div class="dash" style="margin-top:32px"><div class="dash-cell span-5">${nota}</div><div class="dash-cell span-7">${chartCard(d, r, txs)}${bocorCard}${weekCard(d)}</div>
+    <div class="dash-cell span-12">${groupsCard(d, r, txs)}${ignored}</div></div>`;
+  return `<div class="title-row"><h1 class="large-title">Rekap</h1></div>${ranges}<div style="height:18px"></div>${head}${nota}${bocorCard}
+    ${fold('chart', 'Grafik', '', chartCard(d, r, txs))}
+    ${fold('tx', 'Semua transaksi', String(txs.length), groupsCard(d, r, txs))}
+    ${ignored}
+    <div class="footnote" style="padding-top:12px">Ketuk apa saja untuk membetulkan. Transaksi ganda disembunyikan otomatis.</div>`;
 }
 
 /** The chart for the chosen range: over time (per day, or per week for a whole cycle) or by category. */
@@ -819,9 +1046,9 @@ function chartCard(d, r, txs) {
     for (const t of txs) if (t.spending && !t.fixed && t.category !== 'Other') by[t.category] = (by[t.category] || 0) + t.amount;
     const rows = Object.entries(by).sort((a, b) => b[1] - a[1]), sum = rows.reduce((s, x) => s + x[1], 0) || 1;
     chart = rows.length ? `<div style="display:grid;gap:12px">${rows.map(([cat, v]) => `<div class="tap" data-act="cat" data-id="${esc(cat)}">
-      <div class="field"><span>${esc(catInfo(d, cat).icon || '')} ${esc(cat)}</span><span class="num"><b style="font-weight:600">${rs(v)}</b> <span class="d">· ${Math.round(v / sum * 100)}%</span></span></div>
+      <div class="field"><span>${esc(catInfo(d, cat).icon || '')} ${esc(catName(cat))}</span><span class="num"><b style="font-weight:600">${rs(v)}</b> <span class="d">· ${Math.round(v / sum * 100)}%</span></span></div>
       <div class="hbar"><div style="width:${Math.max(2, v / rows[0][1] * 100)}%;background:${groupColor(catInfo(d, cat).group)}"></div></div></div>`).join('')}</div>`
-      : '<div class="muted" style="padding:20px 0;text-align:center">Nothing spent in this range</div>';
+      : '<div class="muted" style="padding:20px 0;text-align:center">Tidak ada belanja di rentang ini</div>';
   } else if (S.range === 'cycle') {
     const weeks = [];
     for (let i = 0; i < flex.length; i += 7) {
@@ -832,22 +1059,22 @@ function chartCard(d, r, txs) {
   } else {
     chart = labeledBars(flex.map(x => {
       const dt = new Date(x.date + 'T00:00:00');
-      return { v: x.v, hl: x.date === today, lim: limitFor(d, x.date) || 0, label: x.date === today ? 'Today' : S.range === '7' ? dt.toLocaleDateString([], { weekday: 'short' }) : String(dt.getDate()) };
+      return { v: x.v, hl: x.date === today, lim: limitFor(d, x.date) || 0, label: x.date === today ? 'Hari ini' : S.range === '7' ? HARI[dt.getDay()] : String(dt.getDate()) };
     }), 'var(--tint)', limit, '');
   }
-  const facts = S.chartBy === 'category' ? 'Share of your everyday spending. Tap a category for its details'
-    : `About ${rs(avg)} a day${d.spend.perDay ? ` · limit ${rs(d.spend.perDay)}${d.spend.perWeekend && d.spend.perWeekend !== d.spend.perDay ? ' (' + rs(d.spend.perWeekend) + ' weekends)' : ''}` : ''}${overDays ? ` · <span class="red">${overDays} ${overDays === 1 ? 'day' : 'days'} over</span>` : ''}${S.range === 'cycle' ? ' · bars are weeks' : S.range === '14' ? ' · amounts in rb' : ''}`;
+  const facts = S.chartBy === 'category' ? 'Bagian dari belanja harianmu. Ketuk kategori untuk detailnya'
+    : `Sekitar ${rs(avg)} sehari${d.spend.perDay ? ` · batas ${rs(d.spend.perDay)}${d.spend.perWeekend && d.spend.perWeekend !== d.spend.perDay ? ' (' + rs(d.spend.perWeekend) + ' akhir pekan)' : ''}` : ''}${overDays ? ` · <span class="red">${overDays} hari lewat</span>` : ''}${S.range === 'cycle' ? ' · batang = minggu' : S.range === '14' ? ' · angka dalam rb' : ''}`;
   return `<div class="section"><div class="group chart" style="padding:12px">
-    ${seg('chartBy', S.chartBy, [['time', 'Over time'], ['category', 'By category']], true)}
+    ${seg('chartBy', S.chartBy, [['time', 'Per waktu'], ['category', 'Per kategori']], true)}
     ${chart}
-  </div><div class="footnote">${facts}. Fixed payments and urgent costs are left out.</div></div>`;
+  </div><div class="footnote">${facts}. Tagihan tetap dan biaya darurat tidak dihitung.</div></div>`;
 }
 
 /** Emergency fund and Investing as budget rows: planned amount, and for Investing how much was actually invested. */
 function savingRows(d) {
   return (d.budgets.saving || []).map(r => `<div class="cell tap" data-act="${r.category === 'Investing' ? 'gotoSaving' : 'plan'}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
-    <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${r.spent >= r.limit ? '<span class="green">✓ Done</span>' : budgetLeft(r.spent, r.limit).replace('left', 'to go')}</span></div>
-    ${budgetBar(Math.min(r.spent, r.limit), r.limit)}<div class="s num">${(r.category === 'Investing' ? 'Invested ' : 'Moved ') + rs(r.spent) + ' of ' + rs(r.limit)}</div></div><span class="chev">›</span></div>`).join('');
+    <div class="field"><span class="t">${esc(catName(r.category))}</span><span class="num" style="font-size:15px">${r.spent >= r.limit ? '<span class="green">✓ Beres</span>' : budgetLeft(r.spent, r.limit).replace('sisa', 'kurang')}</span></div>
+    ${budgetBar(Math.min(r.spent, r.limit), r.limit)}<div class="s num">${(r.category === 'Investing' ? 'Diinvestasikan ' : 'Dipindah ') + rs(r.spent) + ' dari ' + rs(r.limit)}</div></div><span class="chev">›</span></div>`).join('');
 }
 
 /** The cycle's plan, short: the total and the three categories closest to their budget; the rest on request. */
@@ -856,24 +1083,24 @@ function planCard(d) {
     .sort((a, b) => (b.limit ? b.spent / b.limit : 9) - (a.limit ? a.spent / a.limit : 9));
   if (!rows.length) return '';
   const spent = rows.reduce((s, r) => s + r.spent, 0), limit = rows.reduce((s, r) => s + r.limit, 0), shown = S.planAll ? rows : rows.slice(0, 3);
-  return `<div class="section"><div class="header"><span>Your plan this cycle</span><span>${budgetLeft(spent, limit)}</span></div><div class="group">
-    <div class="cell" style="display:block"><div class="field"><span class="num" style="font-weight:600">${rs(spent)}</span><span class="d num">of ${rs(limit)}</span></div>${budgetBar(spent, limit)}</div>
+  return `<div class="section"><div class="header"><span>Rencana siklus ini</span><span>${budgetLeft(spent, limit)}</span></div><div class="group">
+    <div class="cell" style="display:block"><div class="field"><span class="num" style="font-weight:600">${rs(spent)}</span><span class="d num">dari ${rs(limit)}</span></div>${budgetBar(spent, limit)}</div>
     ${shown.map(r => `<div class="cell tap" data-act="cat" data-id="${esc(r.category)}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
-      <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${budgetLeft(r.spent, r.limit)}</span></div>
-      ${budgetBar(r.spent, r.limit)}<div class="s num">${rs(r.spent)} of ${r.limit ? rs(r.limit) : 'no budget'}</div></div><span class="chev">›</span></div>`).join('')}
-    ${rows.length > 3 ? `<div class="cell tap" data-act="planAll"><div class="main link">${S.planAll ? 'Show less' : 'All ' + rows.length + ' categories'}</div></div>` : ''}
+      <div class="field"><span class="t">${esc(catName(r.category))}</span><span class="num" style="font-size:15px">${budgetLeft(r.spent, r.limit)}</span></div>
+      ${budgetBar(r.spent, r.limit)}<div class="s num">${rs(r.spent)} dari ${r.limit ? rs(r.limit) : 'tanpa anggaran'}</div></div><span class="chev">›</span></div>`).join('')}
+    ${rows.length > 3 ? `<div class="cell tap" data-act="planAll"><div class="main link">${S.planAll ? 'Lebih sedikit' : 'Semua ' + rows.length + ' kategori'}</div></div>` : ''}
     ${savingRows(d)}
-  </div><div class="footnote">White line = budget. Family (fixed) and the urgent reserve are not in the plan.</div></div>`;
+  </div><div class="footnote">Garis putih = batas anggaran. Keluarga (tetap) dan dana darurat tidak masuk rencana.</div></div>`;
 }
 
 /** Transactions in the range, grouped by category, day or account. Groups stay closed until you open one. */
 function groupsCard(d, r, txs) {
-  if (!txs.length) return `<div class="empty">Nothing in ${esc(r.label)}. Double-tap the back of your iPhone on a receipt.</div>`;
-  const key = t => S.groupBy === 'day' ? t.date : S.groupBy === 'account' ? (t.direction === 'transfer' ? 'Between accounts' : t.account) : t.category;
+  if (!txs.length) return `<div class="empty">Belum ada di ${esc(r.label)}. Ketuk dua kali bagian belakang iPhone di struk.</div>`;
+  const key = t => S.groupBy === 'day' ? t.date : S.groupBy === 'account' ? (t.direction === 'transfer' ? 'Antar rekening' : t.account) : t.category;
   const groups = new Map();
   for (const t of txs) {
     const k = key(t);
-    if (!groups.has(k)) groups.set(k, { key: k, txs: [], spent: 0, label: S.groupBy === 'day' ? t.day : k });
+    if (!groups.has(k)) groups.set(k, { key: k, txs: [], spent: 0, label: S.groupBy === 'day' ? t.day : S.groupBy === 'category' ? catName(k) : k });
     const g = groups.get(k);
     g.txs.push(t);
     if (t.spending) g.spent += t.amount;
@@ -881,15 +1108,15 @@ function groupsCard(d, r, txs) {
   const list = [...groups.values()].sort((a, b) => S.groupBy === 'day' ? (a.key < b.key ? 1 : -1) : b.spent - a.spent || b.txs.length - a.txs.length);
   const icon = g => S.groupBy === 'category' ? emo(d, g.key) : S.groupBy === 'day' ? `<div class="emo" style="font-size:13px;font-weight:700">${esc(String(Number(g.key.slice(8, 10))))}</div>`
     : `<div class="emo" style="font-size:13px;font-weight:700">${esc(g.key.slice(0, 2))}</div>`;
-  return `<div class="section"><div class="header"><span>Transactions</span><span>${txs.length}</span></div>
-    ${seg('groupBy', S.groupBy, [['category', 'Category'], ['day', 'Day'], ['account', 'Account']], true)}
+  return `<div class="section"><div class="header"><span>Transaksi</span><span>${txs.length}</span></div>
+    ${seg('groupBy', S.groupBy, [['category', 'Kategori'], ['day', 'Hari'], ['account', 'Rekening']], true)}
     <div class="group">${list.map(g => {
       const open = S.open === g.key, shown = g.txs.slice(0, 20);
       return `<div class="cell tap grp-h ${open ? 'open' : ''}" data-act="openGroup" data-id="${esc(g.key)}">${icon(g)}<div class="main">
-          <div class="t">${esc(g.label)}</div><div class="s">${g.txs.length} ${g.txs.length === 1 ? 'item' : 'items'}</div></div>
+          <div class="t">${esc(g.label)}</div><div class="s">${g.txs.length} transaksi</div></div>
           <span class="num">${g.spent ? rs(g.spent) : ''}</span><span class="chev">›</span></div>
         ${open ? `<div class="grp-body">${shown.map(t => txRow(t, (S.groupBy === 'day' ? txSub(t) : t.day + ' · ' + (S.groupBy === 'account' ? t.category : t.account)) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}
-          ${g.txs.length > 20 ? `<div class="cell"><div class="main muted">+ ${g.txs.length - 20} more · pick a shorter range</div></div>` : ''}</div>` : ''}`;
+          ${g.txs.length > 20 ? `<div class="cell"><div class="main muted">+ ${g.txs.length - 20} lagi · pilih rentang lebih pendek</div></div>` : ''}</div>` : ''}`;
     }).join('')}</div></div>`;
 }
 
@@ -897,17 +1124,17 @@ function groupsCard(d, r, txs) {
 function filteredList(d) {
   const keep = t => S.filter === 'review' ? t.status === 'check' && !t.reviewed : t.category === S.filter;
   const days = d.days.map(g => ({ ...g, txs: g.txs.filter(keep) })).filter(g => g.txs.length);
-  return `<div class="title-row"><h1 class="large-title">${S.filter === 'review' ? 'To check' : esc(S.filter)}</h1><span class="pill tap" data-act="clearFilter">Done ✕</span></div>
+  return `<div class="title-row"><h1 class="large-title">${S.filter === 'review' ? 'Perlu dicek' : esc(catName(S.filter))}</h1><span class="pill tap" data-act="clearFilter">Selesai ✕</span></div>
     ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span></div>
       <div class="group">${g.txs.map(t => txRow(t, txSub(t) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}</div></div>`).join('')
-      : '<div class="empty">Nothing to check.</div>'}`;
+      : '<div class="empty">Tidak ada yang perlu dicek.</div>'}`;
 }
 
 /** Rows set to "don't count", so they can be brought back. */
 function notCountedSheet() {
   const d = S.data;
-  sheet('Not counted', `<div class="section" style="margin-top:6px"><div class="group">${(d.ignored || []).map(t => txRow(t, t.label + ' · ' + txSub(t), 'edit')).join('')}</div>
-    <div class="footnote">You set these to "don't count". Tap one and choose "Count it? Yes" to bring it back.</div></div>`);
+  sheet('Tidak dihitung', `<div class="section" style="margin-top:6px"><div class="group">${(d.ignored || []).map(t => txRow(t, t.label + ' · ' + txSub(t), 'edit')).join('')}</div>
+    <div class="footnote">Ini kamu set "jangan dihitung". Ketuk satu dan pilih "Hitung? Ya" untuk mengembalikan.</div></div>`);
 }
 
 
@@ -933,66 +1160,68 @@ function catSheet(name) {
   const topPlaces = Object.values(places).sort((a, b) => b.v - a.v).slice(0, 5);
   const color = groupColor(c.group), spent = row.spent, limit = row.limit, paid = limit && fixedDone(d, name) && spent <= limit * 1.02;
   const last = (d.lastCycle || {})[name] || 0, diff = spent - last;
-  const status = name === 'Other' || name === 'Medical' ? 'Paid from your emergency fund · not part of the plan'
-    : paid ? '<span class="green">✓ Paid this cycle</span>'
-    : limit ? (spent > limit ? `<span class="red">${rs(spent - limit)} over</span> your ${rs(limit)} budget` : `${rs(limit - spent)} left of ${rs(limit)}`)
-    : 'No budget for this';
-  const center = limit && name !== 'Other' && name !== 'Medical' ? `<b>${Math.round(spent / limit * 100)}%</b><span>used</span>` : `<b>${spentTx.length}</b><span>${spentTx.length === 1 ? 'payment' : 'payments'}</span>`;
-  sheet(name, `
+  const status = name === 'Other' || name === 'Medical' ? 'Dibayar dari dana darurat · di luar rencana'
+    : paid ? '<span class="green">✓ Lunas siklus ini</span>'
+    : limit ? (spent > limit ? `<span class="red">lewat ${rs(spent - limit)}</span> dari anggaran ${rs(limit)}` : `sisa ${rs(limit - spent)} dari ${rs(limit)}`)
+    : 'Tanpa anggaran';
+  const center = limit && name !== 'Other' && name !== 'Medical' ? `<b>${Math.round(spent / limit * 100)}%</b><span>terpakai</span>` : `<b>${spentTx.length}</b><span>pembayaran</span>`;
+  sheet(catName(name), `
     <div class="cat-head">${emo(d, name)}<div class="footnote" style="padding:6px 0 0">${esc(c.group || '')}</div></div>
     <div class="section" style="margin-top:12px"><div class="group"><div class="hero"><div class="hero-row"><div class="main">
-      <div class="k">Spent this cycle</div><div class="v">${rs(spent)}</div>
+      <div class="k">Terpakai siklus ini</div><div class="v">${rs(spent)}</div>
       <div class="k">${status}</div>
-      ${name === 'Medical' && d.claims && d.claims.total ? `<div class="k" style="margin-top:4px"><span class="link">${rs(d.claims.total)} still to claim back</span></div>` : ''}
-      ${last ? `<div class="k" style="margin-top:4px">Last cycle ${rs(last)}${last && Math.abs(diff) >= 1000 ? ` · <span class="${diff > 0 ? 'red' : 'green'}">${diff > 0 ? '↑' : '↓'} ${rs(Math.abs(diff))}</span>` : ''}</div>` : ''}
+      ${name === 'Medical' && d.claims && d.claims.total ? `<div class="k" style="margin-top:4px"><span class="link">${rs(d.claims.total)} masih perlu diklaim</span></div>` : ''}
+      ${last ? `<div class="k" style="margin-top:4px">Siklus lalu ${rs(last)}${last && Math.abs(diff) >= 1000 ? ` · <span class="${diff > 0 ? 'red' : 'green'}">${diff > 0 ? '↑' : '↓'} ${rs(Math.abs(diff))}</span>` : ''}</div>` : ''}
     </div>${ring([{ v: spent, color: paid ? 'var(--green)' : limit && spent > limit ? 'var(--red)' : color }], Math.max(1, limit || spent), 96, center)}</div></div></div></div>
-    ${spentTx.length ? `<div class="section"><div class="header"><span>Week by week</span></div>
+    ${spentTx.length ? `<div class="section"><div class="header"><span>Per minggu</span></div>
       <div class="group chart">${labeledBars(cycleWeeks(d, byDay), color, 0)}</div></div>` : ''}
-    ${topPlaces.length ? `<div class="section"><div class="header"><span>${c.group === 'Family' && name === 'Family' ? 'Who got it' : 'Top places'}</span></div><div class="group">
+    ${topPlaces.length ? `<div class="section"><div class="header"><span>${c.group === 'Family' && name === 'Family' ? 'Penerima' : 'Tempat teratas'}</span></div><div class="group">
       ${topPlaces.map(p => `<div class="cell"><div class="main"><div class="field"><span class="t">${esc(p.name)}</span><span class="num">${rs(p.v)}</span></div>
         <div class="share"><div style="width:${Math.max(2, p.v / topPlaces[0].v * 100)}%;background:${color}"></div></div>
-        <div class="s">${p.n === 1 ? 'once' : p.n + ' times'}</div></div></div>`).join('')}</div></div>` : ''}
-    <div class="section"><div class="header"><span>${txs.length === 1 ? '1 transaction' : txs.length + ' transactions'}</span></div><div class="group">
-      ${txs.length ? txs.map(t => txRow(t, t.day + (t.time ? ' · ' + t.time : '') + ' · ' + t.account, 'edit')).join('') : '<div class="cell"><div class="main muted">Nothing this cycle</div></div>'}
-    </div>${c.hint ? `<div class="footnote">What goes here: ${esc(c.hint)}.</div>` : ''}</div>`);
+        <div class="s">${p.n === 1 ? 'sekali' : p.n + ' kali'}</div></div></div>`).join('')}</div></div>` : ''}
+    <div class="section"><div class="header"><span>${txs.length} transaksi</span></div><div class="group">
+      ${txs.length ? txs.map(t => txRow(t, t.day + (t.time ? ' · ' + t.time : '') + ' · ' + t.account, 'edit')).join('') : '<div class="cell"><div class="main muted">Belum ada siklus ini</div></div>'}
+    </div>${c.hint ? `<div class="footnote">Isinya: ${esc(c.hint)}.</div>` : ''}</div>`);
 }
 
 // ---------- Activity ----------
 
+/** Each screenshot's stamp: TERBACA (saved), DOBEL (sent before), GAGAL (unreadable), RAGU (something still needs you), KOSONG, UJI. */
 function activityInfo(a) {
-  if (a.status === 'error') return { icon: ICON.warn, color: 'var(--red)', sub: "Couldn't read" };
-  if (a.status === 'duplicate') return { icon: ICON.dup, color: '#8e8e93', sub: 'Sent before · ignored' };
-  if (a.status === 'dry_run') return { icon: ICON.none, color: '#8e8e93', sub: 'Test' };
+  if (a.status === 'error') return { stamp: ['jebol', 'GAGAL'], sub: 'Tidak terbaca' };
+  if (a.status === 'duplicate') return { stamp: ['abu', 'DOBEL'], sub: 'Sudah pernah dikirim · diabaikan' };
+  if (a.status === 'dry_run') return { stamp: ['abu', 'UJI'], sub: 'Percobaan' };
   const saved = a.saved.filter(t => t.status !== 'duplicate?' && t.status !== 'replaced').length;
   const bits = [];
-  if (saved) bits.push(saved + ' saved');
-  if (a.balances.length) bits.push(a.balances.length === 1 ? '1 balance' : a.balances.length + ' balances');
-  if (!bits.length) return { icon: ICON.none, color: '#8e8e93', sub: a.kind === 'not_financial' ? 'Not a bill or balance' : 'Nothing new' };
-  return { icon: ICON.ok, color: 'var(--green)', sub: bits.join(' · ') };
+  if (saved) bits.push(saved + ' transaksi');
+  if (a.balances.length) bits.push(a.balances.length + ' saldo');
+  const open = (a.unassigned || []).some(u => !u.assigned) || (a.skipped || []).some(x => !x.resolved);
+  if (open) return { stamp: ['mepet', 'RAGU'], sub: (bits.join(' · ') || 'Tidak ada yang disimpan') + ' · ada yang perlu dicek' };
+  if (!bits.length) return { stamp: ['abu', 'KOSONG'], sub: a.kind === 'not_financial' ? 'Bukan tagihan atau saldo' : 'Tidak ada yang baru' };
+  return { stamp: ['aman', 'TERBACA'], sub: bits.join(' · ') };
 }
 
 function activity(d) {
   const items = d.improve ? d.improve.items : [];
   const list = S.activity;
-  return `<div class="title-row"><h1 class="large-title">Activity</h1></div>
-    <div class="subtitle">What happened to each screenshot</div>
-    <div class="section"><div class="header"><span>For Claude</span><span>${items.length || ''}</span></div><div class="group">
-      ${items.length ? `<div class="cell"><div class="main wrap muted" style="font-size:15px">Things I wasn't fully sure about. Copy them and paste in Claude Code, and Claude fixes the rules. No AI cost.</div></div>
-        ${items.slice(0, 5).map(it => `<div class="cell"><div class="main"><div class="t">${esc(shorten(it.title))}</div><div class="s">${esc(it.date)} · ${esc(shorten(it.why))}</div></div></div>`).join('')}
-        ${items.length > 5 ? `<div class="cell"><div class="main muted">+ ${items.length - 5} more in the copy</div></div>` : ''}`
-      : `<div class="cell"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main">Nothing to improve right now</div></div>`}
-    </div>${items.length ? '<button class="btn" data-act="copyImprove" style="margin-top:10px">Copy for Claude</button>' : ''}</div>
-    <div class="section"><div class="header"><span>Screenshots</span></div>
-      ${!list ? '<p class="status">Loading…</p>' : list.length ? `<div class="group">${list.map(a => { const i = activityInfo(a); return `<div class="cell tap" data-act="shot" data-id="${a.id}">
-        <div class="icon" style="background:${i.color}">${i.icon}</div>
-        <div class="main"><div class="t">${esc(shorten((a.notification || '').split('\n')[0] || a.kind))}</div><div class="s">${when(a.at)} · ${esc(i.sub)}</div></div><span class="chev">›</span></div>`; }).join('')}</div>
-      <div class="footnote">Screenshots are kept privately for 30 days.</div>` : '<div class="empty">No screenshots yet.</div>'}</div>`;
+  return `<div class="title-row"><h1 class="large-title">Jepretan</h1></div>
+    ${pageHead(`${d.screenshots} screenshot siklus ini`, '$' + d.aiCost.toFixed(2).replace('.', ','), 'biaya AI untuk membaca semuanya')}
+    <div class="section"><div class="header"><span>Titip ke Claude</span><span>${items.length ? items.length + ' catatan' : ''}</span></div><div class="group">
+      ${items.length ? `<div class="srow"><div class="main wrap muted" style="font-size:15px">Yang Duit belum yakin. Salin, tempel di Claude Code, dan Claude membetulkan aturannya. Gratis.</div></div>
+        ${items.slice(0, 5).map(it => `<div class="srow"><div class="main"><div class="t">${esc(shorten(it.title))}</div><div class="s">${esc(it.date)} · ${esc(shorten(it.why))}</div></div>${stp(['mepet', 'RAGU'])}</div>`).join('')}
+        ${items.length > 5 ? `<div class="srow"><div class="main muted">+ ${items.length - 5} lagi di salinan</div></div>` : ''}`
+      : `<div class="srow"><div class="main"><div class="t">Tidak ada titipan</div><div class="s">Semua jepretan terbaca dengan yakin.</div></div>${stp(['aman', 'BERES'])}</div>`}
+    </div>${items.length ? '<button class="btn" data-act="copyImprove" style="margin-top:10px">Salin titipan untuk Claude</button>' : ''}</div>
+    <div class="section"><div class="header"><span>Semua jepretan</span><span>${list ? list.length : ''}</span></div>
+      ${!list ? '<p class="status">Membuka…</p>' : list.length ? `<div class="group">${list.map(a => { const i = activityInfo(a); return `<div class="srow tap" data-act="shot" data-id="${a.id}">
+        <div class="main"><div class="t">${esc(shorten((a.notification || '').split('\n')[0] || a.kind))}</div><div class="s">${when(a.at)} · ${esc(i.sub)}</div></div>${stp(i.stamp)}</div>`; }).join('')}</div>
+      <div class="footnote">Jepretan disimpan secara pribadi selama 30 hari.</div>` : '<div class="empty">Belum ada jepretan. Ketuk dua kali bagian belakang iPhone di struk.</div>'}</div>`;
 }
 
 // ---------- Sheets ----------
 
 function sheet(title, body, right) {
-  document.getElementById('sheet').innerHTML = `<div class="sheet-bar"><button data-act="close">${right ? 'Cancel' : 'Done'}</button><div class="ttl">${esc(title)}</div>${right ? `<button class="r" data-act="${right.act}" data-id="${esc(right.id || '')}">${esc(right.label)}</button>` : '<span></span>'}</div>${body}`;
+  document.getElementById('sheet').innerHTML = `<div class="sheet-bar"><button data-act="close">${right ? 'Batal' : 'Selesai'}</button><div class="ttl">${esc(title)}</div>${right ? `<button class="r" data-act="${right.act}" data-id="${esc(right.id || '')}">${esc(right.label)}</button>` : '<span></span>'}</div>${body}`;
   document.getElementById('sheetBg').style.display = 'flex';
   document.getElementById('sheet').scrollTop = 0;
 }
@@ -1013,17 +1242,17 @@ function editSheet(id) {
   sheet(t.merchant || t.category, `
     <div class="big-amount ${t.direction === 'in' ? 'green' : ''}">${(t.direction === 'in' ? '+' : t.direction === 'out' ? '−' : '') + rp(t.amount)}</div>
     <div class="footnote" style="text-align:center;padding-top:2px">${esc(t.day)}${t.time ? ' · ' + esc(t.time) : ''} · ${esc(txSub(t))}</div>
-    <div class="section"><button class="btn green" data-act="confirm" data-id="${t.id}">Looks right ✓</button></div>
-    <div class="section"><div class="header"><span>Or fix it</span></div><div class="group">
-      <label class="cell field"><span>Category</span><select id="eCat">${opt(d.categories, t.category)}</select></label>
-      <label class="cell field"><span>Amount</span><input id="eAmount" inputmode="numeric" value="${rp(t.amount).replace('Rp', '').replace('−', '')}" data-money></label>
-      <label class="cell field"><span>Type</span><select id="eDir">${opt(['out', 'in', 'transfer'], t.direction, ['Money out', 'Money in', 'Between my accounts'])}</select></label>
-      <label class="cell field"><span>From account</span><select id="eAcc">${opt(d.accountsList.concat(['Unknown']), t.account)}</select></label>
-      <label class="cell field"><span>To account</span><select id="eTo">${opt([''].concat(d.accountsList), t.to)}</select></label>
-      ${t.category === 'Medical' || t.claim ? `<label class="cell field"><span>Reimburse?</span><select id="eClaim">${opt(['', 'todo', 'done'], t.claim || '', ['Not claimable', 'Yes, still to claim', 'Claimed ✓'])}</select></label>` : ''}
-      <label class="cell field"><span>Count it?</span><select id="eStatus">${opt([t.status === 'check' ? 'check' : 'ok', 'ignore'], t.status === 'ignore' ? 'ignore' : t.status === 'check' ? 'check' : 'ok', ['Yes', "No, don't count it"])}</select></label>
+    <div class="section"><button class="btn green" data-act="confirm" data-id="${t.id}">Sudah benar ✓</button></div>
+    <div class="section"><div class="header"><span>Atau betulkan</span></div><div class="group">
+      <label class="cell field"><span>Kategori</span><select id="eCat">${opt(d.categories, t.category, d.categories.map(catName))}</select></label>
+      <label class="cell field"><span>Jumlah</span><input id="eAmount" inputmode="numeric" value="${rp(t.amount).replace('Rp', '').replace('−', '')}" data-money></label>
+      <label class="cell field"><span>Jenis</span><select id="eDir">${opt(['out', 'in', 'transfer'], t.direction, ['Uang keluar', 'Uang masuk', 'Antar rekeningku'])}</select></label>
+      <label class="cell field"><span>Dari rekening</span><select id="eAcc">${opt(d.accountsList.concat(['Unknown']), t.account)}</select></label>
+      <label class="cell field"><span>Ke rekening</span><select id="eTo">${opt([''].concat(d.accountsList), t.to)}</select></label>
+      ${t.category === 'Medical' || t.claim ? `<label class="cell field"><span>Klaim?</span><select id="eClaim">${opt(['', 'todo', 'done'], t.claim || '', ['Tidak bisa diklaim', 'Ya, belum diklaim', 'Sudah diklaim ✓'])}</select></label>` : ''}
+      <label class="cell field"><span>Hitung?</span><select id="eStatus">${opt([t.status === 'check' ? 'check' : 'ok', 'ignore'], t.status === 'ignore' ? 'ignore' : t.status === 'check' ? 'check' : 'ok', ['Ya', 'Tidak, jangan dihitung'])}</select></label>
     </div><div class="err" id="eErr"></div>
-    <button class="btn plain" data-act="save" data-id="${t.id}" style="margin-top:6px">Save changes</button></div>`);
+    <button class="btn plain" data-act="save" data-id="${t.id}" style="margin-top:6px">Simpan</button></div>`);
 }
 
 const moneyValue = el => Number(String(el.value).replace(/[^\d]/g, '')) || 0;
@@ -1037,15 +1266,15 @@ function formatMoneyInput(el) {
 async function saveTx(id) {
   const v = k => document.getElementById(k).value, err = m => { document.getElementById('eErr').textContent = m; };
   const amount = moneyValue(document.getElementById('eAmount'));
-  if (!amount) return err('Enter an amount.');
-  if (v('eDir') === 'transfer' && !v('eTo')) return err('Choose the account the money went to.');
+  if (!amount) return err('Isi jumlahnya.');
+  if (v('eDir') === 'transfer' && !v('eTo')) return err('Pilih rekening tujuan uangnya.');
   try {
     const claim = document.getElementById('eClaim'), before = findTx(id);
     await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') === 'check' ? 'ok' : v('eStatus'), ...(claim ? { claim: claim.value || null } : {}) } });
     closeSheet(); load();
     if (v('eStatus') === 'ignore' && before && before.status !== 'ignore') {
-      toast('Not counted', () => api('POST', { action: 'restore_tx', id, status: before.status, reviewed: before.reviewed }));
-    } else toast('Saved');
+      toast('Tidak dihitung', () => api('POST', { action: 'restore_tx', id, status: before.status, reviewed: before.reviewed }));
+    } else toast('Tersimpan');
   } catch (e) { err(e.message); }
 }
 
@@ -1069,7 +1298,7 @@ document.getElementById('toastUndo').addEventListener('click', async () => {
 /** Shows a checkbox as ticked or not, and keeps its state on the element so the next tap does the opposite. */
 function setCheck(el, on) {
   el.classList.toggle('on', on); el.innerHTML = on ? ICON.ok : ''; el.dataset.on = on ? '1' : '0';
-  el.setAttribute('aria-label', on ? 'Done' : 'Mark as done');
+  el.setAttribute('aria-label', on ? 'Sudah' : 'Tandai sudah');
 }
 
 async function setClaim(id, claim, el) {
@@ -1084,7 +1313,7 @@ async function confirmTx(id) {
   const t = findTx(id);
   try {
     await api('POST', { action: 'confirm_tx', id }); closeSheet(); load();
-    if (t) toast('Marked as right', () => api('POST', { action: 'restore_tx', id, status: t.status, reviewed: t.reviewed }));
+    if (t) toast('Ditandai benar', () => api('POST', { action: 'restore_tx', id, status: t.status, reviewed: t.reviewed }));
   } catch (e) { const el = document.getElementById('eErr'); if (el) el.textContent = e.message; }
 }
 
@@ -1101,34 +1330,34 @@ function planSheet() {
   const ordered = ['Fixed', 'Investing', 'Adjustable'].map(g => ({ g, rows: items.filter(i => groupOf(i.cat) === g) }));
   let n = 0;
   const row = i => { const k = n++; return `<label class="cell field" style="align-items:flex-start">
-      <div class="main"><div>${groupOf(i.cat) === 'Fixed' ? '🔒 ' : ''}${esc(i.cat)}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Invested ' : 'Spent ') + rs(i.spent) : '', i.cat === 'Investing' ? 'Bibit, Stockbit or Treasury · not daily money' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
+      <div class="main"><div>${groupOf(i.cat) === 'Fixed' ? '🔒 ' : ''}${esc(catName(i.cat))}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Diinvestasikan ' : 'Terpakai ') + rs(i.spent) : '', i.cat === 'Investing' ? 'Bibit, Stockbit atau Treasury · bukan uang harian' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
       <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${k}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
       <div class="s" id="h${k}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
       ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`; };
-  sheet('Budget', `
+  sheet('Anggaran', `
     <div class="big-amount" id="planTotal">${rs(items.reduce((s, i) => s + i.amount, 0))}</div>
     <div class="footnote" style="text-align:center;padding-top:2px" id="planCap">${capLine(items.reduce((s, i) => s + i.amount, 0))}</div>
-    ${ordered.filter(o => o.rows.length).map(o => `<div class="section"><div class="header"><span>${o.g === 'Fixed' ? '🔒 Fixed · same every month' : o.g === 'Investing' ? 'Investing · not daily money' : 'Adjustable · you decide'}</span><span class="num" data-grp="${o.g}">${rs(o.rows.reduce((a, i) => a + i.amount, 0))}</span></div><div class="group">${o.rows.map(row).join('')}</div></div>`).join('')}
+    ${ordered.filter(o => o.rows.length).map(o => `<div class="section"><div class="header"><span>${o.g === 'Fixed' ? '🔒 Tetap · sama tiap bulan' : o.g === 'Investing' ? 'Investasi · bukan uang harian' : 'Fleksibel · kamu yang atur'}</span><span class="num" data-grp="${o.g}">${rs(o.rows.reduce((a, i) => a + i.amount, 0))}</span></div><div class="group">${o.rows.map(row).join('')}</div></div>`).join('')}
     <div class="section">
-    ${Object.keys(sug).length ? '<div class="footnote">Blue amounts are what your CFO now suggests. Tap one to use it.</div>' : ''}
+    ${Object.keys(sug).length ? '<div class="footnote">Angka oranye adalah saran CFO sekarang. Ketuk untuk memakainya.</div>' : ''}
     <div class="err" id="pErr"></div>
-    <button class="btn" data-act="approve" style="margin-top:6px">Approve budget</button></div>`, { label: 'Approve', act: 'approve' });
+    <button class="btn" data-act="approve" style="margin-top:6px">Setujui anggaran</button></div>`, { label: 'Setujui', act: 'approve' });
 }
 
 /** "Rp30,1 jt of your Rp30,5 jt income · Rp400 rb not planned" — the budget can never be more than the income. */
 function capLine(total) {
   const cap = S.data && S.data.budgets.cap;
-  if (!cap) return 'planned this cycle';
-  return total > cap ? `<span class="red">${rs(total - cap)} more than your ${rs(cap)} income</span> · lower something to approve`
-    : `of your ${rs(cap)} income · ${rs(cap - total)} not planned yet`;
+  if (!cap) return 'direncanakan siklus ini';
+  return total > cap ? `<span class="red">${rs(total - cap)} lebih dari pemasukan ${rs(cap)}</span> · kurangi dulu supaya bisa disetujui`
+    : `dari pemasukan ${rs(cap)} · ${rs(cap - total)} belum direncanakan`;
 }
 
 async function approve() {
   const items = [...document.querySelectorAll('input[data-cat]')].map(i => ({ category: i.dataset.cat, amount: moneyValue(i) }));
   const err = m => { document.getElementById('pErr').textContent = m; };
-  if (!items.some(i => i.amount > 0)) return err('Enter at least one amount.');
+  if (!items.some(i => i.amount > 0)) return err('Isi minimal satu jumlah.');
   const total = items.reduce((s, i) => s + i.amount, 0), cap = S.data.budgets.cap;
-  if (cap && total > cap) return err(`That's ${rs(total - cap)} more than your income. Lower something first.`);
+  if (cap && total > cap) return err(`Itu ${rs(total - cap)} lebih dari pemasukanmu. Kurangi dulu.`);
   try { await api('POST', { action: 'approve_budgets', cycle_start: S.data.cycle.start, items }); closeSheet(); load(); }
   catch (e) { err(e.message); }
 }
@@ -1139,41 +1368,41 @@ function findReport(id) {
 }
 
 /** One CFO answer: the retro of the plan before it, what it thinks, the steps, and the budget it proposed. */
-function reportSheet(id) { const r = findReport(id); if (r) sheet('CFO plan', reportBody(r)); }
+function reportSheet(id) { const r = findReport(id); if (r) sheet('Rencana CFO', reportBody(r)); }
 function reportBody(r) {
   const d = S.data;
   const isLatest = d.reports.latest && d.reports.latest.id === r.id, rt = r.retro;
   const list = (title, arr, mark, color) => arr && arr.length ? `<div class="section"><div class="header"><span>${title}</span></div><div class="group">
     ${arr.map(x => `<div class="cell" style="align-items:flex-start"><span style="color:${color};font-weight:700;width:16px;flex:none">${mark}</span><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>` : '';
   const retro = rt && (rt.verdict || rt.went_well.length || rt.went_badly.length || rt.not_done.length || rt.cfo_mistakes.length) ? `
-    <div class="section"><div class="header"><span>Looking back at the last plan</span></div><div class="group"><div class="cell"><div class="main wrap" style="font-weight:600">${esc(shorten(rt.verdict || 'Little has changed.'))}</div></div></div></div>
-    ${list('Went well', rt.went_well, '✓', 'var(--green)')}${list('Went badly', rt.went_badly, '✗', 'var(--red)')}
-    ${list('Not done yet', rt.not_done, '○', 'var(--orange)')}${list('What the CFO got wrong', rt.cfo_mistakes, '!', 'var(--label2)')}` : '';
+    <div class="section"><div class="header"><span>Evaluasi rencana sebelumnya</span></div><div class="group"><div class="cell"><div class="main wrap" style="font-weight:600">${esc(shorten(rt.verdict || 'Tidak banyak berubah.'))}</div></div></div></div>
+    ${list('Berjalan baik', rt.went_well, '✓', 'var(--green)')}${list('Kurang baik', rt.went_badly, '✗', 'var(--red)')}
+    ${list('Belum dikerjakan', rt.not_done, '○', 'var(--orange)')}${list('Kesalahan CFO', rt.cfo_mistakes, '!', 'var(--label2)')}` : '';
   const plan = (r.budget_proposal || []).filter(x => x.amount > 0 || x.category === 'Emergency fund');
   return `
-    <div class="footnote" style="text-align:center;padding-top:0">${esc(when(r.created_at))}${r.kind === 'weekly' ? ' · weekly check-in' : ''}</div>
+    <div class="footnote" style="text-align:center;padding-top:0">${esc(when(r.created_at))}${r.kind === 'weekly' ? ' · cek mingguan' : ''}</div>
     ${retro}
-    <div class="section"><div class="header"><span>What I think now</span></div><div class="group"><div class="cell"><div class="main">
+    <div class="section"><div class="header"><span>Pendapat CFO sekarang</span></div><div class="group"><div class="cell"><div class="main">
       <div class="wrap" style="font-weight:600">${esc(shorten(r.title))}</div><div class="wrap" style="margin-top:6px">${esc(shorten(r.summary))}</div></div></div>
       ${(r.highlights || []).map(x => `<div class="cell"><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>
     ${emergencyBlock(r, false)}
-    ${(r.actions || []).length ? `<div class="section"><div class="header"><span>Do this</span></div><div class="group">${r.actions.map((a, i) => todoRow(r, a, i)).join('')}</div></div>` : ''}
-    ${plan.length ? `<div class="section"><div class="header"><span>Budget it proposed</span><span>${rs(plan.filter(x => x.category !== 'Emergency fund').reduce((s, x) => s + x.amount, 0))}</span></div><div class="group">
+    ${(r.actions || []).length ? `<div class="section"><div class="header"><span>Lakukan ini</span></div><div class="group">${r.actions.map((a, i) => todoRow(r, a, i)).join('')}</div></div>` : ''}
+    ${plan.length ? `<div class="section"><div class="header"><span>Anggaran yang diusulkan</span><span>${rs(plan.filter(x => x.category !== 'Emergency fund').reduce((s, x) => s + x.amount, 0))}</span></div><div class="group">
       ${plan.map(x => `<div class="cell" style="align-items:flex-start">${x.category === 'Emergency fund' ? '<div class="emo">🛟</div>' : emo(d, x.category)}<div class="main">
-        <div class="field"><span class="t">${esc(x.category)}</span><span class="num">${rs(x.amount)}</span></div>${x.reason ? `<div class="s wrap">${esc(shorten(x.reason))}</div>` : ''}</div></div>`).join('')}
-    </div>${r.emergency_fund && r.emergency_fund.target_amount ? `<div class="footnote">Emergency fund goal ${rs(r.emergency_fund.target_amount)} (${String(r.emergency_fund.months_of_expenses).replace('.', ',')} months).</div>` : ''}</div>` : ''}
+        <div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num">${rs(x.amount)}</span></div>${x.reason ? `<div class="s wrap">${esc(shorten(x.reason))}</div>` : ''}</div></div>`).join('')}
+    </div>${r.emergency_fund && r.emergency_fund.target_amount ? `<div class="footnote">Target dana darurat ${rs(r.emergency_fund.target_amount)} (${String(r.emergency_fund.months_of_expenses).replace('.', ',')} bulan).</div>` : ''}</div>` : ''}
     <div class="section"><div class="group">
-      ${isLatest && d.cycle.isCurrent && !d.reports.pending.length ? '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a new plan</div></div>' : ''}
-      <div class="cell tap" data-act="history"><div class="main link">All CFO answers</div></div>
+      ${isLatest && d.cycle.isCurrent && !d.reports.pending.length ? '<div class="cell tap" data-act="ask"><div class="main link">Minta rencana baru ke CFO</div></div>' : ''}
+      <div class="cell tap" data-act="history"><div class="main link">Semua jawaban CFO</div></div>
     </div></div>`;
 }
 
 /** Every CFO answer, newest first. */
 async function historySheet() {
-  const render = () => sheet('CFO history', S.history ? (S.history.length ? `<div class="section" style="margin-top:6px"><div class="group">
+  const render = () => sheet('Riwayat CFO', S.history ? (S.history.length ? `<div class="section" style="margin-top:6px"><div class="group">
     ${S.history.map(r => `<div class="cell tap" data-act="report" data-id="${r.id}"><div class="main">
       <div class="t">${esc(shorten(r.title))}</div><div class="s wrap">${esc(when(r.created_at))}${r.retro && r.retro.verdict ? ' · ' + esc(shorten(r.retro.verdict)) : ''}</div></div><span class="chev">›</span></div>`).join('')}
-    </div><div class="footnote">Each answer looks back at the one before it.</div></div>` : '<div class="empty">No answers yet.</div>') : '<p class="status">Loading…</p>');
+    </div><div class="footnote">Tiap jawaban mengevaluasi jawaban sebelumnya.</div></div>` : '<div class="empty">Belum ada jawaban.</div>') : '<p class="status">Membuka…</p>');
   render();
   try { S.history = await api('GET', null, '?view=cfo'); render(); }
   catch (e) { document.getElementById('sheet').insertAdjacentHTML('beforeend', `<p class="err">${esc(e.message)}</p>`); }
@@ -1198,21 +1427,21 @@ function shotSheet(id) {
   const repeats = a.saved.length - saved.length;
   const left = (a.skipped || []).filter(x => !x.resolved);
   sheet('Screenshot', `
-    ${saved.length ? `<div class="section" style="margin-top:6px"><div class="header"><span>Saved</span></div><div class="group">${saved.map(t => txRow(t, txSub(t) + ' · ' + t.date)).join('')}</div>
-      ${repeats ? `<div class="footnote">${repeats} already saved from another screenshot, so not counted twice.</div>` : ''}</div>`
-      : `<div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main wrap">${esc(shorten(a.notification || a.error || 'Nothing saved'))}</div></div></div></div>`}
-    ${a.balances.length ? `<div class="section"><div class="header"><span>Balances</span></div><div class="group">${a.balances.map(x => `<div class="cell"><div class="main">${esc(x.account)}</div><span class="num">${rs(x.balance)}</span></div>`).join('')}</div></div>` : ''}
-    ${(a.unassigned || []).length ? `<div class="section"><div class="header"><span>Which account is this?</span></div><div class="group">${a.unassigned.map((u, i) => u.assigned
-      ? `<div class="cell"><div class="main"><div class="num">${rs(u.balance_idr)}</div><div class="s">${u.assigned === 'ignore' ? 'Ignored' : 'Saved as ' + esc(u.assigned)}</div></div><span class="link tap" data-act="unassign" data-id="${a.id}" data-i="${i}">Undo</span></div>`
-      : `<label class="cell field"><span class="num">${rs(u.balance_idr)}</span><select data-assign="${i}" data-shot="${a.id}"><option value="">Choose</option>${accounts.map(n => `<option>${esc(n)}</option>`).join('')}<option value="ignore">Ignore</option></select></label>`).join('')}</div></div>` : ''}
-    ${left.length ? `<div class="section"><div class="header"><span>Not counted</span></div><div class="group">${left.map(x => `<div class="cell"><div class="main"><div class="wrap">${esc(shorten(x.text))}</div><div class="s wrap">${esc(x.reason)}</div></div></div>`).join('')}</div></div>` : ''}
-    ${a.hasImage ? `<div class="section"><div class="group"><div class="cell tap" data-act="image" data-id="${a.id}"><div class="main link">Show screenshot</div></div></div><div id="img-${a.id}" style="margin-top:10px"></div></div>` : ''}
-    <div class="footnote" style="padding:12px 32px 0">${when(a.at)}${a.cost ? ' · cost $' + a.cost.toFixed(4) : ''}</div>`);
+    ${saved.length ? `<div class="section" style="margin-top:6px"><div class="header"><span>Disimpan</span></div><div class="group">${saved.map(t => txRow(t, txSub(t) + ' · ' + t.date)).join('')}</div>
+      ${repeats ? `<div class="footnote">${repeats} sudah tersimpan dari screenshot lain, jadi tidak dihitung dua kali.</div>` : ''}</div>`
+      : `<div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main wrap">${esc(shorten(a.notification || a.error || 'Tidak ada yang disimpan'))}</div></div></div></div>`}
+    ${a.balances.length ? `<div class="section"><div class="header"><span>Saldo</span></div><div class="group">${a.balances.map(x => `<div class="cell"><div class="main">${esc(x.account)}</div><span class="num">${rs(x.balance)}</span></div>`).join('')}</div></div>` : ''}
+    ${(a.unassigned || []).length ? `<div class="section"><div class="header"><span>Ini rekening yang mana?</span></div><div class="group">${a.unassigned.map((u, i) => u.assigned
+      ? `<div class="cell"><div class="main"><div class="num">${rs(u.balance_idr)}</div><div class="s">${u.assigned === 'ignore' ? 'Diabaikan' : 'Disimpan sebagai ' + esc(u.assigned)}</div></div><span class="link tap" data-act="unassign" data-id="${a.id}" data-i="${i}">Batalkan</span></div>`
+      : `<label class="cell field"><span class="num">${rs(u.balance_idr)}</span><select data-assign="${i}" data-shot="${a.id}"><option value="">Pilih</option>${accounts.map(n => `<option>${esc(n)}</option>`).join('')}<option value="ignore">Abaikan</option></select></label>`).join('')}</div></div>` : ''}
+    ${left.length ? `<div class="section"><div class="header"><span>Tidak dihitung</span></div><div class="group">${left.map(x => `<div class="cell"><div class="main"><div class="wrap">${esc(shorten(x.text))}</div><div class="s wrap">${esc(x.reason)}</div></div></div>`).join('')}</div></div>` : ''}
+    ${a.hasImage ? `<div class="section"><div class="group"><div class="cell tap" data-act="image" data-id="${a.id}"><div class="main link">Lihat screenshot</div></div></div><div id="img-${a.id}" style="margin-top:10px"></div></div>` : ''}
+    <div class="footnote" style="padding:12px 32px 0">${when(a.at)}${a.cost ? ' · biaya $' + a.cost.toFixed(4) : ''}</div>`);
 }
 
 async function showImage(id) {
   const box = document.getElementById('img-' + id);
-  box.innerHTML = '<p class="status">Loading…</p>';
+  box.innerHTML = '<p class="status">Membuka…</p>';
   try { const { url } = await api('GET', null, '?image=' + encodeURIComponent(id)); box.innerHTML = `<img class="shot" src="${esc(url)}" alt="Screenshot">`; }
   catch (e) { box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
 }
@@ -1235,7 +1464,7 @@ async function assign(sel) {
 }
 
 function copy(text, el, done) {
-  navigator.clipboard.writeText(text).then(() => { el.textContent = done; }, () => { el.textContent = 'Press and hold to copy'; });
+  navigator.clipboard.writeText(text).then(() => { el.textContent = done; }, () => { el.textContent = 'Tekan lama untuk menyalin'; });
 }
 
 // ---------- Render and events ----------
@@ -1246,18 +1475,19 @@ function render() {
   if (!d) return;
   const badge = document.getElementById('badge'), n = d.improve ? d.improve.items.length : 0;
   badge.hidden = !n; badge.textContent = n;
-  const deskOnly = ['plan', 'money', 'cfo'];
-  if (deskOnly.includes(S.tab) && !isWide()) S.tab = 'home';
+  if (S.tab === 'cfo' && !isWide()) S.tab = 'plan'; // on a phone the CFO meeting sits inside Amplop
   const body = S.tab === 'transactions' ? transactions(d) : S.tab === 'activity' ? activity(d)
     : S.tab === 'plan' ? planPage(d) : S.tab === 'money' ? moneyPage(d) : S.tab === 'cfo' ? cfoPage(d) : home(d);
-  document.getElementById('app').innerHTML = `<div class="screen">${body}<p class="status" id="status"></p></div>`;
+  const app = document.getElementById("app"), same = app.dataset.shown === S.tab;
+  app.dataset.shown = S.tab; app.classList.toggle('still', same);
+  app.innerHTML = `<div class="screen">${body}<p class="status" id="status"></p></div>`;
   status();
 }
 
-/** Opens the "More" part of Home if needed, then scrolls to one of its sections. */
+/** Opens the page that holds a section (Amplop, Dompet, Rapat CFO), then scrolls to it. */
 function openMoreAt(id) {
-  if (isWide()) { const page = { cfo: 'cfo', pay: 'money', claims: 'money', saving: 'plan', money: 'money' }[id]; if (page && S.tab !== page) { goTab(page); } }
-  else if (!S.more) { S.more = true; store.set('money:more', true); render(); }
+  const page = { cfo: isWide() ? 'cfo' : 'plan', pay: 'money', claims: 'money', saving: 'plan', money: 'money' }[id];
+  if (page && S.tab !== page) goTab(page);
   const box = document.getElementById(id);
   if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1294,7 +1524,7 @@ document.addEventListener('click', e => {
       el.dataset.armed = '1';
       const label = el.querySelector('.link') || el;
       const before = label.textContent;
-      label.textContent = 'Tap again to ask (about $0.06)';
+      label.textContent = 'Yakin? Ketuk lagi (sekitar $0,06)';
       setTimeout(() => { if (el.isConnected) { el.dataset.armed = ''; label.textContent = before; } }, 5000);
       break;
     }
@@ -1308,6 +1538,7 @@ document.addEventListener('click', e => {
     case 'image': showImage(id); break;
     case 'more': S.showAll = !S.showAll; render(); break;
     case 'cat': catSheet(id); break;
+    case 'rangeCat': rangeCatSheet(id); break;
     case 'why': whySheet(); break;
     case 'toggleMore': S.more = !S.more; store.set('money:more', S.more); render(); break;
     case 'review': S.filter = 'review'; goTab('transactions'); break;
@@ -1325,8 +1556,8 @@ document.addEventListener('click', e => {
     case 'notCounted': notCountedSheet(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
     case 'current': S.cycle = null; load(); break;
-    case 'copy': copy(INGEST, el.querySelector('.main'), 'Copied'); break;
-    case 'copyImprove': copy(S.data.improve.report, el, 'Copied · now paste it in Claude Code'); break;
+    case 'copy': copy(INGEST, el.querySelector('.main'), 'Tersalin'); break;
+    case 'copyImprove': copy(S.data.improve.report, el, 'Tersalin · sekarang tempel di Claude Code'); break;
   }
 });
 document.addEventListener('input', e => { if (e.target.dataset.money !== undefined) {
@@ -1340,6 +1571,18 @@ document.addEventListener('input', e => { if (e.target.dataset.money !== undefin
   }
 } });
 document.addEventListener('change', e => { if (e.target.dataset.assign !== undefined) assign(e.target); });
+// The day strip: tap or drag a thumb along it, or use the arrow keys, to print that day's struk.
+let stripDrag = false;
+const dayAt = (e, strip) => { const r = strip.getBoundingClientRect(), el = document.elementFromPoint(Math.min(r.right - 1, Math.max(r.left + 1, e.clientX)), r.top + r.height / 2); return el && el.closest('.sday'); };
+document.addEventListener('pointerdown', e => { const strip = e.target.closest('#strip'); if (!strip) return; stripDrag = true; const d = dayAt(e, strip); if (d) pickDay(d.dataset.day, 'tap'); });
+document.addEventListener('pointermove', e => { if (!stripDrag) return; const strip = document.getElementById('strip'); if (!strip) return; const d = dayAt(e, strip); if (d) pickDay(d.dataset.day, 'drag'); });
+document.addEventListener('pointerup', () => { stripDrag = false; });
+document.addEventListener('pointercancel', () => { stripDrag = false; });
+document.addEventListener('keydown', e => {
+  if (!e.target.closest || !e.target.closest('#strip') || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  const days = cycleDays(S.data), i = days.findIndex(c => c.key === S.day), j = i + (e.key === 'ArrowRight' ? 1 : -1);
+  if (days[j]) { e.preventDefault(); pickDay(days[j].key, 'key'); }
+});
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
 window.addEventListener('pageshow', e => { if (e.persisted) load(); });
 
