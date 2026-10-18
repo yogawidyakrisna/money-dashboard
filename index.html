@@ -436,8 +436,8 @@ function home(d) {
       </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
     ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
     ${savingRows(d)}
-    ${reserve.budget || reserve.used ? `<div class="cell tap" data-act="cat" data-id="Other">${emo(d, 'Other')}<div class="main"><div class="t">Urgent reserve</div>
-      <div class="s wrap">Only for emergencies, not daily money${reserve.used ? ' · used ' + rs(reserve.used) + ' this cycle' : ' · not used'}</div></div><span class="chev">›</span></div>` : ''}
+    ${reserve.used ? `<div class="cell tap" data-act="cat" data-id="Other">${emo(d, 'Other')}<div class="main"><div class="t">From your emergency fund</div>
+      <div class="s wrap">${rs(reserve.used)} of unplanned costs this cycle · not part of the plan</div></div><span class="chev">›</span></div>` : ''}
     ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
@@ -767,7 +767,7 @@ function catSheet(name) {
   const topPlaces = Object.values(places).sort((a, b) => b.v - a.v).slice(0, 5);
   const color = groupColor(c.group), spent = row.spent, limit = row.limit, paid = limit && fixedDone(d, name) && spent <= limit * 1.02;
   const last = (d.lastCycle || {})[name] || 0, diff = spent - last;
-  const status = name === 'Other' ? 'Urgent reserve: only for emergencies, not daily money'
+  const status = name === 'Other' ? 'Paid from your emergency fund · not part of the plan'
     : paid ? '<span class="green">✓ Paid this cycle</span>'
     : limit ? (spent > limit ? `<span class="red">${rs(spent - limit)} over</span> your ${rs(limit)} budget` : `${rs(limit - spent)} left of ${rs(limit)}`)
     : 'No budget for this';
@@ -924,7 +924,7 @@ async function confirmTx(id) {
 
 function planSheet() {
   const d = S.data, b = d.budgets, m = d.reports.latest, sug = Object.fromEntries(cfoChanges(d).map(x => [x.category, x.to]));
-  const items = d.categories.filter(c => !['Income', 'Transfer', 'Investment'].includes(c)).map(cat => {
+  const items = d.categories.filter(c => !['Income', 'Transfer', 'Investment', 'Other'].includes(c)).map(cat => {
     const r = b.rows.find(x => x.category === cat) || {};
     return { cat, amount: r.limit || 0, spent: r.spent || 0, reason: r.reason || '' };
   }).sort((x, y) => y.amount - x.amount || y.spent - x.spent);
