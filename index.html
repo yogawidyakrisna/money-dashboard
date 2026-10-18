@@ -69,6 +69,7 @@
   .tabbar button { position: relative; flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 500; color: #999; }
   .tabbar button.on { color: var(--tint); }
   .tabbar svg { width: 25px; height: 25px; }
+  .tabbar .desk { display: none; }
   .badge { position: absolute; top: 3px; left: 50%; margin-left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 12px; font-weight: 600; line-height: 18px; }
   .sheet-bg { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.4); display: none; align-items: flex-end; justify-content: center; }
   .sheet { background: var(--sheet); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; border-radius: 12px 12px 0 0; padding-bottom: calc(env(safe-area-inset-bottom) + 24px); }
@@ -181,6 +182,8 @@
     .tabbar .in::before { content: 'Money'; font-size: 24px; font-weight: 700; color: var(--label); padding: 4px 14px 24px; }
     .tabbar button { flex: none; flex-direction: row; justify-content: flex-start; gap: 14px; height: 48px; padding: 0 14px; border-radius: 12px; font-size: 16px; font-weight: 500; color: var(--label2); }
     .tabbar button.on { background: rgba(255,255,255,.08); color: var(--label); }
+    .tabbar .desk { display: flex; }
+    .span-5 { grid-column: span 5; } .span-7 { grid-column: span 7; }
     .tabbar svg { width: 22px; height: 22px; }
     .badge { position: static; margin-left: auto; }
     .sheet-bg { align-items: center; } .sheet { border-radius: 20px; max-height: 88vh; max-width: 680px; }
@@ -193,6 +196,9 @@
 <nav class="tabbar"><div class="in">
   <button data-tab="home"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2 2.5 11h2.7v9h5.3v-5.5h3V20h5.3v-9h2.7z"/></svg>Home</button>
   <button data-tab="transactions"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><rect x="9" y="5" width="12" height="2" rx="1"/><rect x="9" y="11" width="12" height="2" rx="1"/><rect x="9" y="17" width="12" height="2" rx="1"/></svg>Spending</button>
+  <button data-tab="plan" class="desk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19h16M4 5v14M8 15v-4M12 15V8M16 15v-6"/></svg>Plan</button>
+  <button data-tab="money" class="desk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>Money</button>
+  <button data-tab="cfo" class="desk"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>CFO</button>
   <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Activity<span class="badge" id="badge" hidden></span></button>
 </div></nav>
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
@@ -441,7 +447,7 @@ function fixedDone(d, cat) {
   return fx.length > 0 && fx.every(f => f.done !== undefined ? f.done : f.paid >= f.amount);
 }
 
-function home(d) {
+function homeParts(d) {
   const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
   const rows = b.rows.filter(x => !x.reserve && (x.limit > 0 || x.spent > 0)), reserve = sp.reserve || { budget: 0, used: 0 };
   const shown = S.showAll ? rows : rows.slice(0, 5);
@@ -453,17 +459,37 @@ function home(d) {
     income: incomeCard(d), cfo: cfoSection(d), budget: budgetSection(d, rows, shown, reserve), saving: savingSection(d),
     claims: claimsSection(d), pay: paySection(d), fixed: fixedSection(d), money: moneySection(d), tools: toolsSection(d),
   };
+  return { parts, step, moreOpen };
+}
+
+const cell = (parts, cls, ...keys) => `<div class="dash-cell ${cls}">${keys.map(k => typeof k === 'string' ? parts[k] : k.html).join('')}</div>`;
+const pageTitle = (title, sub) => `<div class="title-row"><h1 class="large-title">${title}</h1>${sub ? `<span class="pill">${esc(sub)}</span>` : ''}</div>`;
+
+function home(d) {
+  const { parts, step, moreOpen } = homeParts(d);
   if (isWide()) {
-    // Desktop: its own design. A wide hero band, then rows of equal-height cards with lots of air.
-    const cell = (cls, ...keys) => `<div class="dash-cell ${cls}">${keys.map(k => parts[k]).join('')}</div>`;
-    return `${desktopHero(d, step)}<div class="dash">
-      ${cell('span-4', 'income')}${cell('span-4', 'budget')}${cell('span-4', 'saving', 'claims')}
-      ${cell('span-4', 'today')}${cell('span-4', 'pay', 'fixed')}${cell('span-4', 'money')}
-      ${cell('span-8', 'cfo')}${cell('span-4', 'tools')}</div>`;
+    // Desktop Home: the one number, today, and the budget at a glance. Plan, Money and CFO are their own pages.
+    return `${desktopHero(d, step)}<div class="dash">${cell(parts, 'span-4', 'today')}${cell(parts, 'span-4', 'budget')}${cell(parts, 'span-4', 'saving')}</div>`;
   }
   return `${parts.hero}${parts.today}${parts.next}${parts.income}
   <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
   ${moreOpen ? parts.cfo + parts.budget + parts.saving + parts.claims + parts.pay + parts.fixed + parts.money + parts.tools : ''}`;
+}
+
+/** Desktop-only pages (the sidebar splits Home up so each visual has room). */
+function planPage(d) {
+  const { parts } = homeParts(d);
+  return `${pageTitle('Plan', d.cycle.label)}<div class="dash">${cell(parts, 'span-5', 'income')}${cell(parts, 'span-7', 'budget')}${cell(parts, 'span-6', 'saving')}${cell(parts, 'span-6', 'fixed')}</div>`;
+}
+function moneyPage(d) {
+  const { parts } = homeParts(d);
+  return `${pageTitle('Money', rs(d.netWorth.total))}<div class="dash">${cell(parts, 'span-7', 'money')}${cell(parts, 'span-5', 'pay', 'claims')}${cell(parts, 'span-12', 'tools')}</div>`;
+}
+function cfoPage(d) {
+  const { parts } = homeParts(d), latest = d.reports.latest;
+  const report = latest ? `<div class="section"><div class="header"><span>Latest plan</span><span>${esc(when(latest.created_at))}</span></div><div class="group" style="padding:4px 0 12px">${reportBody(latest)}</div></div>`
+    : '<div class="section"><div class="group"><div class="cell"><div class="main muted">No plan yet. Ask the CFO on the left.</div></div></div></div>';
+  return `${pageTitle('Your CFO', d.reports.count ? d.reports.count + ' answers' : '')}<div class="dash">${cell(parts, 'span-5', 'cfo')}${cell(parts, 'span-7', { html: report })}</div>`;
 }
 
 /** Desktop hero band: the ring, the one number in large type, and the next step, side by side. */
@@ -1113,9 +1139,9 @@ function findReport(id) {
 }
 
 /** One CFO answer: the retro of the plan before it, what it thinks, the steps, and the budget it proposed. */
-function reportSheet(id) {
-  const r = findReport(id), d = S.data;
-  if (!r) return;
+function reportSheet(id) { const r = findReport(id); if (r) sheet('CFO plan', reportBody(r)); }
+function reportBody(r) {
+  const d = S.data;
   const isLatest = d.reports.latest && d.reports.latest.id === r.id, rt = r.retro;
   const list = (title, arr, mark, color) => arr && arr.length ? `<div class="section"><div class="header"><span>${title}</span></div><div class="group">
     ${arr.map(x => `<div class="cell" style="align-items:flex-start"><span style="color:${color};font-weight:700;width:16px;flex:none">${mark}</span><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>` : '';
@@ -1124,7 +1150,7 @@ function reportSheet(id) {
     ${list('Went well', rt.went_well, '✓', 'var(--green)')}${list('Went badly', rt.went_badly, '✗', 'var(--red)')}
     ${list('Not done yet', rt.not_done, '○', 'var(--orange)')}${list('What the CFO got wrong', rt.cfo_mistakes, '!', 'var(--label2)')}` : '';
   const plan = (r.budget_proposal || []).filter(x => x.amount > 0 || x.category === 'Emergency fund');
-  sheet('CFO plan', `
+  return `
     <div class="footnote" style="text-align:center;padding-top:0">${esc(when(r.created_at))}${r.kind === 'weekly' ? ' · weekly check-in' : ''}</div>
     ${retro}
     <div class="section"><div class="header"><span>What I think now</span></div><div class="group"><div class="cell"><div class="main">
@@ -1139,7 +1165,7 @@ function reportSheet(id) {
     <div class="section"><div class="group">
       ${isLatest && d.cycle.isCurrent && !d.reports.pending.length ? '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a new plan</div></div>' : ''}
       <div class="cell tap" data-act="history"><div class="main link">All CFO answers</div></div>
-    </div></div>`);
+    </div></div>`;
 }
 
 /** Every CFO answer, newest first. */
@@ -1220,14 +1246,18 @@ function render() {
   if (!d) return;
   const badge = document.getElementById('badge'), n = d.improve ? d.improve.items.length : 0;
   badge.hidden = !n; badge.textContent = n;
-  const body = S.tab === 'transactions' ? transactions(d) : S.tab === 'activity' ? activity(d) : home(d);
+  const deskOnly = ['plan', 'money', 'cfo'];
+  if (deskOnly.includes(S.tab) && !isWide()) S.tab = 'home';
+  const body = S.tab === 'transactions' ? transactions(d) : S.tab === 'activity' ? activity(d)
+    : S.tab === 'plan' ? planPage(d) : S.tab === 'money' ? moneyPage(d) : S.tab === 'cfo' ? cfoPage(d) : home(d);
   document.getElementById('app').innerHTML = `<div class="screen">${body}<p class="status" id="status"></p></div>`;
   status();
 }
 
 /** Opens the "More" part of Home if needed, then scrolls to one of its sections. */
 function openMoreAt(id) {
-  if (!S.more && !isWide()) { S.more = true; store.set('money:more', true); render(); }
+  if (isWide()) { const page = { cfo: 'cfo', pay: 'money', claims: 'money', saving: 'plan', money: 'money' }[id]; if (page && S.tab !== page) { goTab(page); } }
+  else if (!S.more) { S.more = true; store.set('money:more', true); render(); }
   const box = document.getElementById(id);
   if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
