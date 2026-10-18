@@ -449,11 +449,27 @@ function cfoSection(d) {
     ${p ? `<div class="cell tap" data-act="report" data-id="${p.id}"><div class="icon" style="background:var(--tint)">${ICON.spark}</div>
       <div class="main"><div class="wrap">${esc(shorten(p.advice_card || p.title))}</div><div class="s">Plan, retro and budget</div></div><span class="chev">›</span></div>` : ''}
     ${acts.map((a, i) => todoRow(p, a, i)).join('')}
+    ${p ? emergencyBlock(p, true) : ''}
     ${r.failed && !writing ? `<div class="cell"><div class="main"><div class="red">The last ask didn't work</div><div class="s wrap">${esc(r.failed)}</div></div></div>` : ''}
     ${!writing && d.cycle.isCurrent ? `<div class="cell tap" data-act="ask"><div class="main"><div class="link">${p ? 'Ask the CFO for a new plan' : 'Ask the CFO for a plan'}</div>
       <div class="s wrap">About 1 minute · about $0.06 of AI credit · looks back at the last plan</div></div></div>` : ''}
     ${r.count ? `<div class="cell tap" data-act="history"><div class="main">History</div><span class="num d">${r.count}</span><span class="chev">›</span></div>` : ''}
   </div><div class="footnote">The CFO only works when you ask. Tick each step when it's done, so the next plan knows.</div></div>`;
+}
+
+/** The CFO's verdict on the owner's fixed emergency fund plan. */
+const EMERGENCY_VERDICT = { enough: ['Enough', 'var(--green)'], not_enough: ['Not enough yet', 'var(--orange)'], more_than_needed: ['More than needed', 'var(--tint)'], unknown: ['Not sure yet', 'var(--label2)'] };
+function emergencyBlock(r, compact) {
+  const e = r && r.emergency_review;
+  if (!e) return '';
+  const [label, color] = EMERGENCY_VERDICT[e.verdict] || EMERGENCY_VERDICT.unknown;
+  const goal = e.months_to_goal > 0 ? ` · about ${String(Math.round(e.months_to_goal * 10) / 10).replace('.', ',')} months to the goal` : '';
+  if (compact) return `<div class="cell tap" data-act="report" data-id="${r.id}"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund: <span style="color:${color};font-weight:600">${label}</span></div>
+    <div class="s wrap">${esc(shorten(e.reason))}</div></div><span class="chev">›</span></div>`;
+  return `<div class="section"><div class="header"><span>Your emergency fund plan</span><span style="color:${color};font-weight:600">${label}</span></div><div class="group">
+    <div class="cell"><div class="emo">🛟</div><div class="main"><div class="wrap">${esc(shorten(e.reason))}</div>${goal ? `<div class="s">${esc(goal.slice(3))}</div>` : ''}</div></div>
+    ${(e.improve || []).map(x => `<div class="cell" style="align-items:flex-start"><span style="color:var(--tint);font-weight:700;width:16px;flex:none">→</span><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}
+  </div></div>`;
 }
 
 const todoRow = (p, text, i) => { const on = (p.actions_done || []).includes(i); return `<div class="cell"><button class="check ${on ? 'on' : ''}" data-act="todo" data-id="${p.id}" data-i="${i}" data-on="${on ? 1 : 0}" aria-label="${on ? 'Done' : 'Mark as done'}">${on ? ICON.ok : ''}</button>
@@ -730,6 +746,7 @@ function reportSheet(id) {
     <div class="section"><div class="header"><span>What I think now</span></div><div class="group"><div class="cell"><div class="main">
       <div class="wrap" style="font-weight:600">${esc(shorten(r.title))}</div><div class="wrap" style="margin-top:6px">${esc(shorten(r.summary))}</div></div></div>
       ${(r.highlights || []).map(x => `<div class="cell"><div class="main wrap">${esc(shorten(x))}</div></div>`).join('')}</div></div>
+    ${emergencyBlock(r, false)}
     ${(r.actions || []).length ? `<div class="section"><div class="header"><span>Do this</span></div><div class="group">${r.actions.map((a, i) => todoRow(r, a, i)).join('')}</div></div>` : ''}
     ${plan.length ? `<div class="section"><div class="header"><span>Budget it proposed</span><span>${rs(plan.filter(x => x.category !== 'Emergency fund').reduce((s, x) => s + x.amount, 0))}</span></div><div class="group">
       ${plan.map(x => `<div class="cell" style="align-items:flex-start">${x.category === 'Emergency fund' ? '<div class="emo">🛟</div>' : emo(d, x.category)}<div class="main">
