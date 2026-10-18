@@ -149,13 +149,13 @@
   .acct svg { width: 22px; height: 22px; } .acct.sm svg { width: 13px; height: 13px; }
   .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
   .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
-  /* Wide screens (Mac, iPad landscape): two columns, the tab bar becomes a side rail, sheets sit in the middle. */
-  .cols { display: contents; }
+  /* Wide screens (Mac, iPad landscape): sections flow into balanced columns, the tab bar becomes a side rail, sheets sit in the middle. */
+  .cols, .cols > .col { display: contents; }
   @media (min-width: 900px) {
-    .screen { max-width: 1180px; padding: 28px 24px 40px 112px; }
-    .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
-    .cols > .col { min-width: 0; }
-    .cols > .col > .section:first-child, .cols > .col > .title-row:first-child { margin-top: 0; }
+    .screen { max-width: 1240px; padding: 28px 24px 40px 112px; }
+    .cols { display: block; column-count: 2; column-gap: 28px; }
+    .cols > .col { display: contents; }
+    .cols .section, .cols .more { break-inside: avoid; page-break-inside: avoid; -webkit-column-break-inside: avoid; margin-top: 0; margin-bottom: 22px; }
     .more { display: none; }
     .tabbar { top: 0; bottom: 0; right: auto; width: 88px; border-top: 0; border-right: .5px solid var(--sep); padding: 24px 0 0; }
     .tabbar .in { flex-direction: column; height: auto; gap: 8px; }
@@ -164,6 +164,10 @@
     .sheet-bg { align-items: center; }
     .sheet { border-radius: 16px; max-height: 88vh; }
     .mood .ring { width: 180px !important; height: 180px !important; }
+  }
+  @media (min-width: 1400px) {
+    .screen { max-width: 1800px; }
+    .cols { column-count: 3; }
   }
 </style>
 </head>
