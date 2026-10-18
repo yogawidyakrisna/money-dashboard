@@ -403,16 +403,18 @@ function budgetLeft(spent, limit) {
 const tiny = v => v >= 1e6 ? String(Math.round(v / 1e5) / 10).replace('.', ',') + 'jt' : String(Math.round(v / 1000));
 
 /** Bars with their amount written on top and a name under each; optional dashed limit line with its value. */
-function labeledBars(values, color, line, lineLabel) {
-  const W = 320, H = 160, top = 22, base = H - 22, n = values.length || 1, step = W / n, bw = Math.min(30, step * 0.62);
+function labeledBars(values, color, line, lineLabel, tall) {
+  const W = 320, H = tall ? 210 : 160, top = 22, base = H - 22, n = values.length || 1, step = W / n, bw = Math.min(30, step * 0.62);
   const max = Math.max(1, line || 0, ...values.map(v => Math.max(v.v, v.lim || 0))), y = v => base - (v / max) * (base - top);
   const perBar = values.some(v => v.lim !== undefined);
   const bars = values.map((p, i) => {
-    const lim = p.lim !== undefined ? p.lim : line, cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = lim && p.v > lim;
-    return `${perBar && lim ? `<line x1="${i * step + 2}" x2="${(i + 1) * step - 2}" y1="${y(lim)}" y2="${y(lim)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>` : ''}${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="4" style="fill:${over ? 'var(--red)' : color};opacity:${p.hl ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
-      <text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:${n > 8 ? 9 : 10}px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(n > 8 ? tiny(p.v) : rs(p.v).replace('Rp', '')) : '0'}</text>
-      <text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>
-`;
+    // p.ghost = a day still to come (its allowance, drawn pale); p.showV === false hides the amount; p.key makes the bar open that day's struk.
+    const lim = p.lim !== undefined ? p.lim : line, cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = !p.ghost && lim && p.v > lim, rx = Math.min(4, bw / 3);
+    const fill = p.ghost ? 'var(--fill)' : over ? 'var(--red)' : color;
+    const bar = `${perBar && lim && !p.ghost ? `<line x1="${i * step + 1}" x2="${(i + 1) * step - 1}" y1="${y(lim)}" y2="${y(lim)}" stroke-dasharray="${n > 14 ? '2 2' : '4 3'}" style="stroke:var(--label2)" stroke-width="1"/>` : ''}${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="${rx}" style="fill:${fill};opacity:${p.hl || p.ghost ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
+      ${p.showV === false ? '' : `<text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:${n > 8 ? 9 : 10}px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(n > 8 ? tiny(p.v) : rs(p.v).replace('Rp', '')) : '0'}</text>`}
+      ${p.label ? `<text x="${i === 0 && n > 14 ? i * step : i === n - 1 && n > 14 ? (i + 1) * step : cx}" y="${H - 6}" text-anchor="${i === 0 && n > 14 ? 'start' : i === n - 1 && n > 14 ? 'end' : 'middle'}" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>` : ''}`;
+    return p.key ? `<g data-act="dayStruk" data-id="${esc(p.key)}" style="cursor:pointer"><rect x="${i * step}" y="0" width="${step}" height="${H}" fill="transparent"/>${bar}</g>` : bar;
   }).join('');
   const ln = line && !perBar ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
     <text x="2" y="${y(line) - 4}" style="font-size:10px;fill:var(--label2)">${esc(lineLabel || '')}</text>` : '';
@@ -1164,20 +1166,29 @@ function chartCard(d, r, txs) {
       <div class="hbar"><div style="width:${Math.max(2, v / rows[0][1] * 100)}%;background:${groupColor(catInfo(d, cat).group)}"></div></div></div>`).join('')}</div>`
       : '<div class="muted" style="padding:20px 0;text-align:center">Tidak ada belanja di rentang ini</div>';
   } else if (S.range === 'cycle') {
-    const weeks = [];
-    for (let i = 0; i < flex.length; i += 7) {
-      const w = flex.slice(i, i + 7);
-      weeks.push({ label: shortDay(w[0].date), v: w.reduce((s, x) => s + x.v, 0), hl: w.some(x => x.date === today) });
-    }
-    chart = labeledBars(weeks, 'var(--tint)', 0);
+    // Every day of the cycle, payday to payday: what was spent, and for the days still to come their allowance (pale).
+    // Amounts are written only where they matter (days over the limit, the biggest day, today) so 28 bars stay readable.
+    const all = cycleDays(d), ti = all.findIndex(c => c.today);
+    const spaced = (order, gap, max) => { const kept = []; for (const i of order) { if (kept.length >= max) break; if (kept.every(k => Math.abs(k - i) > gap)) kept.push(i); } return new Set(kept); };
+    // Amounts: today first, then the biggest days over their limit, never two within 2 bars of each other.
+    const vOrder = [ti].concat(all.map((c, i) => i).filter(i => i !== ti && !all[i].future && all[i].every > 0 && (all[i].limit ? all[i].every > all[i].limit : true)).sort((a, b) => all[b].every - all[a].every)).filter(i => i >= 0 && all[i].every > 0);
+    const showV = spaced(vOrder, 1, 7);
+    // Dates: today, the first and last day, then every 7th day, never two within 3 bars of each other.
+    const lOrder = [ti, 0, all.length - 1].concat(all.map((c, i) => i).filter(i => i % 7 === 0)).filter(i => i >= 0);
+    const showL = spaced(lOrder, 3, 8);
+    chart = labeledBars(all.map((c, i) => {
+      const t = dateOf(c.key);
+      return { key: c.key, v: c.future ? c.limit : c.every, ghost: c.future, hl: c.today, lim: c.limit || 0, showV: showV.has(i),
+        label: !showL.has(i) ? '' : c.today ? 'Hari ini' : t.getDate() + ' ' + BULAN[t.getMonth()] };
+    }), 'var(--tint)', 0, '', true);
   } else {
     chart = labeledBars(flex.map(x => {
       const dt = new Date(x.date + 'T00:00:00');
-      return { v: x.v, hl: x.date === today, lim: limitFor(d, x.date) || 0, label: x.date === today ? 'Hari ini' : S.range === '7' ? HARI[dt.getDay()] : String(dt.getDate()) };
+      return { key: x.date, v: x.v, hl: x.date === today, lim: limitFor(d, x.date) || 0, label: x.date === today ? 'Hari ini' : S.range === '7' ? HARI[dt.getDay()] : String(dt.getDate()) };
     }), 'var(--tint)', limit, '');
   }
   const facts = S.chartBy === 'category' ? 'Bagian dari belanja harianmu. Ketuk kategori untuk detailnya'
-    : `Sekitar ${rs(avg)} sehari${d.spend.perDay ? ` · batas ${rs(d.spend.perDay)}${d.spend.perWeekend && d.spend.perWeekend !== d.spend.perDay ? ' (' + rs(d.spend.perWeekend) + ' akhir pekan)' : ''}` : ''}${overDays ? ` · <span class="red">${overDays} hari lewat</span>` : ''}${S.range === 'cycle' ? ' · batang = minggu' : S.range === '14' ? ' · angka dalam rb' : ''}`;
+    : `Sekitar ${rs(avg)} sehari${d.spend.perDay ? ` · batas ${rs(d.spend.perDay)}${d.spend.perWeekend && d.spend.perWeekend !== d.spend.perDay ? ' (' + rs(d.spend.perWeekend) + ' akhir pekan)' : ''}` : ''}${overDays ? ` · <span class="red">${overDays} hari lewat</span>` : ''}${S.range === 'cycle' ? ' · batang pucat = jatah hari yang belum lewat · angka dalam rb' : S.range === '14' ? ' · angka dalam rb' : ''} · ketuk batang untuk struknya`;
   return `<div class="section"><div class="group chart" style="padding:12px">
     ${seg('chartBy', S.chartBy, [['time', 'Per waktu'], ['category', 'Per kategori']], true)}
     ${chart}
@@ -1654,6 +1665,7 @@ document.addEventListener('click', e => {
     case 'cat': catSheet(id); break;
     case 'rangeCat': rangeCatSheet(id); break;
     case 'tambal': tambalSheet(id); break;
+    case 'dayStruk': S.day = id; sheet(tgl(id), `<div class="paper-slot" style="margin-top:6px">${strukHtml(S.data, false)}</div>`); break;
     case 'tambalMode': S.tambalMode = id; if (S.tambal) tambalSheet(S.tambal.cat); break;
     case 'tambalSave': tambalSave(id); break;
     case 'why': whySheet(); break;
