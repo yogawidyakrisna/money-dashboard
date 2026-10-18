@@ -421,6 +421,8 @@ function home(d) {
   <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
     : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>
 
+  ${incomeCard(d)}
+
   <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
   ${moreOpen ? `
   ${cfoSection(d)}
@@ -461,6 +463,28 @@ function home(d) {
     <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export to Excel (CSV)</a>
     <div class="cell tap" data-act="copy"><div class="main link">Copy Shortcut URL</div></div>
   </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>` : ''}`;
+}
+
+/** Where the income goes: fixed (Family, Bills, Emergency fund), investing, adjustable (the everyday categories), and what is not planned yet. */
+const FIXED_CATS = ['Family', 'Bills'];
+function incomeCard(d) {
+  const cap = d.budgets.cap, rows = d.budgets.rows.filter(r => !r.reserve), saving = d.budgets.saving || [];
+  if (!cap || d.budgets.state === 'none') return '';
+  const sum = (list, f) => list.filter(f).reduce((a, r) => a + r.limit, 0);
+  const fixed = sum(rows, r => FIXED_CATS.includes(r.category)) + sum(saving, r => r.category === 'Emergency fund');
+  const investing = sum(saving, r => r.category === 'Investing');
+  const adjustable = sum(rows, r => !FIXED_CATS.includes(r.category));
+  const free = Math.max(0, cap - fixed - investing - adjustable);
+  const over = fixed + investing + adjustable - cap;
+  const parts = [['Fixed', fixed, 'var(--label3)'], ['Investing', investing, 'var(--g-family)'], ['Adjustable', adjustable, 'var(--green)'], ['Not planned', free, 'var(--fill)']].filter(p => p[1] > 0);
+  const adjRows = rows.filter(r => !FIXED_CATS.includes(r.category)).sort((a, b) => b.limit - a.limit);
+  return `<div class="section"><div class="group"><div class="cell tap" data-act="plan" style="display:block">
+    <div class="field"><span style="font-weight:600">Your ${rs(cap)} a cycle</span><span class="d" style="font-size:15px">${over > 0 ? '<span class="red">' + rs(over) + ' over</span>' : 'Edit ›'}</span></div>
+    <div class="stack" style="margin-top:10px">${parts.map(p => `<div style="width:${p[1] / cap * 100}%;background:${p[2]}"></div>`).join('')}</div>
+    <div class="legend" style="margin-top:10px">${parts.map(p => `<div><span class="dot" style="background:${p[2]}"></span>${p[0]}<span class="num">${rs(p[1])}</span></div>`).join('')}</div>
+    <div class="s wrap" style="margin-top:10px"><b style="font-weight:600;color:var(--label)">You can adjust ${rs(adjustable)}</b> · ${adjRows.map(r => esc(r.category) + ' ' + rs(r.limit)).join(' · ')}</div>
+    <div class="s wrap" style="margin-top:4px">Fixed: ${rows.filter(r => FIXED_CATS.includes(r.category)).map(r => esc(r.category) + ' ' + rs(r.limit)).concat(saving.filter(r => r.category === 'Emergency fund').map(r => 'Emergency fund ' + rs(r.limit))).join(' · ')}</div>
+  </div></div></div>`;
 }
 
 /** What today looks like: spent so far (fixed bills left out) against today's share of what is left. */
