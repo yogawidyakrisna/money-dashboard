@@ -149,6 +149,22 @@
   .acct svg { width: 22px; height: 22px; } .acct.sm svg { width: 13px; height: 13px; }
   .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
   .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
+  /* Wide screens (Mac, iPad landscape): two columns, the tab bar becomes a side rail, sheets sit in the middle. */
+  .cols { display: contents; }
+  @media (min-width: 900px) {
+    .screen { max-width: 1180px; padding: 28px 24px 40px 112px; }
+    .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; align-items: start; }
+    .cols > .col { min-width: 0; }
+    .cols > .col > .section:first-child, .cols > .col > .title-row:first-child { margin-top: 0; }
+    .more { display: none; }
+    .tabbar { top: 0; bottom: 0; right: auto; width: 88px; border-top: 0; border-right: .5px solid var(--sep); padding: 24px 0 0; }
+    .tabbar .in { flex-direction: column; height: auto; gap: 8px; }
+    .tabbar button { flex: none; height: 64px; font-size: 11px; }
+    .badge { left: auto; right: 14px; margin-left: 0; }
+    .sheet-bg { align-items: center; }
+    .sheet { border-radius: 16px; max-height: 88vh; }
+    .mood .ring { width: 180px !important; height: 180px !important; }
+  }
 </style>
 </head>
 <body>
@@ -407,8 +423,8 @@ function home(d) {
   const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
   const rows = b.rows.filter(x => !x.reserve && (x.limit > 0 || x.spent > 0)), reserve = sp.reserve || { budget: 0, used: 0 };
   const shown = S.showAll ? rows : rows.slice(0, 5);
-  const moreOpen = S.more;
-  return `
+  const moreOpen = S.more || isWide();
+  return `<div class="cols"><div class="col">
   ${moodCard(d)}
   ${todayCard(d)}
 
@@ -416,7 +432,7 @@ function home(d) {
     : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>
 
   ${incomeCard(d)}
-
+  </div><div class="col">
   <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
   ${moreOpen ? `
   ${cfoSection(d)}
@@ -454,7 +470,8 @@ function home(d) {
     ${!d.cycle.isCurrent ? '<div class="cell tap" data-act="current"><div class="main link">Back to this cycle</div></div>' : ''}
     <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export to Excel (CSV)</a>
     <div class="cell tap" data-act="copy"><div class="main link">Copy Shortcut URL</div></div>
-  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>` : ''}`;
+  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>` : ''}
+  </div></div>`;
 }
 
 /** Where the income goes: fixed (Family, Bills, Emergency fund), investing, adjustable (the everyday categories), and what is not planned yet. */
@@ -704,11 +721,14 @@ function transactions(d) {
   return `<div class="title-row"><h1 class="large-title">Spending</h1></div>
     <div class="subtitle">${esc(shortDay(r.from))} – ${esc(shortDay(r.to))}${d.cycle.isCurrent ? ' · payday ' + esc(paydayLabel(d)) : ''}</div>
     ${seg('range', S.range, [['7', '7 days'], ['14', '14 days'], ['cycle', 'Full cycle']])}
+    <div class="cols"><div class="col">
     ${chartCard(d, r, txs)}
     ${planCard(d)}
+    </div><div class="col">
     ${groupsCard(d, r, txs)}
     ${(d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Not counted</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : ''}
-    <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>`;
+    <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>
+    </div></div>`;
 }
 
 /** The chart for the chosen range: over time (per day, or per week for a whole cycle) or by category. */
@@ -1157,10 +1177,14 @@ function render() {
 
 /** Opens the "More" part of Home if needed, then scrolls to one of its sections. */
 function openMoreAt(id) {
-  if (!S.more) { S.more = true; store.set('money:more', true); render(); }
+  if (!S.more && !isWide()) { S.more = true; store.set('money:more', true); render(); }
   const box = document.getElementById(id);
   if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+const isWide = () => window.matchMedia('(min-width: 900px)').matches;
+let resizeTimer = null;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
 
 function goTab(tab) { S.tab = tab; store.set('money:tab', tab); window.scrollTo(0, 0); render(); if (tab === 'activity') load(); }
 
