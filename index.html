@@ -120,6 +120,10 @@
   .share > div { height: 100%; border-radius: 2px; }
   .why { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 11px; border-top: .5px solid var(--sep); font-size: 15px; color: var(--label2); }
   .why .link { flex: none; }
+  .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 64px); transform: translateX(-50%); z-index: 20; display: none; align-items: center; gap: 16px;
+    padding: 12px 18px; border-radius: 14px; background: rgba(28,28,30,.94); color: #fff; font-size: 15px; box-shadow: 0 6px 24px rgba(0,0,0,.25); white-space: nowrap; }
+  .toast button { border: 0; background: none; color: #64d2ff; font-weight: 600; padding: 0; }
+  .check[disabled] { opacity: .6; }
   .check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--label3); flex: none; display: grid; place-items: center; color: #fff; background: none; padding: 0; cursor: pointer; }
   .check.on { background: var(--green); border-color: var(--green); }
   .check svg { width: 14px; height: 14px; }
@@ -136,6 +140,7 @@
   <button data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Activity<span class="badge" id="badge" hidden></span></button>
 </div></nav>
 <div class="sheet-bg" id="sheetBg"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast" role="status"><span id="toastText"></span><button id="toastUndo">Undo</button></div>
 <script>
 const API = 'https://vxyofgwxkeruvaxqqzhq.supabase.co/functions/v1/api';
 const INGEST = API.replace(/\/api$/, '/ingest');
@@ -478,6 +483,9 @@ function transactions(d) {
     ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span><span class="num">${g.txs.some(t => t.spending) ? rs(g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0)) : ''}</span></div>
       <div class="group">${g.txs.map(t => txRow(t, txSub(t) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}</div></div>`).join('')
       : `<div class="empty">${S.filter === 'review' ? 'Nothing to check.' : 'Nothing here yet. Double-tap the back of your iPhone on a receipt.'}</div>`}
+    ${!S.filter && (d.ignored || []).length ? `<div class="section"><div class="header"><span>Not counted</span><span>${d.ignored.length}</span></div>
+      <div class="group">${d.ignored.map(t => txRow(t, t.label + ' · ' + txSub(t), 'edit')).join('')}</div>
+      <div class="footnote">You set these to "don't count". Tap one and choose "Count it? Yes" to bring it back.</div></div>` : ''}
     <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>`;
 }
 
@@ -583,6 +591,8 @@ function closeSheet() { document.getElementById('sheetBg').style.display = 'none
 
 function findTx(id) {
   for (const g of S.data.days) for (const t of g.txs) if (t.id === id) return { ...t, day: g.label };
+  const hidden = (S.data.ignored || []).find(x => x.id === id);
+  if (hidden) return { ...hidden, day: hidden.label };
   const c = S.data.claims && S.data.claims.todo.concat(S.data.claims.done).find(x => x.id === id); // a bill from an earlier cycle
   return c ? { ...c, day: c.label, time: '', direction: 'out', category: 'Medical', spending: true, to: '', status: 'ok' } : null;
 }
@@ -621,21 +631,52 @@ async function saveTx(id) {
   if (!amount) return err('Enter an amount.');
   if (v('eDir') === 'transfer' && !v('eTo')) return err('Choose the account the money went to.');
   try {
-    const claim = document.getElementById('eClaim');
+    const claim = document.getElementById('eClaim'), before = findTx(id);
     await api('POST', { action: 'update_tx', id, patch: { amount, direction: v('eDir'), category: v('eCat'), account: v('eAcc'), to_account: v('eDir') === 'transfer' ? v('eTo') : '', status: v('eStatus') === 'check' ? 'ok' : v('eStatus'), ...(claim ? { claim: claim.value || null } : {}) } });
     closeSheet(); load();
+    if (v('eStatus') === 'ignore' && before && before.status !== 'ignore') {
+      toast('Not counted', () => api('POST', { action: 'restore_tx', id, status: before.status, reviewed: before.reviewed }));
+    } else toast('Saved');
   } catch (e) { err(e.message); }
 }
 
+/** A short message at the bottom with an Undo button, for one-tap actions that are easy to hit by mistake. */
+let toastTimer = null, toastUndo = null;
+function toast(text, undo) {
+  const box = document.getElementById('toast');
+  document.getElementById('toastText').textContent = text;
+  document.getElementById('toastUndo').hidden = !undo;
+  toastUndo = undo || null;
+  box.style.display = 'flex';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { box.style.display = 'none'; toastUndo = null; }, 7000);
+}
+document.getElementById('toastUndo').addEventListener('click', async () => {
+  const undo = toastUndo;
+  document.getElementById('toast').style.display = 'none'; toastUndo = null;
+  if (undo) { try { await undo(); load(); } catch (e) { alert(e.message); } }
+});
+
+/** Shows a checkbox as ticked or not, and keeps its state on the element so the next tap does the opposite. */
+function setCheck(el, on) {
+  el.classList.toggle('on', on); el.innerHTML = on ? ICON.ok : ''; el.dataset.on = on ? '1' : '0';
+  el.setAttribute('aria-label', on ? 'Done' : 'Mark as done');
+}
+
 async function setClaim(id, claim, el) {
-  el.classList.toggle('on', !!claim); el.innerHTML = claim ? ICON.ok : '';
-  try { await api('POST', { action: 'set_claim', id, claim }); load(); }
-  catch (e) { S.error = e.message; status(); load(); }
+  if (el.disabled) return;
+  setCheck(el, !!claim); el.disabled = true;
+  try { await api('POST', { action: 'set_claim', id, claim }); }
+  catch (e) { setCheck(el, !claim); S.error = e.message; status(); }
+  finally { el.disabled = false; load(); }
 }
 
 async function confirmTx(id) {
-  try { await api('POST', { action: 'confirm_tx', id }); closeSheet(); load(); }
-  catch (e) { const el = document.getElementById('eErr'); if (el) el.textContent = e.message; }
+  const t = findTx(id);
+  try {
+    await api('POST', { action: 'confirm_tx', id }); closeSheet(); load();
+    if (t) toast('Marked as right', () => api('POST', { action: 'restore_tx', id, status: t.status, reviewed: t.reviewed }));
+  } catch (e) { const el = document.getElementById('eErr'); if (el) el.textContent = e.message; }
 }
 
 function planSheet() {
@@ -712,12 +753,14 @@ async function historySheet() {
 }
 
 async function setTodo(id, i, done, el) {
-  el.classList.toggle('on', done); el.innerHTML = done ? ICON.ok : '';
+  if (el.disabled) return;
+  setCheck(el, done); el.disabled = true;
   for (const r of [S.data.reports.latest, ...(S.history || [])]) {
     if (r && r.id === id) r.actions_done = done ? [...new Set([...(r.actions_done || []), i])] : (r.actions_done || []).filter(x => x !== i);
   }
-  try { await api('POST', { action: 'toggle_action', id, index: i, done }); if (document.getElementById('sheetBg').style.display !== 'flex') render(); load(); }
-  catch (e) { S.error = e.message; status(); }
+  try { await api('POST', { action: 'toggle_action', id, index: i, done }); }
+  catch (e) { setCheck(el, !done); S.error = e.message; status(); }
+  finally { el.disabled = false; if (document.getElementById('sheetBg').style.display !== 'flex') render(); load(); }
 }
 
 function shotSheet(id) {
@@ -732,7 +775,8 @@ function shotSheet(id) {
       ${repeats ? `<div class="footnote">${repeats} already saved from another screenshot, so not counted twice.</div>` : ''}</div>`
       : `<div class="section" style="margin-top:6px"><div class="group"><div class="cell"><div class="main wrap">${esc(shorten(a.notification || a.error || 'Nothing saved'))}</div></div></div></div>`}
     ${a.balances.length ? `<div class="section"><div class="header"><span>Balances</span></div><div class="group">${a.balances.map(x => `<div class="cell"><div class="main">${esc(x.account)}</div><span class="num">${rs(x.balance)}</span></div>`).join('')}</div></div>` : ''}
-    ${(a.unassigned || []).filter(u => !u.assigned).length ? `<div class="section"><div class="header"><span>Which account is this?</span></div><div class="group">${a.unassigned.map((u, i) => u.assigned ? ''
+    ${(a.unassigned || []).length ? `<div class="section"><div class="header"><span>Which account is this?</span></div><div class="group">${a.unassigned.map((u, i) => u.assigned
+      ? `<div class="cell"><div class="main"><div class="num">${rs(u.balance_idr)}</div><div class="s">${u.assigned === 'ignore' ? 'Ignored' : 'Saved as ' + esc(u.assigned)}</div></div><span class="link tap" data-act="unassign" data-id="${a.id}" data-i="${i}">Undo</span></div>`
       : `<label class="cell field"><span class="num">${rs(u.balance_idr)}</span><select data-assign="${i}" data-shot="${a.id}"><option value="">Choose</option>${accounts.map(n => `<option>${esc(n)}</option>`).join('')}<option value="ignore">Ignore</option></select></label>`).join('')}</div></div>` : ''}
     ${left.length ? `<div class="section"><div class="header"><span>Not counted</span></div><div class="group">${left.map(x => `<div class="cell"><div class="main"><div class="wrap">${esc(shorten(x.text))}</div><div class="s wrap">${esc(x.reason)}</div></div></div>`).join('')}</div></div>` : ''}
     ${a.hasImage ? `<div class="section"><div class="group"><div class="cell tap" data-act="image" data-id="${a.id}"><div class="main link">Show screenshot</div></div></div><div id="img-${a.id}" style="margin-top:10px"></div></div>` : ''}
@@ -744,6 +788,14 @@ async function showImage(id) {
   box.innerHTML = '<p class="status">Loading…</p>';
   try { const { url } = await api('GET', null, '?image=' + encodeURIComponent(id)); box.innerHTML = `<img class="shot" src="${esc(url)}" alt="Screenshot">`; }
   catch (e) { box.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+}
+
+async function unassign(shotId, index) {
+  try {
+    await api('POST', { action: 'unassign_balance', screenshot_id: shotId, index });
+    const a = await api('GET', null, '?view=activity'); S.activity = a; store.set('money:activity', a);
+    shotSheet(shotId); load();
+  } catch (e) { alert(e.message); }
 }
 
 async function assign(sel) {
@@ -794,7 +846,17 @@ document.addEventListener('click', e => {
     case 'plan': planSheet(); break;
     case 'approve': approve(); break;
     case 'report': reportSheet(id); break;
-    case 'ask': ask(); break;
+    case 'ask': {
+      // Costs AI credit, so a mis-tap does nothing: the first tap asks to confirm, the second within 5 seconds asks the CFO.
+      if (el.dataset.armed === '1') { ask(); break; }
+      el.dataset.armed = '1';
+      const label = el.querySelector('.link') || el;
+      const before = label.textContent;
+      label.textContent = 'Tap again to ask (about $0.06)';
+      setTimeout(() => { if (el.isConnected) { el.dataset.armed = ''; label.textContent = before; } }, 5000);
+      break;
+    }
+    case 'unassign': unassign(id, Number(el.dataset.i)); break;
     case 'history': historySheet(); break;
     case 'todo': setTodo(id, Number(el.dataset.i), el.dataset.on !== '1', el); break;
     case 'gotoCfo': { const box = document.getElementById('cfo'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
