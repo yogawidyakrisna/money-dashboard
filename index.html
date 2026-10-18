@@ -171,7 +171,7 @@ const KEY = params.get('k') || store.get('money:key');
 const S = { tab: (store.get('money:tab') === 'summary' ? 'home' : store.get('money:tab')) || 'home', data: store.get('money:dash'),
   activity: store.get('money:activity'), cycle: null, filter: null, showAll: false, loading: false, error: '', at: 0, more: store.get('money:more') === true,
   range: store.get('money:range') || '7', chartBy: store.get('money:chartBy') || 'time', groupBy: store.get('money:groupBy') || 'category',
-  open: null, planAll: false };
+  open: null, planAll: false, moneyView: store.get('money:view') || 'cycle' };
 let poll = null;
 
 // Money: full for details, short everywhere else (no walls of zeros).
@@ -374,27 +374,21 @@ function whyLine(d) {
 }
 
 function whySheet() {
-  const d = S.data, sp = d.spend, r = room(d);
-  const reason = x => x.reason ? shorten(x.reason) : '';
-  sheet('Why ' + rs(sp.perDay) + ' a day', `
-    <div class="big-amount">${rs(sp.perDay)} <span style="font-size:20px;color:var(--label2)">weekdays</span></div>
-    ${sp.perWeekend && sp.perWeekend !== sp.perDay ? `<div class="big-amount" style="padding-top:0">${rs(sp.perWeekend)} <span style="font-size:20px;color:var(--label2)">weekends</span></div>` : ''}
-    <div class="footnote" style="text-align:center;padding-top:2px">${sp.left >= 0 ? rs(sp.left) + ' left until payday (' + paydayLabel(d) + ')' : rs(-sp.left) + ' over budget'}${sp.weekendRatio > 1 ? ` · a weekend day gets ${String(sp.weekendRatio).replace('.', ',')}× a weekday, from your own habits` : ''}</div>
-    <div class="section"><div class="header"><span>OK to spend here</span><span>${rs(r.roomTotal)}</span></div><div class="group">
-      ${r.open.length ? r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
-        <div class="field"><span class="t">${esc(x.category)}</span><span class="num green">${rs(x.left)} left</span></div>
-        <div class="s wrap">${x.perDay ? 'About ' + rs(x.perDay) + ' a day' : 'A little left'}${reason(x) ? ' · ' + esc(reason(x)) : ''}</div></div></div>`).join('')
-      : '<div class="cell"><div class="main muted">Every category is used up.</div></div>'}
+  const d = S.data, sp = d.spend, r = room(d), t = todayInfo(d);
+  const leftToday = Math.max(0, (t.limit || 0) - t.spent);
+  sheet('What you still have', `
+    <div class="big-amount">${rs(Math.max(0, sp.left))}</div>
+    <div class="footnote" style="text-align:center;padding-top:2px">until payday, ${paydayLabel(d)} · ${d.cycle.daysLeft} days</div>
+    <div class="section"><div class="group">
+      <div class="cell"><div class="main"><div class="t">Today</div><div class="s">${rs(t.spent)} spent so far</div></div><span class="num" style="font-weight:600">${rs(leftToday)} left</span></div>
+      <div class="cell"><div class="main"><div class="t">Each weekday</div></div><span class="num">${rs(sp.perDay)}</span></div>
+      ${sp.perWeekend && sp.perWeekend !== sp.perDay ? `<div class="cell"><div class="main"><div class="t">Each weekend day</div><div class="s">${String(sp.weekendRatio).replace('.', ',')}× a weekday, from your own habits</div></div><span class="num">${rs(sp.perWeekend)}</span></div>` : ''}
     </div></div>
-    ${r.over.length ? `<div class="section"><div class="header"><span>Already over</span><span class="red">−${rs(r.overTotal)}</span></div><div class="group">
-      ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
-        <div class="field"><span class="t">${esc(x.category)}</span><span class="num red">${rs(x.over)} over</span></div>
-        <div class="s wrap">${x.limit ? 'Budget ' + rs(x.limit) : 'No budget'} · try not to spend more here</div></div></div>`).join('')}
-    </div><div class="footnote">This comes out of the room above.</div></div>` : ''}
-    ${r.done.length ? `<div class="section"><div class="header"><span>Done for this cycle</span></div><div class="group">
-      ${r.done.map(x => `<div class="cell">${emo(d, x.category)}<div class="main"><div class="t">${esc(x.category)}</div><div class="s">Fixed payment, nothing more to spend</div></div><span class="green">✓ Paid</span></div>`).join('')}
-    </div></div>` : ''}
-    <div class="footnote" style="padding:12px 32px 0">${whySum(r, sp)}. You can move room between categories: spending more in one leaves less for the others. Your urgent reserve (Other) is not part of this.</div>`);
+    <div class="section"><div class="header"><span>Where it can go</span><span>${rs(r.roomTotal)} room</span></div><div class="group">
+      ${r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(x.category)}</span><span class="num green">${rs(x.left)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
+      ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(x.category)}</span><span class="num red">${rs(x.over)} over</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
+      ${!r.open.length && !r.over.length ? '<div class="cell"><div class="main muted">Every category is used up.</div></div>' : ''}
+    </div><div class="footnote">${r.over.length ? 'Red categories are over budget; that comes out of the room. ' : ''}${r.done.length ? 'Paid in full: ' + r.done.map(x => esc(x.category)).join(', ') + '. ' : ''}${whySum(r, sp)}.</div></div>`);
 }
 
 /** The sum behind the number, exact: room − over (± what is left in paid fixed bills) = left. */
@@ -453,13 +447,7 @@ function home(d) {
       <span class="num ${done ? 'green' : 'd'}">${done ? '✓ ' : ''}${rs(f.amount)}</span></div>`; }).join('')}
   </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
 
-  <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
-    ${nw.accounts.filter(a => a.kind !== 'investment').map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}${a.name === 'Dana Darurat' ? ' <span class="chip blue">emergency fund</span>' : ''}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
-  </div>
-  ${nw.accounts.some(a => a.kind === 'investment') ? `<div class="header" style="padding-top:14px"><span>Investments</span><span>${rs(nw.investments || 0)}</span></div><div class="group">
-    ${nw.accounts.filter(a => a.kind === 'investment').map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))} · not counted in your money</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
-  </div>` : ''}${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
-  ${whereItSits(d)}
+  ${moneySection(d)}
 
   <div class="section"><div class="group">
     <div class="cell tap" data-act="prev"><div class="main link">See last cycle</div></div>
@@ -570,23 +558,41 @@ function savingSection(d) {
   </div></div>`;
 }
 
-/** The bank money is not the budget room: this cycle's leftover, what is planned but not moved yet, and older savings. */
-function whereItSits(d) {
+/** The money picture, in one card with two views: "This cycle" (what is usable now) and "All accounts" (every balance, with the parked pay marked). */
+function moneyBuckets(d) {
   const total = d.netWorth.total, sp = d.spend, sv = d.budgets.saving || [];
-  if (!total || !d.cycle.isCurrent) return '';
-  const daily = Math.max(0, sp.left);
+  const daily = Math.max(0, sp.left), fund = d.netWorth.fund || 0, parked = d.parked || 0;
   const emergency = sv.find(r => r.category === 'Emergency fund'), investing = sv.find(r => r.category === 'Investing');
   const toFund = emergency ? Math.max(0, emergency.limit - emergency.spent) : 0, toInvest = investing ? Math.max(0, investing.limit - investing.spent) : 0;
-  const fund = d.netWorth.fund, inFund = fund !== null && fund !== undefined, parked = d.parked || 0;
-  // What is free after the parked pay, the fund and today's room: the investing plan can only use that much.
-  const free = Math.max(0, total - parked - (inFund ? fund : 0) - daily - toFund);
-  const canInvest = Math.min(toInvest, free), short = toInvest - canInvest, savings = Math.max(0, free - canInvest);
-  const rows = [['Parked for the ' + paydayLabel(d) + ' cycle', parked, 'Your 15th pay · not for this cycle'], ['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s plan, if not moved yet'],
-    ['To invest', canInvest, short > 0 ? rs(short) + ' short of the ' + rs(toInvest) + ' plan · the rest waits for next cycle' : 'This cycle\'s plan, not invested yet'], ['Emergency fund', inFund ? fund : 0, 'In your Dana Darurat account'],
-    [inFund ? 'Not allocated' : 'Your savings', savings, inFund ? 'Free to use or invest' : 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
-  return `<div class="section"><div class="header"><span>Where your ${rs(total)} sits</span></div><div class="group">
-    ${rows.map(r => `<div class="cell"><div class="main"><div class="t">${r[0]}</div><div class="s wrap">${esc(r[2])}</div></div><span class="num">${rs(r[1])}</span></div>`).join('')}
-  </div><div class="footnote">"Left this cycle" is budget room, not bank money. Most of your balance is savings from before.</div></div>`;
+  const usable = Math.max(0, total - parked - fund); // what this cycle can still use
+  const free = Math.max(0, usable - daily - toFund);
+  const canInvest = Math.min(toInvest, free), short = toInvest - canInvest, spare = Math.max(0, free - canInvest);
+  return { total, parked, fund, usable, daily, toFund, canInvest, short, spare };
+}
+
+function moneySection(d) {
+  const nw = d.netWorth, m = moneyBuckets(d), view = S.moneyView || 'cycle';
+  const head = `<div class="header"><span>Your money</span><span>${rs(nw.total)}${nw.investments ? ' + ' + rs(nw.investments) + ' invested' : ''}</span></div>`;
+  const toggle = seg('moneyView', view, [['cycle', 'This cycle'], ['all', 'All accounts']], true);
+  if (view === 'cycle' && d.cycle.isCurrent) {
+    const parts = [['Daily until payday', m.daily, 'var(--green)'], ['To invest', m.canInvest, 'var(--g-family)'], ['To the emergency fund', m.toFund, 'var(--cyan, #64d2ff)'], ['Not allocated', m.spare, 'var(--fill)']].filter(p => p[1] > 0);
+    return `<div class="section" id="money">${head}<div class="group" style="padding:12px 16px 4px">${toggle}
+      <div class="s">Usable this cycle</div><div class="num" style="font-size:30px;font-weight:700">${rs(m.usable)}</div>
+      <div class="stack" style="margin-top:10px">${parts.map(p => `<div style="width:${p[1] / Math.max(1, m.usable) * 100}%;background:${p[2]}"></div>`).join('')}</div>
+      ${parts.map(p => `<div class="field" style="margin-top:10px"><span><span class="dot" style="background:${p[2]};display:inline-block;margin-right:8px"></span>${p[0]}</span><span class="num">${rs(p[1])}</span></div>`).join('')}
+      ${m.short > 0 ? `<div class="s wrap" style="margin-top:8px">The investing plan is ${rs(m.short)} more than what is free; that part waits for next cycle.</div>` : ''}
+      <div class="s wrap" style="margin-top:10px;padding-top:10px;border-top:.5px solid var(--sep)">Kept aside: <b style="font-weight:600;color:var(--label)">${rs(m.parked)}</b> parked for the ${paydayLabel(d)} cycle (your 15th pay, in Mandiri) · <b style="font-weight:600;color:var(--label)">${rs(m.fund)}</b> emergency fund (Dana Darurat).</div>
+    </div></div>`;
+  }
+  const row = a => { const isMandiri = a.name === 'Mandiri', parkedHere = isMandiri && m.parked > 0;
+    return `<div class="cell" style="${parkedHere ? 'display:block' : ''}">${parkedHere ? '<div style="display:flex;align-items:center;gap:12px">' : ''}${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}${a.name === 'Dana Darurat' ? ' <span class="chip blue">emergency fund</span>' : ''}${a.kind === 'investment' ? ' <span class="chip">investment</span>' : ''}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span>${parkedHere ? '</div>' : ''}
+      ${parkedHere ? `<div class="stack" style="margin:10px 0 0 54px;height:8px"><div style="width:${Math.min(100, (a.balance - m.parked) / Math.max(1, a.balance) * 100)}%;background:var(--green)"></div><div style="width:${Math.min(100, m.parked / Math.max(1, a.balance) * 100)}%;background:var(--orange)"></div></div>
+      <div class="s" style="margin:6px 0 0 54px"><div class="field"><span><span class="dot" style="background:var(--green);display:inline-block;margin-right:6px"></span>Usable this cycle</span><span class="num">${rs(a.balance - m.parked)}</span></div>
+      <div class="field"><span><span class="dot" style="background:var(--orange);display:inline-block;margin-right:6px"></span>Parked for the ${esc(paydayLabel(d))} cycle</span><span class="num">${rs(m.parked)}</span></div></div>` : ''}</div>`; };
+  return `<div class="section" id="money">${head}<div class="group"><div style="padding:12px 16px 0">${toggle}</div>
+    ${nw.accounts.filter(a => a.kind !== 'investment').map(row).join('')}
+    ${nw.accounts.filter(a => a.kind === 'investment').map(row).join('')}
+  </div><div class="footnote">${nw.runwayMonths !== null ? 'Enough for about ' + String(nw.runwayMonths).replace('.', ',') + ' months of normal spending. ' : ''}Investments are not counted in your money.</div></div>`;
 }
 
 /** Medical bills to claim back from work: tick each one once it is claimed. */
@@ -1207,6 +1213,7 @@ document.addEventListener('click', e => {
     case 'groupBy': S.groupBy = id; S.open = null; store.set('money:groupBy', id); render(); break;
     case 'openGroup': S.open = S.open === id ? null : id; render(); break;
     case 'planAll': S.planAll = !S.planAll; render(); break;
+    case 'moneyView': S.moneyView = id; store.set('money:view', id); render(); break;
     case 'notCounted': notCountedSheet(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
     case 'current': S.cycle = null; load(); break;
