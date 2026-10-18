@@ -5,27 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Money">
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Money</title>
 <style>
-  /* iOS system colors, grouped lists, one clear number per screen. */
+  /* iOS dark system colors (always dark, the owner's choice), grouped lists, one clear number per screen. */
   :root {
-    --bg: #f2f2f7; --cell: #ffffff; --label: #000000; --label2: rgba(60,60,67,.6); --label3: rgba(60,60,67,.3);
-    --sep: rgba(60,60,67,.29); --fill: rgba(120,120,128,.16); --tint: #007aff; --green: #34c759; --red: #ff3b30;
-    --orange: #ff9500; --bar: rgba(249,249,249,.94); --sheet: #f2f2f7; --tint-soft: rgba(0,122,255,.12);
+    color-scheme: dark;
+    --bg: #000000; --cell: #1c1c1e; --label: #ffffff; --label2: rgba(235,235,245,.6); --label3: rgba(235,235,245,.3);
+    --sep: rgba(84,84,88,.65); --fill: rgba(120,120,128,.32); --tint: #0a84ff; --green: #30d158; --red: #ff453a;
+    --orange: #ff9f0a; --bar: rgba(22,22,24,.94); --sheet: #1c1c1e; --tint-soft: rgba(10,132,255,.2);
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #000000; --cell: #1c1c1e; --label: #ffffff; --label2: rgba(235,235,245,.6); --label3: rgba(235,235,245,.3);
-      --sep: rgba(84,84,88,.65); --fill: rgba(120,120,128,.32); --tint: #0a84ff; --green: #30d158; --red: #ff453a;
-      --orange: #ff9f0a; --bar: rgba(22,22,24,.94); --sheet: #1c1c1e; --tint-soft: rgba(10,132,255,.2);
-    }
-    .sheet .group { background: #2c2c2e; }
-  }
+  .sheet .group { background: #2c2c2e; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; background: var(--bg); color: var(--label); }
   body { font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; -webkit-font-smoothing: antialiased; }
@@ -60,7 +53,7 @@
   .progress { height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; margin-top: 10px; }
   .progress > div { height: 100%; border-radius: 3px; background: var(--tint); }
   .progress > .warn { background: var(--orange); } .progress > .over { background: var(--red); } .progress > .done { background: var(--green); }
-  .next { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: var(--tint); color: #fff; border-radius: 12px; cursor: pointer; }
+  .next { display: flex; align-items: center; gap: 12px; padding: 15px 20px; background: var(--tint); color: #fff; border-radius: 999px; cursor: pointer; }
   .next .main div:last-child { opacity: .85; font-size: 15px; margin-top: 2px; }
   .next.done { background: var(--cell); color: var(--label); cursor: default; }
   .icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; flex: none; color: #fff; font-weight: 700; font-size: 15px; }
@@ -95,8 +88,19 @@
   .big-amount { text-align: center; font-size: 34px; font-weight: 700; padding: 6px 16px 0; font-variant-numeric: tabular-nums; }
   .shot { width: 100%; display: block; border-radius: 12px; }
   /* Charts: four category groups, each with its own color. */
-  :root { --g-family: #af52de; --g-needs: #32ade6; --g-wants: #ffcc00; --g-other: #8e8e93; }
-  @media (prefers-color-scheme: dark) { :root { --g-family: #bf5af2; --g-needs: #64d2ff; --g-wants: #ffd60a; --g-other: #98989d; } }
+  :root { --g-family: #bf5af2; --g-needs: #64d2ff; --g-wants: #ffd60a; --g-other: #98989d; }
+  /* Home: the top card's color says how you're doing (green on track, amber careful, red over). */
+  .mood { border-radius: 28px; padding: 16px 18px 18px; text-align: center; }
+  .mood.good { background: #1e6b45; --on: #c9f2db; } .mood.tight { background: #7a4b0a; --on: #ffe2b0; }
+  .mood.over { background: #7a1f1f; --on: #ffd0cc; } .mood.calm { background: var(--cell); --on: var(--label2); }
+  .mood-top { display: flex; justify-content: space-between; font-size: 15px; color: var(--on); }
+  .mood-top b { color: #fff; font-weight: 700; font-size: 17px; }
+  .mood .ring-c b { font-size: 34px; font-weight: 700; color: #fff; letter-spacing: .3px; }
+  .mood .ring-c span { font-size: 14px; color: var(--on); }
+  .mood-line { font-size: 15px; color: var(--on); margin-top: 6px; }
+  .mood-why { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: .5px solid rgba(255,255,255,.2); font-size: 14px; color: var(--on); text-align: left; }
+  .mood-why b { color: #fff; font-weight: 600; flex: none; }
+  .more { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 22px 16px 0; padding: 14px; border-radius: 16px; background: var(--cell); color: var(--label2); font-size: 15px; cursor: pointer; }
   .hero-row { display: flex; align-items: center; gap: 14px; }
   .hero-row > .main { min-width: 0; }
   .hero-row .v { font-size: 32px; white-space: nowrap; }
@@ -150,7 +154,7 @@ if (params.get('k')) store.set('money:key', params.get('k'));
 const KEY = params.get('k') || store.get('money:key');
 
 const S = { tab: (store.get('money:tab') === 'summary' ? 'home' : store.get('money:tab')) || 'home', data: store.get('money:dash'),
-  activity: store.get('money:activity'), cycle: null, filter: null, showAll: false, loading: false, error: '', at: 0 };
+  activity: store.get('money:activity'), cycle: null, filter: null, showAll: false, loading: false, error: '', at: 0, more: store.get('money:more') === true };
 let poll = null;
 
 // Money: full for details, short everywhere else (no walls of zeros).
@@ -356,24 +360,16 @@ function home(d) {
   const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
   const rows = b.rows.filter(x => x.limit > 0 || x.spent > 0);
   const shown = S.showAll ? rows : rows.slice(0, 5);
+  const moreOpen = S.more;
   return `
-  <div class="title-row"><h1 class="large-title">Money</h1>${d.cycle.isCurrent ? `<span class="pill">${d.cycle.daysLeft} days to payday</span>` : `<span class="pill">${esc(d.cycle.label)}</span>`}</div>
-
-  <div class="section"><div class="group"><div class="hero ${sp.perDay !== null ? 'tap' : ''}" data-act="${sp.perDay !== null ? 'why' : ''}">
-    <div class="hero-row"><div class="main">
-    ${sp.perDay !== null ? `
-      <div class="k">You can spend</div>
-      <div class="v">${rs(sp.perDay)} <small>a day</small></div>
-      <div class="k">${sp.left >= 0 ? 'until payday, ' + paydayLabel(d) : '<span class="red">' + rs(-sp.left) + ' over budget</span>'}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>`
-    : `<div class="k">Spent this cycle</div><div class="v">${rs(d.spent)}</div><div class="k">${d.cycle.isCurrent ? 'Approve a budget to see your daily limit' : esc(d.cycle.label)}</div>`}
-    </div>${spentRing(d, 100)}</div>
-    ${spentLegend(d)}
-    ${sp.perDay !== null ? `<div class="why"><span>${esc(whyLine(d))}</span><span class="link">Why ›</span></div>` : ''}
-  </div></div></div>
+  ${moodCard(d)}
+  ${todayCard(d)}
 
   <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
     : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>
 
+  <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
+  ${moreOpen ? `
   ${cfoSection(d)}
 
   <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? '✓ Approved' : b.state === 'proposed' ? 'Not approved yet' : ''}</span></div><div class="group">
@@ -407,7 +403,57 @@ function home(d) {
     ${!d.cycle.isCurrent ? '<div class="cell tap" data-act="current"><div class="main link">Back to this cycle</div></div>' : ''}
     <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export to Excel (CSV)</a>
     <div class="cell tap" data-act="copy"><div class="main link">Copy Shortcut URL</div></div>
-  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>`;
+  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>` : ''}`;
+}
+
+/** What today looks like: spent so far (fixed bills left out) against today's share of what is left. */
+function todayInfo(d) {
+  const key = todayKey(d), day = (d.daily || []).find(x => x.date === key);
+  const spent = day ? day.amount - (day.fixed || 0) : 0;
+  const sp = d.spend, days = Math.max(1, d.cycle.daysLeft);
+  const limit = d.cycle.isCurrent && sp.perDay !== null ? Math.max(0, Math.floor((sp.left + spent) / days / 1000) * 1000) : null;
+  const group = (d.days || []).find(g => g.date === key);
+  return { spent, limit, txs: group ? group.txs.filter(t => t.spending && !t.fixed) : [] };
+}
+
+function mood(d) {
+  const sp = d.spend, t = todayInfo(d);
+  if (!d.cycle.isCurrent || sp.perDay === null) return 'calm';
+  if (sp.left < 0) return 'over';
+  if (t.limit !== null && t.spent > t.limit) return 'tight';
+  return 'good';
+}
+
+/** The top card: one big number in a ring (how much of the budget is left), on a color that says how it's going. */
+function moodCard(d) {
+  const sp = d.spend, m = mood(d), b = d.budgets;
+  const top = `<div class="mood-top"><b>Money</b><span>${d.cycle.isCurrent ? d.cycle.daysLeft + ' days to payday' : esc(d.cycle.label)}</span></div>`;
+  if (m === 'calm') return `<div class="section"><div class="mood calm">${top}
+    ${ring([{ v: 1, color: 'var(--tint)' }], 1, 200, `<span>Spent this cycle</span><b>${rs(d.spent)}</b><span>${d.cycle.isCurrent ? 'Approve a budget for a daily limit' : ''}</span>`).replace('class="ring"', 'class="ring" style="margin:10px auto 0"')}
+  </div></div>`;
+  const t = todayInfo(d), leftToday = Math.max(0, t.limit - t.spent);
+  const leftShare = t.limit > 0 ? leftToday / t.limit : 0; // the ring empties as you spend today, and is full again tomorrow
+  const line = m === 'over' ? `${rs(-sp.left)} over budget this cycle` : m === 'tight' ? `Today's limit is used up · ${rs(Math.max(0, sp.left))} left until ${paydayLabel(d)}` : `✓ On track · ${rs(sp.left)} left until ${paydayLabel(d)}`;
+  return `<div class="section"><div class="mood ${m} tap" data-act="why">${top}
+    <div class="ring" style="width:210px;height:210px;margin:10px auto 0"><svg viewBox="0 0 100 100">
+      <circle r="44" cx="50" cy="50" fill="none" stroke-width="7" style="stroke:rgba(255,255,255,.18)"/>
+      ${leftShare > 0 ? `<circle r="44" cx="50" cy="50" fill="none" stroke-width="7" stroke-linecap="round" style="stroke:#fff" stroke-dasharray="${Math.max(1, 276.5 * leftShare)} 300" transform="rotate(-90 50 50)"/>` : ''}
+    </svg><div class="ring-c"><span>Left to spend today</span><b>${rs(leftToday)}</b><span>${t.spent > t.limit ? rs(t.spent - t.limit) + ' over today' : 'of ' + rs(t.limit) + ' a day'}</span></div></div>
+    <div class="mood-line">${line}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>
+    <div class="mood-why"><span>${esc(whyLine(d))}</span><b>Why ›</b></div>
+  </div></div>`;
+}
+
+/** Today: what went out today (fixed bills left out), updated after every screenshot. */
+function todayCard(d) {
+  const t = todayInfo(d);
+  if (t.limit === null) return '';
+  const shown = t.txs.slice(0, 3);
+  return `<div class="section"><div class="header"><span>Today</span><span class="num">${t.spent ? rs(t.spent) + ' spent' : ''}</span></div><div class="group">
+    ${shown.length ? shown.map(x => txRow(x, txSub(x) + (x.time ? ' · ' + x.time : ''), 'edit')).join('')
+      : '<div class="cell"><div class="main muted">Nothing spent yet today</div></div>'}
+    ${t.txs.length > 3 ? `<div class="cell tap" data-tab="transactions"><div class="main link">See all ${t.txs.length}</div></div>` : ''}
+  </div></div>`;
 }
 
 /** Medical bills to claim back from work: tick each one once it is claimed. */
@@ -841,10 +887,17 @@ function render() {
   status();
 }
 
+/** Opens the "More" part of Home if needed, then scrolls to one of its sections. */
+function openMoreAt(id) {
+  if (!S.more) { S.more = true; store.set('money:more', true); render(); }
+  const box = document.getElementById(id);
+  if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function goTab(tab) { S.tab = tab; store.set('money:tab', tab); window.scrollTo(0, 0); render(); if (tab === 'activity') load(); }
 
 async function ask() {
-  try { await api('POST', { action: 'generate' }); closeSheet(); await load(); const box = document.getElementById('cfo'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  try { await api('POST', { action: 'generate' }); closeSheet(); await load(); openMoreAt('cfo'); }
   catch (e) { closeSheet(); S.error = e.message; status(); alert(e.message); }
 }
 
@@ -876,16 +929,17 @@ document.addEventListener('click', e => {
     case 'unassign': unassign(id, Number(el.dataset.i)); break;
     case 'history': historySheet(); break;
     case 'todo': setTodo(id, Number(el.dataset.i), el.dataset.on !== '1', el); break;
-    case 'gotoCfo': { const box = document.getElementById('cfo'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
+    case 'gotoCfo': openMoreAt('cfo'); break;
     case 'useSug': { const input = [...document.querySelectorAll('input[data-cat]')].find(x => x.dataset.cat === el.dataset.cat); if (input) { input.value = el.dataset.amount; formatMoneyInput(input); input.dispatchEvent(new Event('input', { bubbles: true })); } break; }
     case 'shot': shotSheet(id); break;
     case 'image': showImage(id); break;
     case 'more': S.showAll = !S.showAll; render(); break;
     case 'cat': catSheet(id); break;
     case 'why': whySheet(); break;
+    case 'toggleMore': S.more = !S.more; store.set('money:more', S.more); render(); break;
     case 'review': S.filter = 'review'; goTab('transactions'); break;
     case 'gotoImprove': goTab('activity'); break;
-    case 'gotoPay': case 'gotoClaims': { const box = document.getElementById(el.dataset.act === 'gotoPay' ? 'pay' : 'claims'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
+    case 'gotoPay': case 'gotoClaims': openMoreAt(el.dataset.act === 'gotoPay' ? 'pay' : 'claims'); break;
     case 'claim': setClaim(id, el.dataset.on === '1' ? null : 'done', el); break;
     case 'clearFilter': S.filter = null; render(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
