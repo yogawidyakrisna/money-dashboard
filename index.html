@@ -456,6 +456,7 @@ function home(d) {
   <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
     ${nw.accounts.map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
   </div>${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
+  ${whereItSits(d)}
 
   <div class="section"><div class="group">
     <div class="cell tap" data-act="prev"><div class="main link">See last cycle</div></div>
@@ -563,6 +564,21 @@ function savingSection(d) {
         : '<div class="s" style="margin-top:6px">Your split between Bibit, Stockbit and Treasury is not set yet. Tell Claude your split.</div>'}
       ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep)">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' on ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
   </div></div>`;
+}
+
+/** The bank money is not the budget room: this cycle's leftover, what is planned but not moved yet, and older savings. */
+function whereItSits(d) {
+  const total = d.netWorth.total, sp = d.spend, sv = d.budgets.saving || [];
+  if (!total || !d.cycle.isCurrent) return '';
+  const daily = Math.max(0, sp.left);
+  const emergency = sv.find(r => r.category === 'Emergency fund'), investing = sv.find(r => r.category === 'Investing');
+  const toFund = emergency ? emergency.limit : 0, toInvest = investing ? Math.max(0, investing.limit - investing.spent) : 0;
+  const savings = Math.max(0, total - daily - toFund - toInvest);
+  const rows = [['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s Rp' + (toFund / 1e6).toString().replace('.', ',') + ' jt plan, if not moved yet'],
+    ['To invest', toInvest, 'This cycle\'s plan, not invested yet'], ['Your savings', savings, 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
+  return `<div class="section"><div class="header"><span>Where your ${rs(total)} sits</span></div><div class="group">
+    ${rows.map(r => `<div class="cell"><div class="main"><div class="t">${r[0]}</div><div class="s wrap">${esc(r[2])}</div></div><span class="num">${rs(r[1])}</span></div>`).join('')}
+  </div><div class="footnote">"Left this cycle" is budget room, not bank money. Most of your balance is savings from before.</div></div>`;
 }
 
 /** Medical bills to claim back from work: tick each one once it is claimed. */
