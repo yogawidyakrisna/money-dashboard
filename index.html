@@ -526,27 +526,36 @@ function whyLine(d) {
 }
 
 function whySheet() {
-  const d = S.data, sp = d.spend, r = room(d), t = todayInfo(d);
+  const d = S.data, sp = d.spend, r = room(d), t = todayInfo(d), m = moneyBuckets(d);
   const leftToday = Math.max(0, (t.limit || 0) - t.spent), overToday = Math.max(0, t.spent - (t.limit || 0));
-  const weekendNote = sp.perWeekend && sp.perWeekend !== sp.perDay ? ' · lebih banyak di akhir pekan, dari kebiasaanmu sendiri' : '';
-  sheet('Kenapa', `
-    <div class="big-amount ${overToday ? 'red' : ''}">${overToday ? rs(overToday) : rs(leftToday)}</div>
-    <div class="footnote" style="text-align:center;padding-top:2px">${overToday ? 'lewat jatah hari ini · besok mulai baru' : 'sisa jatah hari ini'}</div>
-    <div class="section"><div class="group">
-      <div class="cell"><div class="main"><div class="t">Jatah hari ini</div><div class="s">${rs(t.spent)} terpakai${weekendNote}</div></div><span class="num">${rs(t.limit || 0)}</span></div>
-      <div class="cell"><div class="main"><div class="t">Sampai gajian</div><div class="s">${d.cycle.daysLeft} hari · ${esc(paydayLabel(d))}</div></div><span class="num">${rs(Math.max(0, sp.left))}</span></div>
+  const cut = sp.investCut || 0, planned = sp.planned !== undefined ? sp.planned : sp.left, slack = planned - (r.roomTotal - r.overTotal);
+  // The days left, the way the daily money is split: a weekend day weighs weekendRatio weekdays.
+  const rest = cycleDays(d).filter(c => c.today || c.future), wd = rest.filter(c => !c.wk).length, we = rest.length - wd, ratio = sp.weekendRatio || 1;
+  const line = (label, v, cls, sub) => `<div class="tot ${cls || ''}"><span>${label}${sub ? `<small style="display:block;color:var(--paper-muted);font-size:13px;font-weight:400">${sub}</small>` : ''}</span><span>${v}</span></div>`;
+  const sum = `<div class="paper-slot" style="margin-top:6px"><div class="struk">
+    <div class="sh"><div class="shop">HITUNGAN SAMPAI GAJIAN</div><div class="sd">${d.cycle.daysLeft} hari lagi · gajian ${esc(tgl(d.cycle.nextStart))}</div></div>
+    <div class="cut"></div>
+    ${line('Ruang di amplop', dots(r.roomTotal), '', r.open.map(x => catName(x.category)).join(' + '))}
+    ${r.over.map(x => line(`− ${esc(catName(x.category))} jebol`, '−' + dots(x.over), '', 'sudah terpakai dari ruang di atas')).join('')}
+    ${Math.abs(slack) >= 1000 ? line(slack > 0 ? '+ Sisa tagihan tetap' : '− Tagihan tetap lewat', (slack > 0 ? '' : '−') + dots(Math.abs(slack)), '', 'tagihan yang sudah lunas, sisanya ikut dihitung') : ''}
+    <div class="cut"></div>
+    ${line('Sisa anggaran', dots(planned), '')}
+    ${cut ? line('− Dipotong untuk investasi wajib', '−' + dots(cut), '', `saldo ${rs(m.usable)} kurang untuk investasi ${rs(m.toInvest)}${m.toFund ? ' + dana darurat ' + rs(m.toFund) : ''} + belanja ${rs(planned)}`) : ''}
+    <div class="cut"></div>
+    ${line('Sampai gajian', dots(sp.left), 'big ' + (sp.left < 0 ? 'over' : ''))}
+    ${t.limit !== null ? line(`÷ ${wd} hari kerja${we ? ` + ${we} hari akhir pekan (×${String(ratio).replace('.', ',')})` : ''}`, '', '', we ? 'akhir pekan dapat jatah lebih, dari kebiasaanmu sendiri' : 'tidak ada akhir pekan lagi di siklus ini') : ''}
+    ${t.limit !== null ? line('Jatah hari ini', dots(t.limit), '') : ''}
+    ${t.limit !== null ? line('Terpakai hari ini', dots(t.spent), '') : ''}
+    ${t.limit !== null ? `<div class="tot big ${overToday ? 'over' : ''}"><span>${overToday ? 'Lewat' : 'Sisa'} hari ini</span><span>${dots(overToday || leftToday)}</span></div>` : ''}
+  </div></div>`;
+  sheet('Kenapa ' + rs(Math.max(0, sp.left)) + '?', `${sum}
+    <div class="section"><div class="header"><span>Amplop yang masih ada ruang</span><span>${rs(r.roomTotal)}</span></div><div class="group">
+      ${r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num green">sisa ${rs(x.left)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('') || '<div class="cell"><div class="main muted">Semua amplop sudah habis.</div></div>'}
     </div></div>
-    <div class="section"><div class="header"><span>Masih ada ruang di</span><span>ruang ${rs(r.roomTotal)}</span></div><div class="group">
-      ${r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num green">${rs(x.left)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
+    ${r.over.length ? `<div class="section"><div class="header"><span>Amplop yang jebol</span><span class="red">−${rs(r.overTotal)}</span></div><div class="group">
       ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main"><div class="field"><span class="t">${esc(catName(x.category))}</span><span class="num red">lewat ${rs(x.over)}</span></div>${budgetBar(x.spent, x.limit)}</div></div>`).join('')}
-      ${!r.open.length && !r.over.length ? '<div class="cell"><div class="main muted">Semua kategori sudah habis.</div></div>' : ''}
-    </div><div class="footnote">${r.over.length ? 'Kategori merah sudah lewat batas; itu mengurangi ruang. ' : ''}${r.done.length ? 'Lunas: ' + r.done.map(x => esc(catName(x.category))).join(', ') + '. ' : ''}${whySum(r, sp)}.</div></div>`);
-}
-
-/** The sum behind the number, exact: room − over (± what is left in paid fixed bills) = left. */
-function whySum(r, sp) {
-  const cut = sp.investCut || 0, slack = sp.left + cut - (r.roomTotal - r.overTotal);
-  return `Ruang ${rs(r.roomTotal)}${r.overTotal ? ' − lewat ' + rs(r.overTotal) : ''}${Math.abs(slack) >= 1000 ? (slack > 0 ? ' + ' : ' − ') + rs(Math.abs(slack)) + ' dari tagihan tetap yang lunas' : ''}${cut ? ' − ' + rs(cut) + ' untuk investasi wajib' : ''} = sisa ${rs(sp.left)}`;
+    </div><div class="footnote">Uang yang lewat dari amplop ini sudah keluar, jadi diambil dari ruang amplop lain.</div></div>` : ''}
+    ${r.done.length ? `<div class="footnote">Lunas: ${r.done.map(x => esc(catName(x.category))).join(', ')}.</div>` : ''}`);
 }
 
 /** A fixed category (family transfers, subscriptions) is done once all its fixed payments went out. */
