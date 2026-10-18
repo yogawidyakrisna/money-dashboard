@@ -118,6 +118,8 @@
   .emo { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--fill); }
   .share { height: 4px; border-radius: 2px; background: var(--fill); margin-top: 6px; overflow: hidden; }
   .share > div { height: 100%; border-radius: 2px; }
+  .why { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 11px; border-top: .5px solid var(--sep); font-size: 15px; color: var(--label2); }
+  .why .link { flex: none; }
   .check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--label3); flex: none; display: grid; place-items: center; color: #fff; background: none; padding: 0; cursor: pointer; }
   .check.on { background: var(--green); border-color: var(--green); }
   .check svg { width: 14px; height: 14px; }
@@ -280,6 +282,51 @@ function spentLegend(d) {
   return items.length ? `<div class="legend tap" data-tab="transactions">${items.join('')}</div>` : '';
 }
 
+/** Where "You can spend X a day" comes from: room left per category, minus what is already over. */
+function room(d) {
+  const days = Math.max(1, d.cycle.daysLeft), rows = d.budgets.rows.map(r => ({ ...r, ...catInfo(d, r.category) }));
+  const done = rows.filter(r => r.limit && fixedDone(d, r.category) && r.spent <= r.limit * 1.02);
+  const open = rows.filter(r => !done.includes(r) && r.limit > r.spent).map(r => ({ ...r, left: r.limit - r.spent, perDay: Math.floor((r.limit - r.spent) / days / 1000) * 1000 }))
+    .sort((a, b) => b.left - a.left);
+  const over = rows.filter(r => !done.includes(r) && r.spent > r.limit).map(r => ({ ...r, over: r.spent - r.limit })).sort((a, b) => b.over - a.over);
+  return { days, open, over, done, roomTotal: open.reduce((s, r) => s + r.left, 0), overTotal: over.reduce((s, r) => s + r.over, 0) };
+}
+
+function whyLine(d) {
+  const r = room(d);
+  if (!r.open.length) return 'No room left in any category';
+  return 'Most room: ' + r.open.slice(0, 2).map(x => `${x.category} ${rs(x.left)}`).join(' · ');
+}
+
+function whySheet() {
+  const d = S.data, sp = d.spend, r = room(d);
+  const reason = x => x.reason ? shorten(x.reason) : '';
+  sheet('Why ' + rs(sp.perDay) + ' a day', `
+    <div class="big-amount">${rs(sp.perDay)} <span style="font-size:20px;color:var(--label2)">a day</span></div>
+    <div class="footnote" style="text-align:center;padding-top:2px">${sp.left >= 0 ? rs(sp.left) + ' left ÷ ' + r.days + (r.days === 1 ? ' day' : ' days') + ' to payday (' + paydayLabel(d) + ')' : rs(-sp.left) + ' over budget'}</div>
+    <div class="section"><div class="header"><span>OK to spend here</span><span>${rs(r.roomTotal)}</span></div><div class="group">
+      ${r.open.length ? r.open.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
+        <div class="field"><span class="t">${esc(x.category)}</span><span class="num green">${rs(x.left)} left</span></div>
+        <div class="s wrap">${x.perDay ? 'About ' + rs(x.perDay) + ' a day' : 'A little left'}${reason(x) ? ' · ' + esc(reason(x)) : ''}</div></div></div>`).join('')
+      : '<div class="cell"><div class="main muted">Every category is used up.</div></div>'}
+    </div></div>
+    ${r.over.length ? `<div class="section"><div class="header"><span>Already over</span><span class="red">−${rs(r.overTotal)}</span></div><div class="group">
+      ${r.over.map(x => `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
+        <div class="field"><span class="t">${esc(x.category)}</span><span class="num red">${rs(x.over)} over</span></div>
+        <div class="s wrap">${x.limit ? 'Budget ' + rs(x.limit) : 'No budget'} · try not to spend more here</div></div></div>`).join('')}
+    </div><div class="footnote">This comes out of the room above.</div></div>` : ''}
+    ${r.done.length ? `<div class="section"><div class="header"><span>Done for this cycle</span></div><div class="group">
+      ${r.done.map(x => `<div class="cell">${emo(d, x.category)}<div class="main"><div class="t">${esc(x.category)}</div><div class="s">Fixed payment, nothing more to spend</div></div><span class="green">✓ Paid</span></div>`).join('')}
+    </div></div>` : ''}
+    <div class="footnote" style="padding:12px 32px 0">${whySum(r, sp)}. You can move room between categories: spending more in one leaves less for the others.</div>`);
+}
+
+/** The sum behind the number, exact: room − over (± what is left in paid fixed bills) = left. */
+function whySum(r, sp) {
+  const slack = sp.left - (r.roomTotal - r.overTotal);
+  return `Room ${rs(r.roomTotal)}${r.overTotal ? ' − over ' + rs(r.overTotal) : ''}${Math.abs(slack) >= 1000 ? (slack > 0 ? ' + ' : ' − ') + rs(Math.abs(slack)) + ' in paid fixed bills' : ''} = ${rs(sp.left)} left`;
+}
+
 /** A fixed category (family transfers, subscriptions) is done once all its fixed payments went out. */
 function fixedDone(d, cat) {
   const fx = (d.fixed || []).filter(f => f.category === cat);
@@ -296,7 +343,7 @@ function home(d) {
   return `
   <div class="title-row"><h1 class="large-title">Money</h1>${d.cycle.isCurrent ? `<span class="pill">${d.cycle.daysLeft} days to payday</span>` : `<span class="pill">${esc(d.cycle.label)}</span>`}</div>
 
-  <div class="section"><div class="group"><div class="hero">
+  <div class="section"><div class="group"><div class="hero ${sp.perDay !== null ? 'tap' : ''}" data-act="${sp.perDay !== null ? 'why' : ''}">
     <div class="hero-row"><div class="main">
     ${sp.perDay !== null ? `
       <div class="k">You can spend</div>
@@ -305,6 +352,7 @@ function home(d) {
     : `<div class="k">Spent this cycle</div><div class="v">${rs(d.spent)}</div><div class="k">${d.cycle.isCurrent ? 'Approve a budget to see your daily limit' : esc(d.cycle.label)}</div>`}
     </div>${spentRing(d, 100)}</div>
     ${spentLegend(d)}
+    ${sp.perDay !== null ? `<div class="why"><span>${esc(whyLine(d))}</span><span class="link">Why ›</span></div>` : ''}
   </div></div></div>
 
   <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
@@ -692,6 +740,7 @@ document.addEventListener('click', e => {
     case 'image': showImage(id); break;
     case 'more': S.showAll = !S.showAll; render(); break;
     case 'cat': catSheet(id); break;
+    case 'why': whySheet(); break;
     case 'review': S.filter = 'review'; goTab('transactions'); break;
     case 'gotoImprove': goTab('activity'); break;
     case 'gotoPay': case 'gotoClaims': { const box = document.getElementById(el.dataset.act === 'gotoPay' ? 'pay' : 'claims'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' }); break; }
