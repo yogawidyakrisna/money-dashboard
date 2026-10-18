@@ -578,10 +578,12 @@ function whereItSits(d) {
   const emergency = sv.find(r => r.category === 'Emergency fund'), investing = sv.find(r => r.category === 'Investing');
   const toFund = emergency ? Math.max(0, emergency.limit - emergency.spent) : 0, toInvest = investing ? Math.max(0, investing.limit - investing.spent) : 0;
   const fund = d.netWorth.fund, inFund = fund !== null && fund !== undefined, parked = d.parked || 0;
-  const savings = Math.max(0, total - parked - daily - toFund - toInvest - (inFund ? fund : 0));
+  // What is free after the parked pay, the fund and today's room: the investing plan can only use that much.
+  const free = Math.max(0, total - parked - (inFund ? fund : 0) - daily - toFund);
+  const canInvest = Math.min(toInvest, free), short = toInvest - canInvest, savings = Math.max(0, free - canInvest);
   const rows = [['Parked for the ' + paydayLabel(d) + ' cycle', parked, 'Your 15th pay · not for this cycle'], ['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s plan, if not moved yet'],
-    ['To invest', toInvest, 'This cycle\'s plan, not invested yet'], ['Emergency fund', inFund ? fund : 0, 'In your Dana Darurat account'],
-    [inFund ? 'Other savings' : 'Your savings', savings, inFund ? 'Spread over your accounts' : 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
+    ['To invest', canInvest, short > 0 ? rs(short) + ' short of the ' + rs(toInvest) + ' plan · the rest waits for next cycle' : 'This cycle\'s plan, not invested yet'], ['Emergency fund', inFund ? fund : 0, 'In your Dana Darurat account'],
+    [inFund ? 'Not allocated' : 'Your savings', savings, inFund ? 'Free to use or invest' : 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
   return `<div class="section"><div class="header"><span>Where your ${rs(total)} sits</span></div><div class="group">
     ${rows.map(r => `<div class="cell"><div class="main"><div class="t">${r[0]}</div><div class="s wrap">${esc(r[2])}</div></div><span class="num">${rs(r[1])}</span></div>`).join('')}
   </div><div class="footnote">"Left this cycle" is budget room, not bank money. Most of your balance is savings from before.</div></div>`;
