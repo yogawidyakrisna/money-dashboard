@@ -454,8 +454,11 @@ function home(d) {
   </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
 
   <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
-    ${nw.accounts.map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
-  </div>${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
+    ${nw.accounts.filter(a => a.kind !== 'investment').map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}${a.name === 'Dana Darurat' ? ' <span class="chip blue">emergency fund</span>' : ''}</div><div class="s">${esc(ago(a.asOf))}</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
+  </div>
+  ${nw.accounts.some(a => a.kind === 'investment') ? `<div class="header" style="padding-top:14px"><span>Investments</span><span>${rs(nw.investments || 0)}</span></div><div class="group">
+    ${nw.accounts.filter(a => a.kind === 'investment').map(a => `<div class="cell">${acct(a.name)}<div class="main"><div class="t">${esc(a.name)}</div><div class="s">${esc(ago(a.asOf))} · not counted in your money</div></div><span class="num ${a.hasSnapshot ? '' : 'muted'}">${a.hasSnapshot ? rs(a.balance) : '—'}</span></div>`).join('')}
+  </div>` : ''}${nw.runwayMonths !== null ? `<div class="footnote">Enough for about ${String(nw.runwayMonths).replace('.', ',')} months of normal spending.</div>` : ''}</div>
   ${whereItSits(d)}
 
   <div class="section"><div class="group">
@@ -573,9 +576,11 @@ function whereItSits(d) {
   const daily = Math.max(0, sp.left);
   const emergency = sv.find(r => r.category === 'Emergency fund'), investing = sv.find(r => r.category === 'Investing');
   const toFund = emergency ? emergency.limit : 0, toInvest = investing ? Math.max(0, investing.limit - investing.spent) : 0;
-  const savings = Math.max(0, total - daily - toFund - toInvest);
-  const rows = [['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s Rp' + (toFund / 1e6).toString().replace('.', ',') + ' jt plan, if not moved yet'],
-    ['To invest', toInvest, 'This cycle\'s plan, not invested yet'], ['Your savings', savings, 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
+  const fund = d.netWorth.fund, inFund = fund !== null && fund !== undefined;
+  const savings = Math.max(0, total - daily - toFund - toInvest - (inFund ? fund : 0));
+  const rows = [['Daily money until payday', daily, 'The budget room, ' + rs(sp.perDay) + ' a weekday'], ['To move to the emergency fund', toFund, 'This cycle\'s plan, if not moved yet'],
+    ['To invest', toInvest, 'This cycle\'s plan, not invested yet'], ['Emergency fund', inFund ? fund : 0, 'In your Dana Darurat account'],
+    [inFund ? 'Other savings' : 'Your savings', savings, inFund ? 'Spread over your accounts' : 'Built up in earlier months · your emergency fund']].filter(r => r[1] > 0);
   return `<div class="section"><div class="header"><span>Where your ${rs(total)} sits</span></div><div class="group">
     ${rows.map(r => `<div class="cell"><div class="main"><div class="t">${r[0]}</div><div class="s wrap">${esc(r[2])}</div></div><span class="num">${rs(r[1])}</span></div>`).join('')}
   </div><div class="footnote">"Left this cycle" is budget room, not bank money. Most of your balance is savings from before.</div></div>`;
@@ -658,7 +663,7 @@ function txRow(t, sub, act) {
     <span class="num ${color}">${amount}</span></div>`;
 }
 /** Account badges: the real logos (public-domain SVGs from Wikimedia Commons) on a white tile; a drawn icon for Cash. */
-const LOGO = { Mandiri: 'mandiri', Jago: 'jago', GoPay: 'gopay', OVO: 'ovo', DANA: 'dana' };
+const LOGO = { Mandiri: 'mandiri', 'Dana Darurat': 'mandiri', Jago: 'jago', RDN: 'jago', GoPay: 'gopay', OVO: 'ovo', DANA: 'dana' };
 function acct(name, small) {
   const file = LOGO[name];
   if (file) return `<div class="acct ${small ? 'sm' : ''}" aria-label="${esc(name)}"><img src="logos/${file}.svg" alt=""></div>`;
