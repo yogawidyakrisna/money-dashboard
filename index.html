@@ -150,26 +150,34 @@
   .acct svg { width: 22px; height: 22px; } .acct.sm svg { width: 13px; height: 13px; }
   .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
   .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
-  /* Wide screens (Mac, iPad landscape): sections flow into balanced columns, the tab bar becomes a side rail, sheets sit in the middle. */
+  /* Desktop (Mac, iPad landscape), after Apple's HIG for macOS: a sidebar, a 12-column grid with wide gutters, roomier cards, softer dark surfaces. */
   .cols, .cols > .col { display: contents; }
   @media (min-width: 900px) {
-    .screen { max-width: 1240px; padding: 28px 24px 40px 112px; }
-    .cols { display: block; column-count: 2; column-gap: 28px; }
-    .cols > .col { display: contents; }
-    .cols .section, .cols .more { break-inside: avoid; page-break-inside: avoid; -webkit-column-break-inside: avoid; margin-top: 0; margin-bottom: 22px; }
+    :root { --bg: #141416; --cell: #1e1e22; --sheet: #1e1e22; --bar: #141416; }
+    body { font-size: 16px; }
+    .screen { max-width: 1440px; margin: 0; padding: 40px 48px 64px 268px; }
+    .title-row { padding: 0 0 8px; margin-bottom: 8px; } .title-row .seg { margin: 0; width: 360px; }
+    .large-title { font-size: 28px; line-height: 34px; }
+    .dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; }
+    .dash-cell { min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+    .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
+    .dash .section, .dash .section .section { margin: 0; }
+    .dash .section .section { margin-top: 16px; }
+    .group { border-radius: 16px; } .cell { padding: 14px 20px; min-height: 52px; }
+    .hero, .mood { padding: 24px; } .mood { border-radius: 20px; }
+    .header { padding: 0 4px 10px; font-size: 13px; } .footnote { padding: 10px 4px 0; }
     .more { display: none; }
-    .tabbar { top: 0; bottom: 0; right: auto; width: 88px; border-top: 0; border-right: .5px solid var(--sep); padding: 24px 0 0; }
-    .tabbar .in { flex-direction: column; height: auto; gap: 8px; }
-    .tabbar button { flex: none; height: 64px; font-size: 11px; }
-    .badge { left: auto; right: 14px; margin-left: 0; }
-    .sheet-bg { align-items: center; }
-    .sheet { border-radius: 16px; max-height: 88vh; }
-    .mood .ring { width: 180px !important; height: 180px !important; }
+    .tabbar { top: 0; bottom: 0; right: auto; width: 220px; border-top: 0; border-right: .5px solid var(--sep); padding: 28px 16px 0; background: var(--bar); backdrop-filter: none; }
+    .tabbar .in { flex-direction: column; height: auto; gap: 4px; align-items: stretch; }
+    .tabbar .in::before { content: 'Money'; font-size: 22px; font-weight: 700; color: var(--label); padding: 4px 12px 20px; }
+    .tabbar button { flex: none; flex-direction: row; justify-content: flex-start; gap: 12px; height: 44px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--label2); }
+    .tabbar button.on { background: rgba(255,255,255,.08); color: var(--label); }
+    .tabbar svg { width: 22px; height: 22px; }
+    .badge { position: static; margin-left: auto; }
+    .sheet-bg { align-items: center; } .sheet { border-radius: 18px; max-height: 88vh; max-width: 640px; }
+    .mood .ring { width: 220px !important; height: 220px !important; }
   }
-  @media (min-width: 1400px) {
-    .screen { max-width: 1800px; }
-    .cols { column-count: 3; }
-  }
+  @media (min-width: 1500px) { .screen { max-width: 1680px; } }
 </style>
 </head>
 <body>
@@ -430,19 +438,28 @@ function home(d) {
   const rows = b.rows.filter(x => !x.reserve && (x.limit > 0 || x.spent > 0)), reserve = sp.reserve || { budget: 0, used: 0 };
   const shown = S.showAll ? rows : rows.slice(0, 5);
   const moreOpen = S.more || isWide();
-  return `<div class="cols"><div class="col">
-  ${moodCard(d)}
-  ${todayCard(d)}
-
-  <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
-    : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>
-
-  ${incomeCard(d)}
-  </div><div class="col">
+  const parts = {
+    hero: moodCard(d), today: todayCard(d),
+    next: `<div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
+      : `<div class="next done"><div class="icon" style="background:var(--green)">${ICON.ok}</div><div class="main"><div style="font-weight:600">All done</div><div class="muted">Nothing needs you right now</div></div></div>`}</div>`,
+    income: incomeCard(d), cfo: cfoSection(d), budget: budgetSection(d, rows, shown, reserve), saving: savingSection(d),
+    claims: claimsSection(d), pay: paySection(d), fixed: fixedSection(d), money: moneySection(d), tools: toolsSection(d),
+  };
+  if (isWide()) {
+    // Desktop dashboard: a 12-column grid with fixed places, so the eye always finds things in the same spot.
+    const cell = (cls, ...keys) => `<div class="dash-cell ${cls}">${keys.map(k => parts[k]).join('')}</div>`;
+    return `<div class="dash">${cell('span-4', 'hero')}${cell('span-4', 'today', 'next')}${cell('span-4', 'income')}
+      ${cell('span-4', 'budget')}${cell('span-4', 'saving', 'claims')}${cell('span-4', 'pay', 'fixed')}
+      ${cell('span-6', 'cfo')}${cell('span-6', 'money', 'tools')}</div>`;
+  }
+  return `${parts.hero}${parts.today}${parts.next}${parts.income}
   <div class="more" data-act="toggleMore">${moreOpen ? 'Less ⌃' : 'More ⌄ <span style="color:var(--label3)">CFO · Budget · Pay · Your money</span>'}</div>
-  ${moreOpen ? `
-  ${cfoSection(d)}
+  ${moreOpen ? parts.cfo + parts.budget + parts.saving + parts.claims + parts.pay + parts.fixed + parts.money + parts.tools : ''}`;
+}
 
+function budgetSection(d, rows, shown, reserve) {
+  const b = d.budgets, r = d.reports;
+  return `
   <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? '✓ Approved' : b.state === 'proposed' ? 'Not approved yet' : ''}</span></div><div class="group">
     ${rows.length ? shown.map(x => {
       const paid = x.limit && fixedDone(d, x.category) && x.spent <= x.limit * 1.02;
@@ -459,27 +476,27 @@ function home(d) {
     ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.length ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
+`;
+}
 
-  ${savingSection(d)}
-  ${claimsSection(d)}
-  ${paySection(d)}
-
+function fixedSection(d) {
+  return `
   ${d.fixed && d.fixed.length ? `<div class="section"><div class="header"><span>Fixed every month</span><span>${rs(d.fixed.reduce((s, f) => s + f.amount, 0))}</span></div><div class="group">
     ${d.fixed.map(f => { const done = f.done !== undefined ? f.done : f.paid >= f.amount; return `<div class="cell">${emo(d, f.category)}<div class="main"><div class="t">${esc(f.label.replace(/\s*\(.*\)$/, ''))}</div><div class="s">${esc(f.category)}</div></div>
       <span class="num ${done ? 'green' : 'd'}">${done ? '✓ ' : ''}${rs(f.amount)}</span></div>`; }).join('')}
   </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
+`;
+}
 
-  ${moneySection(d)}
-
+function toolsSection(d) {
+  return `
   <div class="section"><div class="group">
     <div class="cell tap" data-act="prev"><div class="main link">See last cycle</div></div>
     ${!d.cycle.isCurrent ? '<div class="cell tap" data-act="current"><div class="main link">Back to this cycle</div></div>' : ''}
     <a class="cell tap link" href="${esc(API)}?export=csv&k=${encodeURIComponent(KEY)}">Export to Excel (CSV)</a>
     <div class="cell tap" data-act="copy"><div class="main link">Copy Shortcut URL</div></div>
-  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div>` : ''}
-  </div></div>`;
+  </div><div class="footnote">AI cost this cycle: $${d.aiCost.toFixed(2)} · ${d.screenshots} screenshots</div></div></div>`;
 }
-
 /** Where the income goes: fixed (Family, Bills, Emergency fund), investing, adjustable (the everyday categories), and what is not planned yet. */
 const FIXED_CATS = ['Family', 'Bills'];
 const GROUP_COLOR = { Fixed: 'var(--label3)', Investing: 'var(--g-family)', Adjustable: 'var(--green)', 'Not planned': 'var(--fill)' };
@@ -720,14 +737,19 @@ function transactions(d) {
   for (const g of d.days) if (g.date >= r.from && g.date <= r.to) for (const t of g.txs) txs.push({ ...t, day: g.label, date: g.date });
   const spent = r.days.reduce((a, x) => a + flexOf(x), 0);
   const fold = (key, title, right, body) => { const open = S.folds[key]; return `<div class="section"><div class="group"><div class="cell tap grp-h ${open ? 'open' : ''}" data-act="fold" data-id="${key}"><div class="main"><div class="t" style="font-weight:600">${title}</div></div><span class="num d">${right}</span><span class="chev">›</span></div></div>${open ? body : ''}</div>`; };
+  const headline = `<div class="section"><div class="group"><div class="hero" style="text-align:center">
+      <div class="k">Everyday spending</div><div class="v" style="font-size:40px">${rs(spent)}</div><div class="k">${esc(shortDay(r.from))} – ${esc(shortDay(r.to))} · ${esc(r.label)}</div>
+    </div></div></div>`;
+  const planRight = (() => { const rows = d.budgets.rows.filter(x => !x.reserve && x.category !== 'Family'); const sp2 = rows.reduce((a, x) => a + x.spent, 0), lim = rows.reduce((a, x) => a + x.limit, 0); return budgetLeft(sp2, lim); })();
+  if (isWide()) return `<div class="title-row"><h1 class="large-title">Spending</h1>${seg('range', S.range, [['7', '7 days'], ['14', '14 days'], ['cycle', 'Full cycle']])}</div>
+    <div class="dash"><div class="dash-cell span-4">${headline}${planCard(d)}</div><div class="dash-cell span-8">${chartCard(d, r, txs)}</div>
+    <div class="dash-cell span-12">${groupsCard(d, r, txs)}${(d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Not counted</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : ''}</div></div>`;
   return `<div class="title-row"><h1 class="large-title">Spending</h1></div>
     ${seg('range', S.range, [['7', '7 days'], ['14', '14 days'], ['cycle', 'Full cycle']])}
-    <div class="section"><div class="group"><div class="hero" style="text-align:center">
-      <div class="k">Everyday spending</div><div class="v" style="font-size:40px">${rs(spent)}</div><div class="k">${esc(shortDay(r.from))} – ${esc(shortDay(r.to))} · ${esc(r.label)}</div>
-    </div></div></div>
+    ${headline}
     <div class="cols"><div class="col">
     ${fold('chart', 'Chart', '', chartCard(d, r, txs))}
-    ${fold('plan', 'Your plan this cycle', (() => { const rows = d.budgets.rows.filter(x => !x.reserve && x.category !== 'Family'); const sp2 = rows.reduce((a, x) => a + x.spent, 0), lim = rows.reduce((a, x) => a + x.limit, 0); return budgetLeft(sp2, lim); })(), planCard(d))}
+    ${fold('plan', 'Your plan this cycle', planRight, planCard(d))}
     </div><div class="col">
     ${fold('tx', 'Transactions', String(txs.length), groupsCard(d, r, txs))}
     ${(d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Not counted</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : ''}
