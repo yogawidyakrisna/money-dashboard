@@ -94,6 +94,30 @@
   .btn.plain { background: var(--cell); color: var(--tint); }
   .big-amount { text-align: center; font-size: 34px; font-weight: 700; padding: 6px 16px 0; font-variant-numeric: tabular-nums; }
   .shot { width: 100%; display: block; border-radius: 12px; }
+  /* Charts: four category groups, each with its own color. */
+  :root { --g-family: #af52de; --g-needs: #32ade6; --g-wants: #ffcc00; --g-other: #8e8e93; }
+  @media (prefers-color-scheme: dark) { :root { --g-family: #bf5af2; --g-needs: #64d2ff; --g-wants: #ffd60a; --g-other: #98989d; } }
+  .hero-row { display: flex; align-items: center; gap: 14px; }
+  .hero-row > .main { min-width: 0; }
+  .ring { position: relative; flex: none; }
+  .ring svg { display: block; width: 100%; height: 100%; }
+  .ring-c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.15; }
+  .ring-c b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .ring-c span { font-size: 11px; color: var(--label2); }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-top: 14px; font-size: 13px; }
+  .legend div { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .legend .num { margin-left: auto; color: var(--label2); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .chart { padding: 12px 12px 8px; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font: 10px -apple-system, sans-serif; fill: var(--label2); }
+  .stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--fill); }
+  .stack > div { height: 100%; }
+  .emo { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--fill); }
+  .share { height: 4px; border-radius: 2px; background: var(--fill); margin-top: 6px; overflow: hidden; }
+  .share > div { height: 100%; border-radius: 2px; }
+  .cat-head { display: flex; flex-direction: column; align-items: center; padding: 4px 16px 0; }
+  .cat-head .emo { width: 56px; height: 56px; border-radius: 16px; font-size: 30px; }
 </style>
 </head>
 <body>
@@ -138,6 +162,54 @@ const ICON = {
   none: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/></svg>',
 };
 
+// ---------- Categories and charts ----------
+
+const GROUPS = [['Family', 'var(--g-family)'], ['Needs', 'var(--g-needs)'], ['Wants', 'var(--g-wants)'], ['Other', 'var(--g-other)']];
+const catInfo = (d, name) => (d.categoryInfo || []).find(c => c.name === name) || { name, group: 'Other', icon: '📦', hint: '' };
+const groupColor = g => (GROUPS.find(x => x[0] === g) || GROUPS[3])[1];
+const emo = (d, name) => { const c = catInfo(d, name); return `<div class="emo" style="background:color-mix(in srgb, ${groupColor(c.group)} 20%, transparent)">${esc(c.icon || '📦')}</div>`; };
+const dayNum = s => Number(s.slice(8, 10));
+const todayKey = d => new Date(d.now + 7 * 3600e3).toISOString().slice(0, 10); // WIB date
+
+/** Spending per category and per group for the cycle, biggest first. */
+function spendTree(d) {
+  const cats = d.budgets.rows.filter(r => r.spent > 0).map(r => ({ ...r, ...catInfo(d, r.category) })).sort((a, b) => b.spent - a.spent);
+  const groups = GROUPS.map(([g, color]) => ({ group: g, color, spent: cats.filter(c => (GROUPS.some(x => x[0] === c.group) ? c.group : 'Other') === g).reduce((s, c) => s + c.spent, 0) })).filter(g => g.spent > 0);
+  return { cats, groups };
+}
+
+/** Donut: colored parts on a grey track. `total` is the whole ring (the budget, or what was spent). */
+function ring(parts, total, size, center) {
+  const r = 40, c = 2 * Math.PI * r, gap = parts.filter(p => p.v > 0).length > 1 ? 1.2 : 0;
+  let off = 0;
+  const arcs = parts.filter(p => p.v > 0).map(p => {
+    const len = Math.max(0.6, c * Math.min(1, p.v / total) - gap);
+    const el = `<circle r="${r}" cx="50" cy="50" fill="none" stroke-width="13" style="stroke:${p.color}" stroke-dasharray="${len} ${c}" stroke-dashoffset="${-off}" transform="rotate(-90 50 50)"/>`;
+    off += len + gap; return el;
+  }).join('');
+  return `<div class="ring" style="width:${size}px;height:${size}px"><svg viewBox="0 0 100 100"><circle r="${r}" cx="50" cy="50" fill="none" stroke-width="13" style="stroke:var(--fill)"/>${arcs}</svg><div class="ring-c">${center}</div></div>`;
+}
+
+/** Bars per day across the cycle, with an optional dashed "daily limit" line. */
+function dayBars(d, values, color, line) {
+  const W = 320, H = 120, top = 14, base = H - 18, n = values.length || 1, step = W / n, bw = Math.max(2, step * 0.66);
+  const today = todayKey(d), max = Math.max(1, line || 0, ...values.map(v => v.v));
+  const y = v => base - (v / max) * (base - top);
+  const bars = values.map((p, i) => {
+    const x = i * step + (step - bw) / 2, future = d.cycle.isCurrent && p.date > today;
+    if (future) return `<rect x="${x}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`;
+    const h = Math.max(p.v ? 2 : 0, base - y(p.v));
+    return h ? `<rect x="${x}" y="${base - h}" width="${bw}" height="${h}" rx="${Math.min(2, bw / 2)}" style="fill:${color};opacity:${p.date === today ? 1 : .55}"/>` : '';
+  }).join('');
+  const label = (i, text, anchor) => `<text x="${Math.min(W, Math.max(0, i * step + step / 2))}" y="${H - 4}" text-anchor="${anchor}">${esc(text)}</text>`;
+  const ti = values.findIndex(p => p.date === today);
+  const labels = label(0, dayNum(values[0].date) + ' ' + new Date(values[0].date + 'T00:00:00').toLocaleDateString([], { month: 'short' }), 'start')
+    + (ti > 3 && ti < n - 4 ? label(ti, 'Today', 'middle') : '') + label(n - 1, String(dayNum(values[n - 1].date)), 'end');
+  const ln = line ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
+    <text x="${W}" y="${y(line) - 4}" text-anchor="end">${esc(rs(line))} a day</text>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" role="img"><line x1="0" x2="${W}" y1="${base}" y2="${base}" style="stroke:var(--sep)" stroke-width=".5"/>${bars}${ln}${labels}</svg>`;
+}
+
 async function api(method, body, query) {
   const res = await fetch(API + (query || ''), { method, cache: 'no-store',
     headers: { 'x-key': KEY, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -181,9 +253,31 @@ function nextStep(d) {
   return null;
 }
 
+/** Spent vs left as one ring: a color per group, grey for what is left. */
+function spentRing(d, size) {
+  const { groups } = spendTree(d), sp = d.spend, budget = sp.limit > 0;
+  const total = budget ? Math.max(sp.limit, d.spent) : Math.max(1, d.spent);
+  const center = budget
+    ? (sp.left >= 0 ? `<b>${rs(sp.left)}</b><span>left</span>` : `<b class="red">${rs(-sp.left)}</b><span>over</span>`)
+    : `<b>${rs(d.spent)}</b><span>spent</span>`;
+  return ring(groups.map(g => ({ v: g.spent, color: g.color })), total, size, center);
+}
+
+function spentLegend(d) {
+  const { groups } = spendTree(d), sp = d.spend;
+  const items = groups.map(g => `<div><span class="dot" style="background:${g.color}"></span>${esc(g.group)}<span class="num">${rs(g.spent)}</span></div>`);
+  if (sp.limit > 0 && sp.left > 0) items.push(`<div><span class="dot" style="background:var(--fill)"></span>Left<span class="num">${rs(sp.left)}</span></div>`);
+  return items.length ? `<div class="legend tap" data-tab="transactions">${items.join('')}</div>` : '';
+}
+
+/** A fixed category (family transfers, subscriptions) is done once all its fixed payments went out. */
+function fixedDone(d, cat) {
+  const fx = (d.fixed || []).filter(f => f.category === cat);
+  return fx.length > 0 && fx.every(f => f.done !== undefined ? f.done : f.paid >= f.amount);
+}
+
 function home(d) {
   const nw = d.netWorth, b = d.budgets, sp = d.spend, r = d.reports, step = nextStep(d);
-  const used = sp.limit ? Math.round((sp.limit - sp.left) / sp.limit * 100) : 0;
   const rows = b.rows.filter(x => x.limit > 0 || x.spent > 0);
   const shown = S.showAll ? rows : rows.slice(0, 5);
   const writing = r.pending.length;
@@ -193,12 +287,14 @@ function home(d) {
   <div class="title-row"><h1 class="large-title">Money</h1>${d.cycle.isCurrent ? `<span class="pill">${d.cycle.daysLeft} days to payday</span>` : `<span class="pill">${esc(d.cycle.label)}</span>`}</div>
 
   <div class="section"><div class="group"><div class="hero">
+    <div class="hero-row"><div class="main">
     ${sp.perDay !== null ? `
       <div class="k">You can spend</div>
       <div class="v">${rs(sp.perDay)} <small>a day</small></div>
-      <div class="k">${sp.left >= 0 ? rs(sp.left) + ' left until payday (' + paydayLabel(d) + ')' : '<span class="red">' + rs(-sp.left) + ' over budget</span>'}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>
-      <div class="progress"><div class="${used > 100 ? 'over' : used >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, used))}%"></div></div>`
+      <div class="k">${sp.left >= 0 ? 'until payday, ' + paydayLabel(d) : '<span class="red">' + rs(-sp.left) + ' over budget</span>'}${b.state === 'proposed' ? ' · budget not approved yet' : ''}</div>`
     : `<div class="k">Spent this cycle</div><div class="v">${rs(d.spent)}</div><div class="k">${d.cycle.isCurrent ? 'Approve a budget to see your daily limit' : esc(d.cycle.label)}</div>`}
+    </div>${spentRing(d, 112)}</div>
+    ${spentLegend(d)}
   </div></div></div>
 
   <div class="section">${step ? `<div class="next" data-act="${step.act}"><div class="main"><div style="font-weight:600">${esc(step.title)}</div><div>${esc(step.sub)}</div></div><span style="font-size:22px">›</span></div>`
@@ -211,22 +307,21 @@ function home(d) {
 
   <div class="section"><div class="header"><span>Budget</span><span>${b.state === 'approved' ? '✓ Approved' : b.state === 'proposed' ? 'Not approved yet' : ''}</span></div><div class="group">
     ${rows.length ? shown.map(x => {
-      const fixedCat = (d.fixed || []).some(f => f.category === x.category);
-      const paid = fixedCat && x.limit && x.spent >= x.limit && x.spent <= x.limit * 1.02;
+      const paid = x.limit && fixedDone(d, x.category) && x.spent <= x.limit * 1.02;
       const over = x.limit && x.spent > x.limit && !paid, pct = x.limit ? Math.round(x.spent / x.limit * 100) : null;
       const label = paid ? '✓ Paid' : x.limit ? (over ? rs(x.spent - x.limit) + ' over' : rs(x.limit - x.spent) + ' left') : rs(x.spent) + ' spent';
-      return `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}"><div class="main">
+      return `<div class="cell tap" data-act="cat" data-id="${esc(x.category)}">${emo(d, x.category)}<div class="main">
         <div class="field"><span class="t">${esc(x.category)}</span><span class="num ${paid ? 'green' : over ? 'red' : 'd'}">${label}</span></div>
-        ${x.limit ? `<div class="progress"><div class="${paid ? 'done' : over ? 'over' : pct >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, pct))}%"></div></div>` : ''}
-      </div></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
+        ${x.limit ? `<div class="progress"><div class="${paid ? 'done' : over ? 'over' : pct >= 80 ? 'warn' : ''}" style="width:${Math.min(100, Math.max(2, paid ? 100 : pct))}%"></div></div>` : ''}
+      </div><span class="chev">›</span></div>`; }).join('') : '<div class="cell"><div class="main muted">No spending yet</div></div>'}
     ${rows.length > 5 ? `<div class="cell tap" data-act="more"><div class="main link">${S.showAll ? 'Show less' : 'Show all ' + rows.length}</div></div>` : ''}
     ${b.state === 'none' && d.cycle.isCurrent ? (r.pending.includes('monthly') ? '<div class="cell"><div class="main muted">Your CFO is writing a budget…</div></div>' : '<div class="cell tap" data-act="ask" data-id="monthly"><div class="main link">Ask the CFO for a budget</div></div>') : ''}
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
 
   ${d.fixed && d.fixed.length ? `<div class="section"><div class="header"><span>Fixed every month</span><span>${rs(d.fixed.reduce((s, f) => s + f.amount, 0))}</span></div><div class="group">
-    ${d.fixed.map(f => `<div class="cell"><div class="main"><div class="t">${esc(f.label.replace(/\s*\(.*\)$/, ''))}</div><div class="s">${esc(f.category)}</div></div>
-      <span class="num ${f.paid >= f.amount ? 'green' : 'd'}">${f.paid >= f.amount ? '✓ ' : ''}${rs(f.amount)}</span></div>`).join('')}
+    ${d.fixed.map(f => { const done = f.done !== undefined ? f.done : f.paid >= f.amount; return `<div class="cell">${emo(d, f.category)}<div class="main"><div class="t">${esc(f.label.replace(/\s*\(.*\)$/, ''))}</div><div class="s">${esc(f.category)}</div></div>
+      <span class="num ${done ? 'green' : 'd'}">${done ? '✓ ' : ''}${rs(f.amount)}</span></div>`; }).join('')}
   </div><div class="footnote">✓ means it's already paid this cycle.</div></div>` : ''}
 
   <div class="section"><div class="header"><span>Your money</span><span>${rs(nw.total)}</span></div><div class="group">
@@ -270,10 +365,70 @@ function transactions(d) {
   const total = days.reduce((s, g) => s + g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0), 0);
   return `<div class="title-row"><h1 class="large-title">${S.filter && S.filter !== 'review' ? esc(S.filter) : 'Spending'}</h1>${S.filter ? '<span class="pill tap" data-act="clearFilter">Show all ✕</span>' : ''}</div>
     <div class="subtitle">${rs(total)} spent · ${esc(d.cycle.label)}</div>
+    ${S.filter ? '' : dayCard(d) + whereItWent(d)}
+    ${days.length && !S.filter ? '<div class="section" style="margin-bottom:-12px"><div class="header"><span>Every transaction</span></div></div>' : ''}
     ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span><span class="num">${g.txs.some(t => t.spending) ? rs(g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0)) : ''}</span></div>
       <div class="group">${g.txs.map(t => txRow(t, txSub(t) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}</div></div>`).join('')
       : `<div class="empty">${S.filter === 'review' ? 'Nothing to check.' : 'Nothing here yet. Double-tap the back of your iPhone on a receipt.'}</div>`}
     <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>`;
+}
+
+/** Everyday spending per day (fixed payments left out, so the bars stay readable). */
+function dayCard(d) {
+  if (!d.daily || !d.daily.length) return '';
+  const values = d.daily.map(x => ({ date: x.date, v: x.amount - (x.fixed || 0) }));
+  const fixed = d.daily.reduce((s, x) => s + (x.fixed || 0), 0);
+  const avgDays = values.filter(v => !d.cycle.isCurrent || v.date <= todayKey(d)).length || 1;
+  const avg = values.reduce((s, v) => s + v.v, 0) / avgDays;
+  return `<div class="section"><div class="header"><span>Day by day</span><span>about ${rs(avg)} a day</span></div>
+    <div class="group chart">${dayBars(d, values, 'var(--tint)', d.spend.perDay || 0)}</div>
+    <div class="footnote">${d.spend.perDay ? 'Dashed line: what you can spend a day now. ' : ''}${fixed ? 'Fixed payments (' + rs(fixed) + ') are left out.' : ''}</div></div>`;
+}
+
+/** Where the money went: one bar split by group, then every category. Tap one for its details. */
+function whereItWent(d) {
+  const { cats, groups } = spendTree(d), total = groups.reduce((s, g) => s + g.spent, 0), top = cats.length ? cats[0].spent : 1;
+  if (!total) return '';
+  return `<div class="section"><div class="header"><span>Where it went</span><span>${rs(total)}</span></div><div class="group">
+    <div class="cell" style="display:block"><div class="stack">${groups.map(g => `<div style="width:${g.spent / total * 100}%;background:${g.color}"></div>`).join('')}</div>
+      <div class="legend" style="margin-top:10px">${groups.map(g => `<div><span class="dot" style="background:${g.color}"></span>${esc(g.group)}<span class="num">${Math.round(g.spent / total * 100)}%</span></div>`).join('')}</div></div>
+    ${cats.map(c => `<div class="cell tap" data-act="cat" data-id="${esc(c.category)}">${emo(d, c.category)}<div class="main">
+      <div class="field"><span class="t">${esc(c.category)}</span><span class="num">${rs(c.spent)}</span></div>
+      <div class="share"><div style="width:${Math.max(2, c.spent / top * 100)}%;background:${groupColor(c.group)}"></div></div></div><span class="chev">›</span></div>`).join('')}
+  </div><div class="footnote">Tap a category to see what's inside.</div></div>`;
+}
+
+/** One category: spent vs budget, day by day, top places and every transaction. */
+function catSheet(name) {
+  const d = S.data, c = catInfo(d, name), row = d.budgets.rows.find(r => r.category === name) || { spent: 0, limit: 0 };
+  const txs = [];
+  for (const g of d.days) for (const t of g.txs) if (t.category === name) txs.push({ ...t, day: g.label, date: g.date });
+  const spentTx = txs.filter(t => t.spending);
+  const byDay = {}; for (const t of spentTx) byDay[t.date] = (byDay[t.date] || 0) + t.amount;
+  const places = {}; for (const t of spentTx) { const k = (t.merchant || '—').trim(); places[k] = places[k] || { name: k, v: 0, n: 0 }; places[k].v += t.amount; places[k].n++; }
+  const topPlaces = Object.values(places).sort((a, b) => b.v - a.v).slice(0, 5);
+  const color = groupColor(c.group), spent = row.spent, limit = row.limit, paid = limit && fixedDone(d, name) && spent <= limit * 1.02;
+  const last = (d.lastCycle || {})[name] || 0, diff = spent - last;
+  const status = paid ? '<span class="green">✓ Paid this cycle</span>'
+    : limit ? (spent > limit ? `<span class="red">${rs(spent - limit)} over</span> your ${rs(limit)} budget` : `${rs(limit - spent)} left of ${rs(limit)}`)
+    : 'No budget for this';
+  const center = limit ? `<b>${Math.round(spent / limit * 100)}%</b><span>used</span>` : `<b>${spentTx.length}</b><span>${spentTx.length === 1 ? 'payment' : 'payments'}</span>`;
+  sheet(name, `
+    <div class="cat-head">${emo(d, name)}<div class="footnote" style="padding:6px 0 0">${esc(c.group || '')}</div></div>
+    <div class="section" style="margin-top:12px"><div class="group"><div class="hero"><div class="hero-row"><div class="main">
+      <div class="k">Spent this cycle</div><div class="v">${rs(spent)}</div>
+      <div class="k">${status}</div>
+      ${last ? `<div class="k" style="margin-top:4px">Last cycle ${rs(last)}${last && Math.abs(diff) >= 1000 ? ` · <span class="${diff > 0 ? 'red' : 'green'}">${diff > 0 ? '↑' : '↓'} ${rs(Math.abs(diff))}</span>` : ''}</div>` : ''}
+    </div>${ring([{ v: spent, color: paid ? 'var(--green)' : limit && spent > limit ? 'var(--red)' : color }], Math.max(1, limit || spent), 96, center)}</div></div></div></div>
+    ${spentTx.length ? `<div class="section"><div class="header"><span>Day by day</span></div>
+      <div class="group chart">${dayBars(d, d.daily.map(x => ({ date: x.date, v: byDay[x.date] || 0 })), color, 0)}</div></div>` : ''}
+    ${topPlaces.length ? `<div class="section"><div class="header"><span>${c.group === 'Family' && name === 'Family' ? 'Who got it' : 'Top places'}</span></div><div class="group">
+      ${topPlaces.map(p => `<div class="cell"><div class="main"><div class="field"><span class="t">${esc(p.name)}</span><span class="num">${rs(p.v)}</span></div>
+        <div class="share"><div style="width:${Math.max(2, p.v / topPlaces[0].v * 100)}%;background:${color}"></div></div>
+        <div class="s">${p.n === 1 ? 'once' : p.n + ' times'}</div></div></div>`).join('')}</div></div>` : ''}
+    <div class="section"><div class="header"><span>${txs.length === 1 ? '1 transaction' : txs.length + ' transactions'}</span></div><div class="group">
+      ${txs.length ? txs.map(t => txRow(t, t.day + (t.time ? ' · ' + t.time : '') + ' · ' + t.account, 'edit')).join('') : '<div class="cell"><div class="main muted">Nothing this cycle</div></div>'}
+    </div>${c.hint ? `<div class="footnote">What goes here: ${esc(c.hint)}.</div>` : ''}</div>`);
 }
 
 // ---------- Activity ----------
@@ -478,7 +633,7 @@ document.addEventListener('click', e => {
     case 'shot': shotSheet(id); break;
     case 'image': showImage(id); break;
     case 'more': S.showAll = !S.showAll; render(); break;
-    case 'cat': S.filter = id; goTab('transactions'); break;
+    case 'cat': catSheet(id); break;
     case 'review': S.filter = 'review'; goTab('transactions'); break;
     case 'gotoImprove': goTab('activity'); break;
     case 'clearFilter': S.filter = null; render(); break;
