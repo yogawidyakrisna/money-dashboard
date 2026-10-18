@@ -121,6 +121,13 @@
   .stack > div { height: 100%; }
   .emo { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--fill); }
   /* Budget bar: the fill is what you spent, the bold white line is the budget. Past the line = over. */
+  .seg { display: flex; background: var(--fill); border-radius: 10px; padding: 2px; margin: 12px 16px 0; }
+  .seg button { flex: 1; border: 0; background: none; padding: 8px 0; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--label2); cursor: pointer; }
+  .seg button.on { background: #636366; color: #fff; }
+  .seg.small { margin: 0 0 10px; } .seg.small button { padding: 6px 0; font-size: 13px; }
+  .grp-h .chev { transition: transform .15s; } .grp-h.open .chev { transform: rotate(90deg); }
+  .grp-body { background: rgba(255,255,255,.03); }
+  .hbar { height: 8px; border-radius: 4px; background: var(--fill); margin-top: 6px; overflow: hidden; } .hbar > div { height: 100%; border-radius: 4px; }
   .bbar { position: relative; height: 10px; border-radius: 5px; background: var(--fill); margin: 9px 4px 4px 0; }
   .bbar > .bfill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
   .bbar > .bline { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #fff; }
@@ -158,7 +165,9 @@ if (params.get('k')) store.set('money:key', params.get('k'));
 const KEY = params.get('k') || store.get('money:key');
 
 const S = { tab: (store.get('money:tab') === 'summary' ? 'home' : store.get('money:tab')) || 'home', data: store.get('money:dash'),
-  activity: store.get('money:activity'), cycle: null, filter: null, showAll: false, loading: false, error: '', at: 0, more: store.get('money:more') === true };
+  activity: store.get('money:activity'), cycle: null, filter: null, showAll: false, loading: false, error: '', at: 0, more: store.get('money:more') === true,
+  range: store.get('money:range') || '7', chartBy: store.get('money:chartBy') || 'time', groupBy: store.get('money:groupBy') || 'category',
+  open: null, planAll: false };
 let poll = null;
 
 // Money: full for details, short everywhere else (no walls of zeros).
@@ -224,6 +233,9 @@ function budgetLeft(spent, limit) {
   return spent > limit ? `<span class="red">${rs(spent - limit)} over</span>` : `<span class="${spent >= limit * 0.8 ? 'orange' : 'green'}">${rs(limit - spent)} left</span>`;
 }
 
+/** Very short amounts for crowded charts: 222 (= Rp222 rb), 1,1jt. */
+const tiny = v => v >= 1e6 ? String(Math.round(v / 1e5) / 10).replace('.', ',') + 'jt' : String(Math.round(v / 1000));
+
 /** Bars with their amount written on top and a name under each; optional dashed limit line with its value. */
 function labeledBars(values, color, line, lineLabel) {
   const W = 320, H = 160, top = 22, base = H - 22, n = values.length || 1, step = W / n, bw = Math.min(30, step * 0.62);
@@ -231,7 +243,7 @@ function labeledBars(values, color, line, lineLabel) {
   const bars = values.map((p, i) => {
     const cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = line && p.v > line;
     return `${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="4" style="fill:${over ? 'var(--red)' : color};opacity:${p.hl ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
-      <text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:10px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(rs(p.v).replace('Rp', '')) : '0'}</text>
+      <text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:${n > 8 ? 9 : 10}px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(n > 8 ? tiny(p.v) : rs(p.v).replace('Rp', '')) : '0'}</text>
       <text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>`;
   }).join('');
   const ln = line ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
@@ -567,56 +579,129 @@ function txRow(t, sub, act) {
 }
 const txSub = t => t.direction === 'transfer' ? t.account + ' → ' + t.to : t.category + ' · ' + t.account;
 
+/** The days the Spending tab looks at: the last 7 or 14 days, or the whole pay cycle (payday to payday). */
+function rangeOf(d) {
+  const today = d.cycle.isCurrent ? todayKey(d) : d.daily[d.daily.length - 1].date;
+  const upto = d.daily.filter(x => x.date <= today);
+  const days = S.range === 'cycle' ? upto : upto.slice(-Number(S.range));
+  const label = S.range === 'cycle' ? 'this cycle' : `the last ${S.range} days`;
+  return { days, from: days.length ? days[0].date : today, to: today, label };
+}
+const flexOf = x => x.amount - (x.fixed || 0) - (x.other || 0); // everyday spending: no fixed bills, no urgent reserve
+
+const seg = (act, value, items, small) => `<div class="seg ${small ? 'small' : ''}">${items.map(([v, label]) => `<button data-act="${act}" data-id="${v}" class="${v === value ? 'on' : ''}">${label}</button>`).join('')}</div>`;
+
 function transactions(d) {
-  const keep = t => !S.filter || (S.filter === 'review' ? t.status === 'check' && !t.reviewed : t.category === S.filter);
-  const days = d.days.map(g => ({ ...g, txs: g.txs.filter(keep) })).filter(g => g.txs.length);
-  const total = days.reduce((s, g) => s + g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0), 0);
-  return `<div class="title-row"><h1 class="large-title">${S.filter && S.filter !== 'review' ? esc(S.filter) : 'Spending'}</h1>${S.filter ? '<span class="pill tap" data-act="clearFilter">Show all ✕</span>' : ''}</div>
-    <div class="subtitle">${rs(total)} spent · ${esc(d.cycle.label)}</div>
-    ${S.filter ? '' : dayCard(d) + whereItWent(d)}
-    ${days.length && !S.filter ? '<div class="section" style="margin-bottom:-12px"><div class="header"><span>Every transaction</span></div></div>' : ''}
-    ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span><span class="num">${g.txs.some(t => t.spending) ? rs(g.txs.filter(t => t.spending).reduce((a, t) => a + t.amount, 0)) : ''}</span></div>
-      <div class="group">${g.txs.map(t => txRow(t, txSub(t) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}</div></div>`).join('')
-      : `<div class="empty">${S.filter === 'review' ? 'Nothing to check.' : 'Nothing here yet. Double-tap the back of your iPhone on a receipt.'}</div>`}
-    ${!S.filter && (d.ignored || []).length ? `<div class="section"><div class="header"><span>Not counted</span><span>${d.ignored.length}</span></div>
-      <div class="group">${d.ignored.map(t => txRow(t, t.label + ' · ' + txSub(t), 'edit')).join('')}</div>
-      <div class="footnote">You set these to "don't count". Tap one and choose "Count it? Yes" to bring it back.</div></div>` : ''}
+  if (S.filter) return filteredList(d);
+  const r = rangeOf(d);
+  const txs = [];
+  for (const g of d.days) if (g.date >= r.from && g.date <= r.to) for (const t of g.txs) txs.push({ ...t, day: g.label, date: g.date });
+  return `<div class="title-row"><h1 class="large-title">Spending</h1></div>
+    <div class="subtitle">${esc(shortDay(r.from))} – ${esc(shortDay(r.to))}${d.cycle.isCurrent ? ' · payday ' + esc(paydayLabel(d)) : ''}</div>
+    ${seg('range', S.range, [['7', '7 days'], ['14', '14 days'], ['cycle', 'Full cycle']])}
+    ${chartCard(d, r, txs)}
+    ${planCard(d)}
+    ${groupsCard(d, r, txs)}
+    ${(d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Not counted</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : ''}
     <div class="footnote" style="padding-top:12px">Tap anything to fix it. Repeats of the same transaction are hidden automatically.</div>`;
 }
 
-/** Everyday spending per day (fixed payments left out, so the bars stay readable). */
-function dayCard(d) {
-  if (!d.daily || !d.daily.length) return '';
-  const today = todayKey(d), upto = d.cycle.isCurrent ? d.daily.filter(x => x.date <= today) : d.daily;
-  const week = upto.slice(-7).map(x => {
-    const dt = new Date(x.date + 'T00:00:00');
-    return { v: x.amount - (x.fixed || 0) - (x.other || 0), label: x.date === today ? 'Today' : dt.toLocaleDateString([], { weekday: 'short' }), hl: x.date === today };
-  });
-  const avg = week.reduce((s, x) => s + x.v, 0) / (week.length || 1), limit = todayInfo(d).limit || d.spend.perDay || 0;
-  return `<div class="section"><div class="header"><span>Last 7 days</span><span>${limit ? 'limit ' + rs(limit) + ' a day' : ''}</span></div>
-    <div class="group chart">${labeledBars(week, 'var(--tint)', limit, '')}</div>
-    <div class="footnote">You spent about ${rs(avg)} a day. The dashed line is your daily limit; red bars went over it. Fixed payments and urgent costs are left out.</div></div>`;
+/** The chart for the chosen range: over time (per day, or per week for a whole cycle) or by category. */
+function chartCard(d, r, txs) {
+  const flex = r.days.map(x => ({ ...x, v: flexOf(x) })), total = flex.reduce((s, x) => s + x.v, 0);
+  const avg = total / (flex.length || 1), limit = todayInfo(d).limit || d.spend.perDay || 0;
+  const today = todayKey(d), overDays = limit ? flex.filter(x => x.v > limit).length : 0;
+  let chart;
+  if (S.chartBy === 'category') {
+    const by = {};
+    for (const t of txs) if (t.spending && !t.fixed && t.category !== 'Other') by[t.category] = (by[t.category] || 0) + t.amount;
+    const rows = Object.entries(by).sort((a, b) => b[1] - a[1]), sum = rows.reduce((s, x) => s + x[1], 0) || 1;
+    chart = rows.length ? `<div style="display:grid;gap:12px">${rows.map(([cat, v]) => `<div class="tap" data-act="cat" data-id="${esc(cat)}">
+      <div class="field"><span>${esc(catInfo(d, cat).icon || '')} ${esc(cat)}</span><span class="num"><b style="font-weight:600">${rs(v)}</b> <span class="d">· ${Math.round(v / sum * 100)}%</span></span></div>
+      <div class="hbar"><div style="width:${Math.max(2, v / rows[0][1] * 100)}%;background:${groupColor(catInfo(d, cat).group)}"></div></div></div>`).join('')}</div>`
+      : '<div class="muted" style="padding:20px 0;text-align:center">Nothing spent in this range</div>';
+  } else if (S.range === 'cycle') {
+    const weeks = [];
+    for (let i = 0; i < flex.length; i += 7) {
+      const w = flex.slice(i, i + 7);
+      weeks.push({ label: shortDay(w[0].date), v: w.reduce((s, x) => s + x.v, 0), hl: w.some(x => x.date === today) });
+    }
+    chart = labeledBars(weeks, 'var(--tint)', 0);
+  } else {
+    chart = labeledBars(flex.map(x => {
+      const dt = new Date(x.date + 'T00:00:00');
+      return { v: x.v, hl: x.date === today, label: x.date === today ? 'Today' : S.range === '7' ? dt.toLocaleDateString([], { weekday: 'short' }) : String(dt.getDate()) };
+    }), 'var(--tint)', limit, '');
+  }
+  const facts = S.chartBy === 'category' ? 'Share of your everyday spending. Tap a category for its details'
+    : `About ${rs(avg)} a day${limit ? ` · limit ${rs(limit)}` : ''}${overDays ? ` · <span class="red">${overDays} ${overDays === 1 ? 'day' : 'days'} over</span>` : ''}${S.range === 'cycle' ? ' · bars are weeks' : S.range === '14' ? ' · amounts in rb' : ''}`;
+  return `<div class="section"><div class="group chart" style="padding:12px">
+    ${seg('chartBy', S.chartBy, [['time', 'Over time'], ['category', 'By category']], true)}
+    <div class="field" style="margin:2px 2px 8px"><span class="num" style="font-size:24px;font-weight:700">${rs(total)}</span><span class="d" style="font-size:13px">everyday spending</span></div>
+    ${chart}
+  </div><div class="footnote">${facts}. Fixed payments and urgent costs are left out.</div></div>`;
 }
 
-/** Your planned spending: each category against its budget (bold line = the budget). Fixed Family and the urgent reserve are left out. */
-function whereItWent(d) {
+/** The cycle's plan, short: the total and the three categories closest to their budget; the rest on request. */
+function planCard(d) {
   const rows = d.budgets.rows.filter(r => !r.reserve && r.category !== 'Family' && (r.limit > 0 || r.spent > 0))
-    .map(r => ({ ...r, ...catInfo(d, r.category) })).sort((a, b) => (b.limit ? b.spent / b.limit : 9) - (a.limit ? a.spent / a.limit : 9));
+    .sort((a, b) => (b.limit ? b.spent / b.limit : 9) - (a.limit ? a.spent / a.limit : 9));
   if (!rows.length) return '';
-  const spent = rows.reduce((s, r) => s + r.spent, 0), limit = rows.reduce((s, r) => s + r.limit, 0);
-  const family = d.budgets.rows.find(r => r.category === 'Family'), reserve = d.spend.reserve || { used: 0 };
-  return `<div class="section"><div class="header"><span>Your plan</span><span>${esc(d.cycle.label)}</span></div><div class="group">
-    <div class="cell" style="display:block">
-      <div class="field"><span class="num" style="font-size:24px;font-weight:700">${rs(spent)}</span><span class="d num">of ${rs(limit)} planned</span></div>
-      ${budgetBar(spent, limit)}
-      <div class="s">${budgetLeft(spent, limit)} · ${d.cycle.isCurrent ? d.cycle.daysLeft + ' days to payday' : 'cycle ended'}</div>
-    </div>
-    ${rows.map(r => `<div class="cell tap" data-act="cat" data-id="${esc(r.category)}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
+  const spent = rows.reduce((s, r) => s + r.spent, 0), limit = rows.reduce((s, r) => s + r.limit, 0), shown = S.planAll ? rows : rows.slice(0, 3);
+  return `<div class="section"><div class="header"><span>Your plan this cycle</span><span>${budgetLeft(spent, limit)}</span></div><div class="group">
+    <div class="cell" style="display:block"><div class="field"><span class="num" style="font-weight:600">${rs(spent)}</span><span class="d num">of ${rs(limit)}</span></div>${budgetBar(spent, limit)}</div>
+    ${shown.map(r => `<div class="cell tap" data-act="cat" data-id="${esc(r.category)}" style="align-items:flex-start">${emo(d, r.category)}<div class="main">
       <div class="field"><span class="t">${esc(r.category)}</span><span class="num" style="font-size:15px">${budgetLeft(r.spent, r.limit)}</span></div>
-      ${budgetBar(r.spent, r.limit)}
-      <div class="s num">${rs(r.spent)} of ${r.limit ? rs(r.limit) : 'no budget'}</div></div><span class="chev">›</span></div>`).join('')}
-  </div><div class="footnote">The bar fills as you spend. The white line is the budget: past it means over. Not shown${family ? ': Family ' + rs(family.spent) + ' (fixed every month)' : ''}${reserve.used ? ' · urgent reserve used ' + rs(reserve.used) : ''}.</div></div>`;
+      ${budgetBar(r.spent, r.limit)}<div class="s num">${rs(r.spent)} of ${r.limit ? rs(r.limit) : 'no budget'}</div></div><span class="chev">›</span></div>`).join('')}
+    ${rows.length > 3 ? `<div class="cell tap" data-act="planAll"><div class="main link">${S.planAll ? 'Show less' : 'All ' + rows.length + ' categories'}</div></div>` : ''}
+  </div><div class="footnote">White line = budget. Family (fixed) and the urgent reserve are not in the plan.</div></div>`;
 }
+
+/** Transactions in the range, grouped by category, day or account. Groups stay closed until you open one. */
+function groupsCard(d, r, txs) {
+  if (!txs.length) return `<div class="empty">Nothing in ${esc(r.label)}. Double-tap the back of your iPhone on a receipt.</div>`;
+  const key = t => S.groupBy === 'day' ? t.date : S.groupBy === 'account' ? (t.direction === 'transfer' ? 'Between accounts' : t.account) : t.category;
+  const groups = new Map();
+  for (const t of txs) {
+    const k = key(t);
+    if (!groups.has(k)) groups.set(k, { key: k, txs: [], spent: 0, label: S.groupBy === 'day' ? t.day : k });
+    const g = groups.get(k);
+    g.txs.push(t);
+    if (t.spending) g.spent += t.amount;
+  }
+  const list = [...groups.values()].sort((a, b) => S.groupBy === 'day' ? (a.key < b.key ? 1 : -1) : b.spent - a.spent || b.txs.length - a.txs.length);
+  const icon = g => S.groupBy === 'category' ? emo(d, g.key) : S.groupBy === 'day' ? `<div class="emo" style="font-size:13px;font-weight:700">${esc(String(Number(g.key.slice(8, 10))))}</div>`
+    : `<div class="emo" style="font-size:13px;font-weight:700">${esc(g.key.slice(0, 2))}</div>`;
+  return `<div class="section"><div class="header"><span>Transactions</span><span>${txs.length}</span></div>
+    ${seg('groupBy', S.groupBy, [['category', 'Category'], ['day', 'Day'], ['account', 'Account']], true)}
+    <div class="group">${list.map(g => {
+      const open = S.open === g.key, shown = g.txs.slice(0, 20);
+      return `<div class="cell tap grp-h ${open ? 'open' : ''}" data-act="openGroup" data-id="${esc(g.key)}">${icon(g)}<div class="main">
+          <div class="t">${esc(g.label)}</div><div class="s">${g.txs.length} ${g.txs.length === 1 ? 'item' : 'items'}</div></div>
+          <span class="num">${g.spent ? rs(g.spent) : ''}</span><span class="chev">›</span></div>
+        ${open ? `<div class="grp-body">${shown.map(t => txRow(t, (S.groupBy === 'day' ? txSub(t) : t.day + ' · ' + (S.groupBy === 'account' ? t.category : t.account)) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}
+          ${g.txs.length > 20 ? `<div class="cell"><div class="main muted">+ ${g.txs.length - 20} more · pick a shorter range</div></div>` : ''}</div>` : ''}`;
+    }).join('')}</div></div>`;
+}
+
+/** The old flat list, for "Check N transactions" (review). */
+function filteredList(d) {
+  const keep = t => S.filter === 'review' ? t.status === 'check' && !t.reviewed : t.category === S.filter;
+  const days = d.days.map(g => ({ ...g, txs: g.txs.filter(keep) })).filter(g => g.txs.length);
+  return `<div class="title-row"><h1 class="large-title">${S.filter === 'review' ? 'To check' : esc(S.filter)}</h1><span class="pill tap" data-act="clearFilter">Done ✕</span></div>
+    ${days.length ? days.map(g => `<div class="section"><div class="header"><span>${esc(g.label)}</span></div>
+      <div class="group">${g.txs.map(t => txRow(t, txSub(t) + (t.time ? ' · ' + t.time : ''), 'edit')).join('')}</div></div>`).join('')
+      : '<div class="empty">Nothing to check.</div>'}`;
+}
+
+/** Rows set to "don't count", so they can be brought back. */
+function notCountedSheet() {
+  const d = S.data;
+  sheet('Not counted', `<div class="section" style="margin-top:6px"><div class="group">${(d.ignored || []).map(t => txRow(t, t.label + ' · ' + txSub(t), 'edit')).join('')}</div>
+    <div class="footnote">You set these to "don't count". Tap one and choose "Count it? Yes" to bring it back.</div></div>`);
+}
+
+
 
 /** The cycle in 7-day blocks with what was spent in each: [{label: '25 Sep', v, hl}]. */
 function cycleWeeks(d, byDay) {
@@ -995,6 +1080,12 @@ document.addEventListener('click', e => {
     case 'gotoPay': case 'gotoClaims': openMoreAt(el.dataset.act === 'gotoPay' ? 'pay' : 'claims'); break;
     case 'claim': setClaim(id, el.dataset.on === '1' ? 'todo' : 'done', el); break;
     case 'clearFilter': S.filter = null; render(); break;
+    case 'range': S.range = id; S.open = null; store.set('money:range', id); render(); break;
+    case 'chartBy': S.chartBy = id; store.set('money:chartBy', id); render(); break;
+    case 'groupBy': S.groupBy = id; S.open = null; store.set('money:groupBy', id); render(); break;
+    case 'openGroup': S.open = S.open === id ? null : id; render(); break;
+    case 'planAll': S.planAll = !S.planAll; render(); break;
+    case 'notCounted': notCountedSheet(); break;
     case 'prev': S.cycle = S.data.cycle.prevStart; load(); break;
     case 'current': S.cycle = null; load(); break;
     case 'copy': copy(INGEST, el.querySelector('.main'), 'Copied'); break;
