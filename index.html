@@ -511,8 +511,9 @@ function savingSection(d) {
     ${e ? `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund</div><div class="s">Move it to your savings pocket</div></div><span class="num">${rs(e.amount)}</span></div>` : ''}
     ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investing</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('left', 'to go').replace('over', 'more than planned')}</span></div>
       ${budgetBar(inv.invested, inv.amount)}<div class="s num">Invested ${rs(inv.invested)} of ${rs(inv.amount)}</div>
-      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span>${esc(x.place)} · ${x.pct}%</span><span class="num">${rs(x.amount)}</span></div>`).join('')
-        : '<div class="s" style="margin-top:6px">Your split between Bibit, Stockbit and Treasury is not set yet. Tell Claude your split.</div>'}</div>` : ''}
+      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span>${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">+' + x.moved + '% from stocks</span>' : ' <span class="orange">· paused</span>') : ''}</span><span class="num">${rs(x.amount)}</span></div>`).join('')
+        : '<div class="s" style="margin-top:6px">Your split between Bibit, Stockbit and Treasury is not set yet. Tell Claude your split.</div>'}
+      ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep)">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' on ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
   </div></div>`;
 }
 
