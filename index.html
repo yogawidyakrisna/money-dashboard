@@ -196,7 +196,8 @@ const ICON = {
 // ---------- Categories and charts ----------
 
 const GROUPS = [['Family', 'var(--g-family)'], ['Needs', 'var(--g-needs)'], ['Wants', 'var(--g-wants)'], ['Other', 'var(--g-other)']];
-const catInfo = (d, name) => (d.categoryInfo || []).find(c => c.name === name) || { name, group: 'Other', icon: '📦', hint: '' };
+const catInfo = (d, name) => (d.categoryInfo || []).find(c => c.name === name)
+  || { name, group: 'Other', icon: name === 'Investing' ? '📈' : name === 'Emergency fund' ? '🛟' : '📦', hint: '' };
 const groupColor = g => (GROUPS.find(x => x[0] === g) || GROUPS[3])[1];
 const emo = (d, name) => { const c = catInfo(d, name); return `<div class="emo" style="background:color-mix(in srgb, ${groupColor(c.group)} 20%, transparent)">${esc(c.icon || '📦')}</div>`; };
 const dayNum = s => Number(s.slice(8, 10));
@@ -431,6 +432,7 @@ function home(d) {
     ${b.state !== 'none' && d.cycle.isCurrent ? `<div class="cell tap" data-act="plan"><div class="main link">${b.state === 'proposed' ? 'Review and approve' : 'Edit budget'}</div></div>` : ''}
   </div></div>
 
+  ${savingSection(d)}
   ${claimsSection(d)}
   ${paySection(d)}
 
@@ -498,6 +500,19 @@ function todayCard(d) {
     ${shown.length ? shown.map(x => txRow(x, txSub(x) + (x.time ? ' · ' + x.time : ''), 'edit')).join('')
       : '<div class="cell"><div class="main muted">Nothing spent yet today</div></div>'}
     ${t.txs.length > 3 ? `<div class="cell tap" data-tab="transactions"><div class="main link">See all ${t.txs.length}</div></div>` : ''}
+  </div></div>`;
+}
+
+/** Money set aside this cycle: the emergency fund and investing (with the owner's own split). */
+function savingSection(d) {
+  const b = d.budgets, e = b.emergency, inv = b.investing || { amount: 0, invested: 0, split: [] };
+  if (!e && !inv.amount) return '';
+  return `<div class="section"><div class="header"><span>Saving this cycle</span><span>${rs((e ? e.amount : 0) + inv.amount)}</span></div><div class="group">
+    ${e ? `<div class="cell"><div class="emo">🛟</div><div class="main"><div class="t">Emergency fund</div><div class="s">Move it to your savings pocket</div></div><span class="num">${rs(e.amount)}</span></div>` : ''}
+    ${inv.amount ? `<div class="cell" style="display:block"><div class="field"><span>📈 Investing</span><span class="num">${budgetLeft(inv.invested, inv.amount).replace('left', 'to go').replace('over', 'more than planned')}</span></div>
+      ${budgetBar(inv.invested, inv.amount)}<div class="s num">Invested ${rs(inv.invested)} of ${rs(inv.amount)}</div>
+      ${inv.split && inv.split.length ? inv.split.map(x => `<div class="field s" style="margin-top:4px"><span>${esc(x.place)} · ${x.pct}%</span><span class="num">${rs(x.amount)}</span></div>`).join('')
+        : '<div class="s" style="margin-top:6px">Your split between Bibit, Stockbit and Treasury is not set yet. Tell Claude your split.</div>'}</div>` : ''}
   </div></div>`;
 }
 
@@ -886,11 +901,13 @@ function planSheet() {
     return { cat, amount: r.limit || 0, spent: r.spent || 0, reason: r.reason || '' };
   }).sort((x, y) => y.amount - x.amount || y.spent - x.spent);
   items.push({ cat: 'Emergency fund', amount: b.emergency ? b.emergency.amount : 0, spent: 0, reason: b.emergency ? b.emergency.reason : '' });
+  const inv = b.investing || { amount: 0, invested: 0, reason: '' };
+  items.push({ cat: 'Investing', amount: inv.amount, spent: inv.invested, reason: inv.reason });
   sheet('Budget', `
-    <div class="big-amount" id="planTotal">${rs(items.filter(i => i.cat !== 'Emergency fund' && i.cat !== 'Other').reduce((s, i) => s + i.amount, 0))}</div>
-    <div class="footnote" style="text-align:center;padding-top:2px">to spend this cycle${m && m.emergency_fund && m.emergency_fund.target_amount ? ' · emergency fund goal ' + rs(m.emergency_fund.target_amount) : ''}</div>
+    <div class="big-amount" id="planTotal">${rs(items.reduce((s, i) => s + i.amount, 0))}</div>
+    <div class="footnote" style="text-align:center;padding-top:2px" id="planCap">${capLine(items.reduce((s, i) => s + i.amount, 0))}</div>
     <div class="section"><div class="group">${items.map((i, n) => `<label class="cell field" style="align-items:flex-start">
-      <div class="main"><div>${esc(i.cat === 'Other' ? 'Other · urgent reserve' : i.cat)}</div><div class="s wrap">${[i.spent ? 'Spent ' + rs(i.spent) : '', i.cat === 'Other' ? 'Not part of your daily money' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
+      <div class="main"><div>${esc(i.cat === 'Other' ? 'Other · urgent reserve' : i.cat)}</div><div class="s wrap">${[i.spent ? (i.cat === 'Investing' ? 'Invested ' : 'Spent ') + rs(i.spent) : '', i.cat === 'Other' ? 'Not part of your daily money' : i.cat === 'Investing' ? 'Bibit, Stockbit or Treasury · not daily money' : esc(shorten(i.reason))].filter(Boolean).join(' · ')}</div></div>
       <div style="text-align:right;max-width:130px"><input inputmode="numeric" data-cat="${esc(i.cat)}" data-money data-hint="h${n}" value="${i.amount ? rp(i.amount).replace('Rp', '') : ''}" placeholder="0" style="width:120px">
       <div class="s" id="h${n}" style="margin-top:2px">${i.amount ? rs(i.amount) : ''}</div>
       ${sug[i.cat] !== undefined ? `<div class="s link tap" data-act="useSug" data-cat="${esc(i.cat)}" data-amount="${sug[i.cat]}">CFO: ${rs(sug[i.cat])}</div>` : ''}</div></label>`).join('')}</div>
@@ -899,10 +916,20 @@ function planSheet() {
     <button class="btn" data-act="approve" style="margin-top:6px">Approve budget</button></div>`, { label: 'Approve', act: 'approve' });
 }
 
+/** "Rp30,1 jt of your Rp30,5 jt income · Rp400 rb not planned" — the budget can never be more than the income. */
+function capLine(total) {
+  const cap = S.data && S.data.budgets.cap;
+  if (!cap) return 'planned this cycle';
+  return total > cap ? `<span class="red">${rs(total - cap)} more than your ${rs(cap)} income</span> · lower something to approve`
+    : `of your ${rs(cap)} income · ${rs(cap - total)} not planned yet`;
+}
+
 async function approve() {
   const items = [...document.querySelectorAll('input[data-cat]')].map(i => ({ category: i.dataset.cat, amount: moneyValue(i) }));
   const err = m => { document.getElementById('pErr').textContent = m; };
   if (!items.some(i => i.amount > 0)) return err('Enter at least one amount.');
+  const total = items.reduce((s, i) => s + i.amount, 0), cap = S.data.budgets.cap;
+  if (cap && total > cap) return err(`That's ${rs(total - cap)} more than your income. Lower something first.`);
   try { await api('POST', { action: 'approve_budgets', cycle_start: S.data.cycle.start, items }); closeSheet(); load(); }
   catch (e) { err(e.message); }
 }
@@ -1095,7 +1122,11 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => { if (e.target.dataset.money !== undefined) {
   formatMoneyInput(e.target);
   const total = document.getElementById('planTotal');
-  if (total) total.textContent = rs([...document.querySelectorAll('input[data-cat]')].filter(i => i.dataset.cat !== 'Emergency fund' && i.dataset.cat !== 'Other').reduce((s, i) => s + moneyValue(i), 0));
+  if (total) {
+    const sum = [...document.querySelectorAll('input[data-cat]')].reduce((s, i) => s + moneyValue(i), 0);
+    total.textContent = rs(sum); total.classList.toggle('red', !!(S.data.budgets.cap && sum > S.data.budgets.cap));
+    document.getElementById('planCap').innerHTML = capLine(sum);
+  }
 } });
 document.addEventListener('change', e => { if (e.target.dataset.assign !== undefined) assign(e.target); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
