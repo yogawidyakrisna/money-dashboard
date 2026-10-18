@@ -34,8 +34,8 @@
   .large-title { font-size: 40px; line-height: 1; font-weight: 500; letter-spacing: -0.035em; margin: 0; }
   .pill { display: inline-block; font-size: 15px; font-weight: 600; padding: 5px 12px; border-radius: 16px; background: var(--tint-soft); color: var(--tint); }
   .subtitle { color: var(--label2); font-size: 15px; padding: 2px 16px 0; }
-  .section { margin: 20px 16px 0; }
-  .header { display: flex; justify-content: space-between; font-size: 15px; color: var(--label2); padding: 0 16px 7px; }
+  .section { margin: 28px 16px 0; }
+  .header { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; color: var(--label2); padding: 0 4px 10px; }
   .header > span:first-child { color: var(--label); font-weight: 500; font-size: 15px; }
   .footnote { font-size: 15px; color: var(--label2); padding: 7px 16px 0; line-height: 1.35; }
   .group { background: var(--cell); border-radius: 14px; overflow: hidden; }
@@ -125,7 +125,8 @@
   .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
   .chart { padding: 12px 12px 8px; }
   .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .chart text { font: 10px -apple-system, sans-serif; fill: var(--label2); }
+  .chart text { font: 10px var(--font); fill: var(--label2); paint-order: stroke; stroke: var(--cell); stroke-width: 4px; stroke-linejoin: round; }
+  @media (min-width: 900px) { .dash .chart svg { max-height: 260px; } }
   .stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--fill); }
   .stack > div { height: 100%; }
   .emo { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 17px; background: var(--fill); }
@@ -172,16 +173,20 @@
     .band .hk { font-size: 17px; color: var(--on); } .band .hv { font-size: 64px; font-weight: 700; letter-spacing: -.5px; line-height: 1.05; color: #fff; margin: 4px 0; }
     .band .ring-c span { color: var(--on); font-size: 13px; }
     .band .next { padding: 22px 28px; font-size: 18px; border-radius: 22px; } .band .next .main div:last-child { font-size: 15px; }
-    .dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 48px; align-items: stretch; }
-    .dash-cell { min-width: 0; display: flex; flex-direction: column; gap: 48px; }
-    .dash-cell > .section { display: flex; flex-direction: column; flex: 1; margin: 0; }
-    .dash-cell > .section > .group { flex: 1; }
+    .dash { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 40px; align-items: stretch; }
+    .dash-cell { min-width: 0; display: flex; flex-direction: column; gap: 36px; }
+    .dash-cell > .section, .dash-cell > .paper-slot { margin: 0; }
+    .dash-cell > .section:only-child { display: flex; flex-direction: column; flex: 1; }
+    .dash-cell > .section:only-child > .group:only-of-type { flex: 1; }
+    .dash-cell > .section > .next { margin-bottom: 0; }
+    .page-head + .dash, .page-head + .section { margin-top: 36px; }
+    .next { padding: 18px 26px; }
     .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
     .dash .section .section { margin: 16px 0 0; }
     .group { border-radius: 20px; } .cell { padding: 18px 28px; min-height: 60px; gap: 16px; }
     .cell .t { font-size: 17px; } .cell .s { font-size: 15px; }
     .hero { padding: 28px 32px; }
-    .header { padding: 0 6px 14px; font-size: 14px; letter-spacing: .3px; } .header > span:first-child { font-weight: 600; }
+    .header { padding: 0 4px 12px; font-size: 15px; } .header > span:first-child { font-weight: 600; }
     .footnote { padding: 12px 6px 0; font-size: 14px; }
     .more { display: none; }
     .emo { width: 38px; height: 38px; border-radius: 11px; font-size: 20px; } .acct { width: 46px; height: 46px; }
@@ -290,6 +295,7 @@
   .card.titip { background: #1d2740; } .card.serep { background: #1a2a24; }
   .srow { display: flex; align-items: center; gap: 12px; padding: 13px 16px; } .srow + .srow { box-shadow: inset 0 1px 0 var(--sep); }
   .srow .main .t { font-size: 17px; }
+  .srow .s, .card .s { white-space: normal; }
   @media (min-width: 900px) { .page-head { padding: 0 0 8px; } .paper-slot { margin: 0; } .envs { grid-template-columns: 1fr 1fr; } }
   @media (prefers-reduced-motion: reduce) { .env { transition: none; } }
   @media (max-width: 899px) { .tabbar button { font-size: 14px; } .tabbar .in { padding: 6px 6px; gap: 2px; } .tabbar .badge { position: absolute; top: 8px; right: 6px; min-width: 8px; width: 8px; height: 8px; padding: 0; margin: 0; font-size: 0; } }
@@ -403,10 +409,10 @@ function labeledBars(values, color, line, lineLabel) {
   const perBar = values.some(v => v.lim !== undefined);
   const bars = values.map((p, i) => {
     const lim = p.lim !== undefined ? p.lim : line, cx = i * step + step / 2, h = p.v ? Math.max(3, base - y(p.v)) : 0, over = lim && p.v > lim;
-    return `${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="4" style="fill:${over ? 'var(--red)' : color};opacity:${p.hl ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
+    return `${perBar && lim ? `<line x1="${i * step + 2}" x2="${(i + 1) * step - 2}" y1="${y(lim)}" y2="${y(lim)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>` : ''}${h ? `<rect x="${cx - bw / 2}" y="${base - h}" width="${bw}" height="${h}" rx="4" style="fill:${over ? 'var(--red)' : color};opacity:${p.hl ? 1 : .75}"/>` : `<rect x="${cx - bw / 2}" y="${base - 2}" width="${bw}" height="2" rx="1" style="fill:var(--fill)"/>`}
       <text x="${cx}" y="${base - h - 6}" text-anchor="middle" style="font-size:${n > 8 ? 9 : 10}px;font-weight:600;fill:${p.v ? 'var(--label)' : 'var(--label3)'}">${p.v ? esc(n > 8 ? tiny(p.v) : rs(p.v).replace('Rp', '')) : '0'}</text>
       <text x="${cx}" y="${H - 6}" text-anchor="middle" style="font-size:10px;fill:${p.hl ? 'var(--label)' : 'var(--label2)'};font-weight:${p.hl ? 600 : 400}">${esc(p.label)}</text>
-      ${perBar && lim ? `<line x1="${i * step + 2}" x2="${(i + 1) * step - 2}" y1="${y(lim)}" y2="${y(lim)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>` : ''}`;
+`;
   }).join('');
   const ln = line && !perBar ? `<line x1="0" x2="${W}" y1="${y(line)}" y2="${y(line)}" stroke-dasharray="4 3" style="stroke:var(--label2)" stroke-width="1"/>
     <text x="2" y="${y(line) - 4}" style="font-size:10px;fill:var(--label2)">${esc(lineLabel || '')}</text>` : '';
@@ -482,7 +488,7 @@ function nextStep(d) {
   const changes = cfoChanges(d).length;
   if (changes && d.cycle.isCurrent) return { act: 'plan', title: 'CFO usul ganti amplop', sub: `${changes} perubahan · sekitar 1 menit` };
   const jebol = jebolRows(d)[0];
-  if (jebol) return { act: 'tambal', id: jebol.category, title: `${catName(jebol.category)} jebol ${rs(jebol.spent - jebol.limit)}: tambal dulu`, sub: 'Sekitar 1 menit · pilih amplop yang dikurangi, supaya sisanya jujur' };
+  if (jebol) return { act: 'tambal', id: jebol.category, title: `${catName(jebol.category)} jebol ${rs(jebol.spent - jebol.limit)}`, sub: 'Tambal dulu · pilih amplop yang dikurangi' };
   if (d.toCheck) return { act: 'review', title: `Cek ${d.toCheck} transaksi`, sub: 'Sekitar 1 menit · ketuk "Sudah benar" atau betulkan' };
   const missing = (d.pay || []).find(p => p.state === 'missing');
   if (missing && d.cycle.isCurrent) return { act: 'gotoPay', title: `Catat gaji ${shortDay(missing.date)}`, sub: 'Screenshot di aplikasi bank · supaya CFO melihat semua pemasukan' };
@@ -588,9 +594,16 @@ function home(d) {
   const { parts, step, moreOpen } = homeParts(d);
   if (isWide()) {
     // Desktop Home: the one number, today, and the budget at a glance. Plan, Money and CFO are their own pages.
-    return `${strukHome(d)}<div class="dash">${cell(parts, 'span-4', 'next', { html: weekCard(d) })}${cell(parts, 'span-4', 'budget')}${cell(parts, 'span-4', 'saving')}</div>`;
+    return `${strukHome(d)}<div class="dash">${cell(parts, 'span-12', 'next')}<div class="dash-cell span-5">${weekCard(d)}</div><div class="dash-cell span-7">${watchEnvelopes(d)}</div></div>`;
   }
   return `${strukHome(d)}${parts.next}${weekCard(d)}`;
+}
+
+/** The envelopes closest to empty (or already over), for the desktop Home. */
+function watchEnvelopes(d) {
+  const rows = d.budgets.rows.filter(r => !r.reserve && r.limit > 0 && !(fixedDone(d, r.category) && r.spent <= r.limit * 1.02)).sort((a, b) => b.spent / b.limit - a.spent / a.limit).slice(0, 4);
+  if (!rows.length) return '';
+  return `<div class="section"><div class="header"><span>Amplop yang perlu dilihat</span><span class="link tap" data-tab="plan">Semua amplop ›</span></div><div class="envs">${rows.map(r => envelope(d, r, FIXED_CATS.includes(r.category))).join('')}</div></div>`;
 }
 
 /** Desktop-only pages (the sidebar splits Home up so each visual has room). */
@@ -809,6 +822,15 @@ const todoRow = (p, text, i) => { const on = (p.actions_done || []).includes(i);
 
 // ---------- Stamps, and the Amplop, Rapat CFO and Dompet pages ----------
 
+/** The crash rule's line in Indonesian, from the server's English sentence (same numbers). */
+function ruleText(rule) {
+  const m = /IHSG ([+-]?[\d.]+)% in (\d+) days/.exec(rule.text || ''), at = /fires at -(\d+)%/.exec(rule.text || '');
+  if (!m) return /could not be checked/.test(rule.text || '') ? 'IHSG tidak bisa dicek, jadi pembagian biasa berlaku' : rule.text;
+  const pct = m[1].replace('.', ','), days = m[2];
+  return rule.fired ? `IHSG ${pct}% dalam ${days} hari bursa, jadi aturanmu memindah porsi saham ke emas siklus ini`
+    : `IHSG ${pct}% dalam ${days} hari bursa: pembagian biasa berlaku (aturan aktif di −${at ? at[1] : '?'}%)`;
+}
+
 const stp = ([cls, word]) => `<span class="stp ${cls}">${word}</span>`;
 /** A budget line's stamp: LUNAS (fixed and paid), JEBOL (over), MEPET (80%+), DISEGEL (fixed, not due yet), AMAN. */
 function catStamp(d, r) {
@@ -848,15 +870,15 @@ function amplopPage(d) {
     <div class="section"><div class="header"><span>Amplop harian · kamu yang atur</span><span>${rs(daily.reduce((a, r) => a + r.limit, 0))}</span></div><div class="envs">${daily.map(r => envelope(d, r, false)).join('')}</div></div>`;
   const saving = (em || inv.amount) ? `<div class="section" id="saving"><div class="header"><span>Investasi dan dana darurat</span><span>${rs((em ? em.amount : 0) + inv.amount)}</span></div><div class="group">
     ${inv.amount ? `<div class="srow" style="display:block"><div class="field"><span class="t" style="font-weight:600">Investasi wajib</span>${stp(inv.invested >= inv.amount ? ['aman', 'TUNTAS'] : ['or', 'WAJIB'])}</div>
-      <div class="s num">${inv.invested >= inv.amount ? rs(inv.invested) + ' sudah masuk. Siklus ini tuntas.' : rs(inv.invested) + ' dari ' + rs(inv.amount) + ' sudah masuk · kurang ' + rs(inv.amount - inv.invested) + ' sebelum gajian'}</div>${budgetBar(Math.min(inv.invested, inv.amount), inv.amount)}
+      <div class="s num wrap">${inv.invested >= inv.amount ? rs(inv.invested) + ' sudah masuk. Siklus ini tuntas.' : rs(inv.invested) + ' dari ' + rs(inv.amount) + ' sudah masuk · kurang ' + rs(inv.amount - inv.invested) + ' sebelum gajian'}</div>${budgetBar(Math.min(inv.invested, inv.amount), inv.amount)}
       ${(inv.split || []).map(x => `<div class="field s" style="margin-top:4px"><span class="t">${esc(x.place)} · ${x.pct}%${x.moved ? (x.pct ? ' <span class="orange">(+' + x.moved + '%)</span>' : ' <span class="orange">· ditahan</span>') : ''}</span><span class="num" style="flex:none">${rs(x.amount)}</span></div>`).join('') || '<div class="s wrap" style="margin-top:6px">Pembagian Bibit, Stockbit dan Treasury belum diatur. Beri tahu Claude pembagianmu.</div>'}
-      ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px">${inv.rule.fired ? '🚨 ' : ''}${esc(inv.rule.text)}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' per ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
+      ${inv.rule && inv.rule.text ? `<div class="s wrap" style="margin-top:8px">${inv.rule.fired ? '🚨 ' : ''}${esc(ruleText(inv.rule))}${inv.rule.ihsg ? ' · IHSG ' + inv.rule.ihsg.last.toLocaleString('id-ID') + ' per ' + esc(shortDay(inv.rule.ihsg.date)) : ''}</div>` : ''}</div>` : ''}
     ${em ? `<div class="srow"><div class="main"><div class="t" style="font-weight:600">Dana darurat</div><div class="s">${emRow.spent >= em.amount ? rs(emRow.spent) + ' sudah ke Dana Darurat' : 'Pindahkan ' + rs(em.amount - emRow.spent) + ' lagi ke Dana Darurat'}</div></div>${stp(emRow.spent >= em.amount ? ['aman', 'TERISI'] : ['mepet', 'KURANG'])}</div>` : ''}
     ${fromFund.map(r => `<div class="srow tap" data-act="cat" data-id="${esc(r.category)}"><div class="main"><div class="t">${esc(catName(r.category))}</div><div class="s">diambil dari dana darurat · di luar amplop</div></div><span class="num">${rs(r.spent)}</span></div>`).join('')}
   </div></div>` : '';
   const action = d.cycle.isCurrent && b.state !== 'none' ? `<div class="section"><button class="btn" data-act="plan">${b.state === 'proposed' ? 'Cek dan setujui amplop' : 'Atur ulang amplop'}</button></div>`
     : d.cycle.isCurrent ? `<div class="section"><div class="group"><div class="cell tap" data-act="ask"><div class="main link">${d.reports.pending.length ? 'CFO sedang mengisi amplop…' : 'Minta CFO mengisi amplop'}</div></div></div></div>` : '';
-  if (isWide()) return `${head}${planStep}<div class="dash"><div class="dash-cell span-7">${env}</div><div class="dash-cell span-5">${saving}${action}</div></div>`;
+  if (isWide()) return `${head}<div class="dash">${planStep ? `<div class="dash-cell span-12">${planStep}</div>` : ''}<div class="dash-cell span-7">${env}</div><div class="dash-cell span-5">${saving}${action}</div></div>`;
   return `${head}${planStep}${env}${saving}${action}${rapatSection(d)}`;
 }
 
@@ -1110,7 +1132,7 @@ function transactions(d) {
     : `<div class="section"><div class="group"><div class="cell"><div class="main muted">Belum ada belanja di ${esc(r.label)}. Mantap.</div></div></div></div>`;
   // Bocor halus: categories that already cost more than the whole of last cycle.
   const last = d.lastCycle || {};
-  const bocor = d.cycle.isCurrent ? d.budgets.rows.filter(x => !x.reserve && last[x.category] && x.spent > last[x.category] && x.category !== 'Family').map(x => ({ cat: x.category, up: x.spent - last[x.category] })).sort((a, b) => b.up - a.up) : [];
+  const bocor = d.cycle.isCurrent ? d.budgets.rows.filter(x => !x.reserve && last[x.category] && x.spent > last[x.category] && !FIXED_CATS.includes(x.category)).map(x => ({ cat: x.category, up: x.spent - last[x.category] })).sort((a, b) => b.up - a.up) : [];
   const bocorCard = d.cycle.isCurrent && Object.keys(last).length ? `<div class="section"><div class="header"><span>Bocor halus</span><span>vs siklus lalu</span></div><div class="group">
     ${bocor.length ? bocor.map(x => `<div class="srow tap" data-act="cat" data-id="${esc(x.cat)}"><div class="main"><div class="t">${esc(catName(x.cat))}</div><div class="s">sudah lewat total siklus lalu</div></div><span class="num orange">+${rs(x.up)}</span></div>`).join('')
       : '<div class="srow"><div class="main"><div class="t">Tidak ada yang bocor</div><div class="s">Semua kategori masih di bawah siklus lalu. Mantap.</div></div></div>'}</div></div>` : '';
@@ -1118,7 +1140,7 @@ function transactions(d) {
   const ranges = seg('range', S.range, [['7', '7 hari'], ['14', '14 hari'], ['cycle', 'Satu siklus']]);
   const ignored = (d.ignored || []).length ? `<div class="section"><div class="group"><div class="cell tap" data-act="notCounted"><div class="main">Tidak dihitung</div><span class="num d">${d.ignored.length}</span><span class="chev">›</span></div></div></div>` : '';
   if (isWide()) return `<div class="title-row"><h1 class="large-title">Rekap</h1>${ranges}</div>${head}
-    <div class="dash" style="margin-top:32px"><div class="dash-cell span-5">${nota}</div><div class="dash-cell span-7">${chartCard(d, r, txs)}${bocorCard}${weekCard(d)}</div>
+    <div class="dash" style="margin-top:32px"><div class="dash-cell span-5">${nota}${weekCard(d)}</div><div class="dash-cell span-7">${chartCard(d, r, txs)}${bocorCard}</div>
     <div class="dash-cell span-12">${groupsCard(d, r, txs)}${ignored}</div></div>`;
   return `<div class="title-row"><h1 class="large-title">Rekap</h1></div>${ranges}<div style="height:18px"></div>${head}${nota}${bocorCard}
     ${fold('chart', 'Grafik', '', chartCard(d, r, txs))}
